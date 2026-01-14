@@ -171,6 +171,7 @@ async function initDB() {
                 items_json JSON, -- Extracted Items for Sniper
                 ipm_score INT DEFAULT 0,
                 status VARCHAR(50) DEFAULT 'available', -- available, unlocked, archived
+                unlocked_modules JSON, -- List of bought module keys
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
@@ -208,7 +209,8 @@ async function initDB() {
             "ALTER TABLE users ADD COLUMN cpf VARCHAR(20)",
             "ALTER TABLE users ADD COLUMN cnpj VARCHAR(20)",
             "ALTER TABLE users ADD COLUMN current_credits INT DEFAULT 0",
-            "ALTER TABLE task_items ADD COLUMN is_unlocked BOOLEAN DEFAULT FALSE"
+            "ALTER TABLE task_items ADD COLUMN is_unlocked BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE opportunities ADD COLUMN unlocked_modules JSON DEFAULT ('[]')"
         ];
 
         for (const sql of migrations) {
@@ -642,8 +644,8 @@ async function createOpportunity(userId, data) {
 
     // data expects: { title, municipality, metadata, locked_content, items, ipm_score }
     const sql = `INSERT INTO opportunities
-        (user_id, title, municipality, metadata_json, locked_content_json, items_json, ipm_score)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        (user_id, title, municipality, metadata_json, locked_content_json, items_json, ipm_score, unlocked_modules)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
     await p.query(sql, [
         userId || null, // If null, it's global/radar
@@ -652,7 +654,8 @@ async function createOpportunity(userId, data) {
         JSON.stringify(data.metadata),
         JSON.stringify(data.locked_content),
         JSON.stringify(data.items),
-        data.ipm_score || 0
+        data.ipm_score || 0,
+        JSON.stringify([]) // unlocked_modules starts empty
     ]);
 }
 
@@ -684,6 +687,26 @@ async function getSetting(key) {
     if (!p) return null;
     const [rows] = await p.query("SELECT setting_value FROM settings WHERE setting_key = ?", [key]);
     return rows[0] ? rows[0].setting_value : null;
+}
+
+async function unlockOpportunityModule(opportunityId, moduleKey) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    // Get current unlocked modules
+    const opp = await getOpportunityById(opportunityId);
+    if (!opp) throw new Error("Analysis not found");
+
+    let current = typeof opp.unlocked_modules === 'string'
+        ? JSON.parse(opp.unlocked_modules || '[]')
+        : (opp.unlocked_modules || []);
+
+    if (!Array.isArray(current)) current = [];
+
+    if (!current.includes(moduleKey)) {
+        current.push(moduleKey);
+        await p.query("UPDATE opportunities SET unlocked_modules = ? WHERE id = ?", [JSON.stringify(current), opportunityId]);
+    }
 }
 
 async function setSetting(key, value) {
@@ -735,6 +758,7 @@ module.exports = {
     getRadarOpportunities,
     getUserOpportunities,
     getOpportunityById,
+    unlockOpportunityModule,
     getSetting,
     setSetting
 };

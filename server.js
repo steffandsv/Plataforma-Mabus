@@ -76,7 +76,7 @@ initDB().then(() => {
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); 
+app.use(express.json());
 
 // --- AUTH CONFIGURATION ---
 app.use(session({
@@ -202,7 +202,7 @@ app.post('/create', isAuthenticated, upload.single('csvFile'), async (req, res) 
             const content = fs.readFileSync(filePath, 'utf8');
             const lines = content.trim().split('\n');
             costEstimate = Math.max(0, lines.length - 1);
-        } catch(e) {
+        } catch (e) {
             console.error("Error reading file for cost estimate:", e);
         }
     }
@@ -210,8 +210,8 @@ app.post('/create', isAuthenticated, upload.single('csvFile'), async (req, res) 
     // Check Credits (For non-admins)
     if (user.role !== 'admin') {
         if (user.current_credits < costEstimate) {
-             if (req.file) fs.unlinkSync(req.file.path);
-             return res.status(400).send(`Créditos insuficientes. Necessário: ${costEstimate}, Disponível: ${user.current_credits}`);
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(400).send(`Créditos insuficientes. Necessário: ${costEstimate}, Disponível: ${user.current_credits}`);
         }
     }
 
@@ -262,24 +262,24 @@ app.post('/create', isAuthenticated, upload.single('csvFile'), async (req, res) 
         }
 
         if (gridData && gridData.trim().length > 0) {
-             const lines = gridData.trim().split('\n');
-             const items = [];
-             for (let i = 1; i < lines.length; i++) {
-                 const line = lines[i].trim();
-                 if (!line) continue;
-                 const parts = line.split(';');
-                 if (parts.length >= 4) {
-                     items.push({
-                         id: parts[0],
-                         description: parts[1],
-                         valor_venda: parseFloat(parts[2]),
-                         quantidade: parseInt(parts[3])
-                     });
-                 }
-             }
-             if (items.length > 0) {
-                 await createTaskItems(taskId, items);
-             }
+            const lines = gridData.trim().split('\n');
+            const items = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const parts = line.split(';');
+                if (parts.length >= 4) {
+                    items.push({
+                        id: parts[0],
+                        description: parts[1],
+                        valor_venda: parseFloat(parts[2]),
+                        quantidade: parseInt(parts[3])
+                    });
+                }
+            }
+            if (items.length > 0) {
+                await createTaskItems(taskId, items);
+            }
         }
 
         res.redirect('/dashboard'); // Redirect to Dashboard
@@ -303,7 +303,7 @@ app.post('/api/sniper/parse-pdf', isAuthenticated, upload.array('pdfFiles'), asy
         res.json(result);
     } catch (e) {
         // Clean up on error too
-        if (req.files) req.files.forEach(f => { if(fs.existsSync(f.path)) fs.unlinkSync(f.path); });
+        if (req.files) req.files.forEach(f => { if (fs.existsSync(f.path)) fs.unlinkSync(f.path); });
         res.status(500).json({ error: e.message });
     }
 });
@@ -364,10 +364,58 @@ app.post('/api/process-tr', isAuthenticated, upload.array('pdfFiles'), async (re
         res.end();
 
     } catch (e) {
-        filePaths.forEach(p => { if(fs.existsSync(p)) fs.unlinkSync(p); });
+        filePaths.forEach(p => { if (fs.existsSync(p)) fs.unlinkSync(p); });
         console.error("Oracle Error:", e);
         sendEvent('error', { message: e.message });
         res.end();
+    }
+});
+
+app.get('/api/oracle/history/:id', isAuthenticated, async (req, res) => {
+    try {
+        const { getOpportunityById } = require('./src/database');
+        const opportunity = await getOpportunityById(req.params.id);
+
+        if (!opportunity) return res.status(404).json({ error: 'Not found' });
+        if (opportunity.user_id !== req.session.userId) { // Simple ownership check
+            // Allow admin if needed
+            const user = await getUserById(req.session.userId);
+            if (user.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
+        }
+
+        res.json(opportunity);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/oracle/unlock-module', isAuthenticated, async (req, res) => {
+    const { opportunityId, moduleKey, cost } = req.body;
+    const { unlockOpportunityModule, getOpportunityById, addCredits } = require('./src/database');
+
+    try {
+        const user = await getUserById(req.session.userId);
+        const opportunity = await getOpportunityById(opportunityId);
+
+        if (!opportunity) return res.status(404).json({ error: 'Analysis not found' });
+
+        // Cost Check
+        const finalCost = parseInt(cost);
+        if (user.current_credits < finalCost) {
+            return res.status(400).json({ error: `Not enough credits. Needed: ${finalCost}, Have: ${user.current_credits}` });
+        }
+
+        // Deduct
+        await addCredits(user.id, -finalCost, `Unlock Module: ${moduleKey} for #${opportunityId}`);
+
+        // Unlock
+        await unlockOpportunityModule(opportunityId, moduleKey);
+
+        res.json({ success: true, newBalance: user.current_credits - finalCost });
+
+    } catch (e) {
+        console.error("Unlock Error:", e);
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -470,13 +518,13 @@ app.post('/admin/ai-config/save', isAdmin, async (req, res) => {
     } = req.body;
 
     try {
-        if(oracle_provider) await setSetting('oracle_provider', oracle_provider);
-        if(oracle_model) await setSetting('oracle_model', oracle_model);
-        if(oracle_api_key && oracle_api_key.trim() !== '') await setSetting('oracle_api_key', oracle_api_key);
+        if (oracle_provider) await setSetting('oracle_provider', oracle_provider);
+        if (oracle_model) await setSetting('oracle_model', oracle_model);
+        if (oracle_api_key && oracle_api_key.trim() !== '') await setSetting('oracle_api_key', oracle_api_key);
 
-        if(sniper_provider) await setSetting('sniper_provider', sniper_provider);
-        if(sniper_model) await setSetting('sniper_model', sniper_model);
-        if(sniper_api_key && sniper_api_key.trim() !== '') await setSetting('sniper_api_key', sniper_api_key);
+        if (sniper_provider) await setSetting('sniper_provider', sniper_provider);
+        if (sniper_model) await setSetting('sniper_model', sniper_model);
+        if (sniper_api_key && sniper_api_key.trim() !== '') await setSetting('sniper_api_key', sniper_api_key);
 
         // Save Parser Settings (as JSON strings to keep table clean)
         await setSetting('parser_primary', JSON.stringify({ provider: parser_provider_0, key: parser_key_0, model: parser_model_0 }));
@@ -498,9 +546,9 @@ app.post('/api/admin/fetch-models', isAdmin, async (req, res) => {
         // Fallback to Env if key empty
         let effectiveKey = apiKey;
         if (!effectiveKey || effectiveKey.trim() === '') {
-             if (provider === 'qwen') effectiveKey = process.env.DASHSCOPE_API_KEY; // example convention
-             if (provider === 'deepseek') effectiveKey = process.env.DEEPSEEK_API_KEY;
-             if (provider === 'gemini') effectiveKey = process.env.GEMINI_API_KEY;
+            if (provider === 'qwen') effectiveKey = process.env.DASHSCOPE_API_KEY; // example convention
+            if (provider === 'deepseek') effectiveKey = process.env.DEEPSEEK_API_KEY;
+            if (provider === 'gemini') effectiveKey = process.env.GEMINI_API_KEY;
         }
 
         const models = await fetchModels(provider, effectiveKey);
@@ -517,14 +565,14 @@ app.post('/api/tasks/reorder', async (req, res) => { // Removed strict middlewar
             const promises = req.body.orderedIds.map((tid, index) => updateTaskPosition(tid, index));
             await Promise.all(promises);
             res.json({ success: true });
-        } catch(e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { res.status(500).json({ error: e.message }); }
     } else { res.status(400).json({ error: "Invalid data" }); }
 });
 
 app.post('/api/tasks/:id/tags', isAdmin, async (req, res) => {
     const { tags } = req.body;
     try { await updateTaskTags(req.params.id, tags); res.json({ success: true }); }
-    catch(e) { res.status(500).json({ error: e.message }); }
+    catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/logs/:id', async (req, res) => {
@@ -551,7 +599,7 @@ app.post('/api/task/:id/abort', isAuthenticated, async (req, res) => {
     try {
         await updateTaskStatus(req.params.id, 'aborted');
         res.json({ success: true, message: 'Tarefa abortada com sucesso.' });
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
@@ -578,7 +626,7 @@ app.post('/api/unlock-item', isAuthenticated, async (req, res) => {
         await updateTaskItemLockStatus(itemId, true);
 
         res.json({ success: true });
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
@@ -594,9 +642,9 @@ app.post('/api/unlock-all', isAuthenticated, async (req, res) => {
 
         // Verify User Ownership (unless admin)
         if (user.role !== 'admin' && task.user_id !== user.id) {
-             // also check group permissions if needed, but for paying credits, usually owner pays.
-             // Let's allow owner only for now to keep it simple.
-             return res.status(403).json({ error: 'Apenas o dono da tarefa pode desbloquear tudo.' });
+            // also check group permissions if needed, but for paying credits, usually owner pays.
+            // Let's allow owner only for now to keep it simple.
+            return res.status(403).json({ error: 'Apenas o dono da tarefa pode desbloquear tudo.' });
         }
 
         const items = await getTaskItems(taskId);
@@ -615,7 +663,7 @@ app.post('/api/unlock-all', isAuthenticated, async (req, res) => {
         await unlockAllTaskItems(taskId);
 
         res.json({ success: true });
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
@@ -642,7 +690,7 @@ app.get('/download/:id/item/:itemId', isAuthenticated, async (req, res) => {
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename=item_${itemId}.xlsx`);
         res.send(buffer);
-    } catch(e) {
+    } catch (e) {
         res.status(500).send(e.message);
     }
 });
@@ -661,8 +709,8 @@ app.post('/task/:id/action', isAuthenticated, async (req, res) => {
         if (action === 'abort') await updateTaskStatus(taskId, 'aborted');
         else if (action === 'archive') await updateTaskStatus(taskId, 'archived');
         else if (action === 'unarchive') {
-             if (task.output_file) await updateTaskStatus(taskId, 'completed', task.output_file);
-             else await updateTaskStatus(taskId, 'pending');
+            if (task.output_file) await updateTaskStatus(taskId, 'completed', task.output_file);
+            else await updateTaskStatus(taskId, 'pending');
         }
         res.redirect('/dashboard');
     } catch (e) { res.status(500).send(e.message); }
@@ -670,13 +718,13 @@ app.post('/task/:id/action', isAuthenticated, async (req, res) => {
 
 // Admin actions
 app.post('/admin/groups', isAdmin, async (req, res) => {
-    try { await createGroup(req.body.name, req.body.description); res.redirect('/admin/dashboard'); } catch(e){res.redirect('/admin/dashboard');}
+    try { await createGroup(req.body.name, req.body.description); res.redirect('/admin/dashboard'); } catch (e) { res.redirect('/admin/dashboard'); }
 });
 app.post('/admin/users/assign_group', isAdmin, async (req, res) => {
-    try { await addUserToGroup(req.body.user_id, req.body.group_id); res.redirect('/admin/dashboard'); } catch(e){res.redirect('/admin/dashboard');}
+    try { await addUserToGroup(req.body.user_id, req.body.group_id); res.redirect('/admin/dashboard'); } catch (e) { res.redirect('/admin/dashboard'); }
 });
 app.post('/admin/credits', isAdmin, async (req, res) => {
-    try { await addCredits(req.body.user_id, parseInt(req.body.amount), req.body.reason, null); res.redirect('/admin/dashboard'); } catch(e){res.redirect('/admin/dashboard');}
+    try { await addCredits(req.body.user_id, parseInt(req.body.amount), req.body.reason, null); res.redirect('/admin/dashboard'); } catch (e) { res.redirect('/admin/dashboard'); }
 });
 app.post('/admin/users/delete', isAdmin, async (req, res) => {
     if (req.body.id) await deleteUser(req.body.id); res.redirect('/admin/dashboard');
