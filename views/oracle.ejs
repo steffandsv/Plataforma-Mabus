@@ -81,14 +81,14 @@
             <!-- NEURAL LOADER (MABUS CORE) -->
             <div id="loader" class="hidden text-center py-20 flex flex-col items-center min-h-[50vh] justify-center">
                 
-                <canvas id="neuralCanvas" class="mb-4" style="width: 100%; height: 300px;"></canvas>
+                <canvas id="neuralCanvas" class="mb-4" style="width: 100%; height: 400px;"></canvas>
 
                 <div class="text-3xl font-black text-base-content mb-4 tracking-tighter" id="loaderTitle">
                     MABUS PROTOCOL V5
                 </div>
                 
-                <div class="text-sm font-mono text-base-content/50 mb-8 h-6 relative" id="loaderText">
-                    <!-- Text removed as requested -->
+                <div class="text-sm font-mono text-base-content/50 mb-8 h-6 relative">
+                     <span id="loaderText" class="scramble-text">VARREDURA INICIAL EM ANDAMENTO...</span>
                 </div>
 
                 <!-- NOTIFICATION REQUEST -->
@@ -318,6 +318,25 @@
         const formData = new FormData(uploadForm);
         let currentData = {};
 
+        // Status Messages
+        const loadingPhrases = [
+            "MAPEANDO CONCORRÊNCIA GLOBAL...",
+            "ANALISANDO 15.000+ PADRÕES OCULTOS...",
+            "DECODIFICANDO ESTRATÉGIAS DE PREÇO...",
+            "CALCULANDO PROBABILIDADE DE ÊXITO (IPM)...",
+            "IDENTIFICANDO FALHAS NO EDITAL...",
+            "CRUZANDO DADOS TÁTICOS...",
+            "FINALIZANDO RELATÓRIO DE INTELIGÊNCIA..."
+        ];
+        
+        // Start text cycle
+        if(window.statusInterval) clearInterval(window.statusInterval);
+        window.statusInterval = setInterval(() => {
+            const randomPhrase = loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)];
+            const el = document.getElementById('loaderText');
+            if(el) el.innerText = randomPhrase;
+        }, 3000);
+
         try {
             const response = await fetch('/api/process-tr', { method: 'POST', body: formData });
             if (!response.ok) throw new Error(`Erro: ${response.status}`);
@@ -353,14 +372,22 @@
                 }
             }
             
-            clearInterval(termInterval);
             
+            if(window.statusInterval) clearInterval(window.statusInterval);
+
             // 3. Trigger Notification
             if (Notification.permission === "granted") {
-                new Notification("MABUS INTEL", {
+                const notif = new Notification("MABUS INTEL", {
                     body: "Análise concluída com sucesso. O relatório estratégico está pronto.",
-                    icon: "/favicon.ico" // Optional
+                    icon: "/favicon.ico",
+                    tag: "analysis-complete"
                 });
+                notif.onclick = () => {
+                    window.focus();
+                    if(currentOpportunityId) {
+                        window.location.href = `/oracle?id=${currentOpportunityId}`;
+                    }
+                };
             }
 
             showResult({

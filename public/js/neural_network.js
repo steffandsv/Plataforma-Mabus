@@ -2,231 +2,140 @@ class NeuralLoader {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
-        this.resize();
         
+        this.resize();
         window.addEventListener('resize', () => this.resize());
 
-        this.points = [];
-        this.phase = 'NETWORK'; // NETWORK, ZOOM, SQUARE, EXPLODE, CIRCLE
-        this.phaseTime = 0;
+        // Configuration
+        this.particleCount = 100;
+        this.connectionDistance = 100;
+        this.rotationSpeed = 0.002;
+        this.baseRadius = 120;
         
-        // Colors from user request
+        // Brand Colors
         this.colors = {
-            white: '#FFFFFF',
-            gray: '#888888',
-            purple: '#7928CA',
-            red: '#FF4D4D'
+            nodes: 'rgba(255, 255, 255, 0.8)',      // White nodes
+            lines: 'rgba(121, 40, 202, 0.4)',      // Purple lines
+            accent: 'rgba(255, 77, 77, 0.8)'       // Red accents
         };
 
-        this.zoomTarget = null;
-        this.zoomLevel = 1;
-        this.particles = [];
-        this.circleProgress = 0;
-        
-        this.initNetwork();
-        this.frameId = requestAnimationFrame(() => this.animate());
+        this.points = [];
+        this.initGlobe();
+        this.animate();
     }
 
     resize() {
+        if(!this.canvas) return;
         this.canvas.width = this.canvas.parentElement.clientWidth;
-        this.canvas.height = 300; // Fixed height for loader
+        this.canvas.height = 400; // Taller for 3D effect
         this.w = this.canvas.width;
         this.h = this.canvas.height;
+        this.cx = this.w / 2;
+        this.cy = this.h / 2;
     }
 
-    initNetwork() {
+    initGlobe() {
         this.points = [];
-        for(let i=0; i<30; i++) {
-            this.points.push({
-                x: Math.random() * this.w,
-                y: Math.random() * this.h,
-                vx: (Math.random() - 0.5) * 1.5,
-                vy: (Math.random() - 0.5) * 1.5
+        for(let i=0; i<this.particleCount; i++) {
+            // Fibonacci Sphere distribution for even spread
+            const phi = Math.acos(1 - 2 * (i + 0.5) / this.particleCount);
+            const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5);
+            
+            const x = this.baseRadius * Math.sin(phi) * Math.cos(theta);
+            const y = this.baseRadius * Math.sin(phi) * Math.sin(theta);
+            const z = this.baseRadius * Math.cos(phi);
+            
+            this.points.push({ 
+                x, y, z, 
+                ox: x, oy: y, oz: z, // Original positions
+                pulse: Math.random() * Math.PI 
             });
         }
-        this.phase = 'NETWORK';
-        this.phaseTime = 0;
-        this.zoomLevel = 1;
+    }
+
+    rotate(angle) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        
+        this.points.forEach(p => {
+            // Rotate Y
+            const x1 = p.x * cos - p.z * sin;
+            const z1 = p.z * cos + p.x * sin;
+            
+            // Rotate X (tilted axis)
+            const y2 = p.y * cos - z1 * sin;
+            const z2 = z1 * cos + p.y * sin;
+
+            p.x = x1;
+            p.y = y2;
+            p.z = z2;
+        });
     }
 
     animate() {
+        if(!this.ctx) return;
         this.ctx.clearRect(0, 0, this.w, this.h);
-        this.phaseTime++;
-
-        switch(this.phase) {
-            case 'NETWORK':
-                this.drawNetwork();
-                if(this.phaseTime > 180) { // 3 seconds
-                    this.phase = 'ZOOM';
-                    this.phaseTime = 0;
-                    // Pick a point near center
-                    const center = {x: this.w/2, y: this.h/2};
-                    this.zoomTarget = this.points.reduce((prev, curr) => {
-                        const dPrev = Math.hypot(prev.x - center.x, prev.y - center.y);
-                        const dCurr = Math.hypot(curr.x - center.x, curr.y - center.y);
-                        return dCurr < dPrev ? curr : prev;
-                    });
-                }
-                break;
-            case 'ZOOM':
-                this.drawZoom();
-                if(this.zoomLevel > 15) {
-                    this.phase = 'SQUARE';
-                    this.phaseTime = 0;
-                }
-                break;
-            case 'SQUARE':
-                this.drawSquare();
-                if(this.phaseTime > 60) {
-                    this.phase = 'EXPLODE';
-                    this.phaseTime = 0;
-                    this.initExplosion();
-                }
-                break;
-            case 'EXPLODE':
-                this.drawExplosion();
-                if(this.phaseTime > 100) {
-                    this.phase = 'CIRCLE';
-                    this.phaseTime = 0;
-                }
-                break;
-            case 'CIRCLE':
-                this.drawCircle();
-                if(this.phaseTime > 120) {
-                    this.initNetwork();
-                }
-                break;
-        }
-
-        this.frameId = requestAnimationFrame(() => this.animate());
-    }
-
-    drawNetwork() {
-        this.ctx.fillStyle = this.colors.white;
-        this.ctx.strokeStyle = this.colors.purple;
         
-        // Update points
-        this.points.forEach(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            if(p.x < 0 || p.x > this.w) p.vx *= -1;
-            if(p.y < 0 || p.y > this.h) p.vy *= -1;
-            
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
-            this.ctx.fill();
-        });
+        this.rotate(this.rotationSpeed);
 
-        // Draw connections
-        this.ctx.lineWidth = 0.5;
-        for(let i=0; i<this.points.length; i++) {
-            for(let j=i+1; j<this.points.length; j++) {
-                const d = Math.hypot(this.points[i].x - this.points[j].x, this.points[i].y - this.points[j].y);
-                if(d < 100) {
-                    this.ctx.globalAlpha = 1 - (d/100);
+        // Sort points by Z for depth sorting (simple painter's algorithm)
+        this.points.sort((a, b) => b.z - a.z);
+
+        // Draw connections first (behind nodes)
+        this.ctx.lineWidth = 0.8;
+        for (let i = 0; i < this.points.length; i++) {
+            for (let j = i + 1; j < this.points.length; j++) {
+                const p1 = this.points[i];
+                const p2 = this.points[j];
+                
+                // Euclidean distance in 3D
+                const d = Math.sqrt(
+                    (p1.x - p2.x)**2 + 
+                    (p1.y - p2.y)**2 + 
+                    (p1.z - p2.z)**2
+                );
+
+                if (d < this.connectionDistance) {
+                    const alpha = 1 - (d / this.connectionDistance);
+                    // Depth cueing: fade out lines at the back
+                    const depthAlpha = (p1.z + this.baseRadius) / (2 * this.baseRadius); 
+                    
+                    this.ctx.strokeStyle = `rgba(121, 40, 202, ${alpha * depthAlpha * 0.6})`;
                     this.ctx.beginPath();
-                    this.ctx.moveTo(this.points[i].x, this.points[i].y);
-                    this.ctx.lineTo(this.points[j].x, this.points[j].y);
+                    // Project 3D to 2D
+                    const scale1 = 300 / (300 - p1.z); // Perspective projection
+                    const scale2 = 300 / (300 - p2.z);
+                    
+                    this.ctx.moveTo(this.cx + p1.x * scale1, this.cy + p1.y * scale1);
+                    this.ctx.lineTo(this.cx + p2.x * scale2, this.cy + p2.y * scale2);
                     this.ctx.stroke();
                 }
             }
         }
-        this.ctx.globalAlpha = 1;
-    }
 
-    drawZoom() {
-        // Zoom functionality: Translate context to center of target, scale, then draw network
-        this.zoomLevel *= 1.05;
-        
-        this.ctx.save();
-        this.ctx.translate(this.w/2, this.h/2);
-        this.ctx.scale(this.zoomLevel, this.zoomLevel);
-        this.ctx.translate(-this.zoomTarget.x, -this.zoomTarget.y);
-        
-        this.drawNetwork();
-        
-        this.ctx.restore();
-    }
-
-    drawSquare() {
-        // Draw the "Target Point" transforming into a square
-        const cx = this.w/2;
-        const cy = this.h/2;
-        const size = 60 + Math.sin(this.phaseTime * 0.1) * 5;
-        
-        this.ctx.strokeStyle = this.colors.purple;
-        this.ctx.lineWidth = 4;
-        this.ctx.fillStyle = 'rgba(121, 40, 202, 0.2)';
-        
-        this.ctx.save();
-        this.ctx.translate(cx, cy);
-        this.ctx.rotate(this.phaseTime * 0.05);
-        this.ctx.beginPath();
-        this.ctx.rect(-size/2, -size/2, size, size);
-        this.ctx.fill();
-        this.ctx.stroke();
-        this.ctx.restore();
-    }
-
-    initExplosion() {
-        this.particles = [];
-        const cx = this.w/2;
-        const cy = this.h/2;
-        for(let i=0; i<20; i++) {
-            this.particles.push({
-                x: cx + (Math.random()-0.5)*40,
-                y: cy + (Math.random()-0.5)*40,
-                vx: (Math.random()-0.5)*10,
-                vy: (Math.random()-0.5)*10,
-                size: Math.random()*20 + 5,
-                color: Math.random() > 0.5 ? this.colors.purple : this.colors.red
-            });
-        }
-    }
-
-    drawExplosion() {
-        this.particles.forEach(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vx *= 0.95; // friction
-            p.vy *= 0.95;
+        // Draw Nodes
+        this.points.forEach(p => {
+            const scale = 300 / (300 - p.z);
+            const x2d = this.cx + p.x * scale;
+            const y2d = this.cy + p.y * scale;
             
-            this.ctx.fillStyle = p.color;
-            this.ctx.fillRect(p.x, p.y, p.size, p.size);
+            // Pulsing effect
+            p.pulse += 0.05;
+            const size = (2 + Math.sin(p.pulse)) * scale;
+            
+            // Depth opacity
+            const alpha = ((p.z + this.baseRadius) / (2 * this.baseRadius)) * 0.8 + 0.2;
+
+            this.ctx.fillStyle = this.colors.nodes;
+            if(Math.random() > 0.98) this.ctx.fillStyle = this.colors.accent; // Occasional red flash
+
+            this.ctx.globalAlpha = alpha;
+            this.ctx.beginPath();
+            this.ctx.arc(x2d, y2d, size, 0, Math.PI * 2);
+            this.ctx.fill();
         });
         
-        // Find one particle to become center circle
-        const centerP = this.particles[0];
-        if(centerP) {
-             // Slowly move it to center
-             centerP.x += (this.w/2 - centerP.x) * 0.1;
-             centerP.y += (this.h/2 - centerP.y) * 0.1;
-        }
-    }
-
-    drawCircle() {
-        const cx = this.w/2;
-        const cy = this.h/2;
-        
-        this.ctx.strokeStyle = this.colors.red;
-        this.ctx.lineWidth = 4;
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, 30, 0, Math.PI * 2 * (this.phaseTime / 80));
-        this.ctx.stroke();
-
-        // Rays connecting to invisible points outside
-        if (this.phaseTime > 40) {
-             this.ctx.strokeStyle = this.colors.gray;
-             this.ctx.lineWidth = 1;
-             const rays = 8;
-             for(let i=0; i<rays; i++) {
-                 const angle = (Math.PI*2 / rays) * i + (this.phaseTime*0.02);
-                 const r = 30 + (this.phaseTime-40) * 5;
-                 this.ctx.beginPath();
-                 this.ctx.moveTo(cx + Math.cos(angle)*30, cy + Math.sin(angle)*30);
-                 this.ctx.lineTo(cx + Math.cos(angle)*r, cy + Math.sin(angle)*r);
-                 this.ctx.stroke();
-             }
-        }
+        this.ctx.globalAlpha = 1;
+        this.frameId = requestAnimationFrame(() => this.animate());
     }
 }
