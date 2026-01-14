@@ -175,9 +175,27 @@
     const userCreditsEl = document.getElementById('userCredits');
 
     // --- INIT ---
+    // --- INIT ---
     document.addEventListener('DOMContentLoaded', () => {
         const initialHistory = <%- JSON.stringify(history || []) %>;
         renderHistoryDeck(initialHistory);
+
+        const deepLinkData = <%- JSON.stringify(initialOpportunity || null) %>;
+        if(deepLinkData) {
+            try {
+                const parsed = {
+                    id: deepLinkData.id,
+                    metadata: typeof deepLinkData.metadata_json === 'string' ? JSON.parse(deepLinkData.metadata_json || '{}') : deepLinkData.metadata_json,
+                    locked_content: typeof deepLinkData.locked_content_json === 'string' ? JSON.parse(deepLinkData.locked_content_json || '{}') : deepLinkData.locked_content_json,
+                    items: typeof deepLinkData.items_json === 'string' ? JSON.parse(deepLinkData.items_json || '[]') : deepLinkData.items_json,
+                    unlocked_modules: typeof deepLinkData.unlocked_modules === 'string' ? JSON.parse(deepLinkData.unlocked_modules || '[]') : (deepLinkData.unlocked_modules || []),
+                    file_path: "" 
+                };
+                showResult(parsed);
+            } catch(e) {
+                console.error("Deep link parse error", e);
+            }
+        }
     });
 
     // --- VIEW MANAGEMENT ---
@@ -411,11 +429,15 @@
 
     async function fetchHistoryDeck() {
         try {
-            // We assume a route exists or we can just reload for now to be safe
-             window.location.reload(); 
-        } catch(e) {}
+            const res = await fetch('/api/oracle/history');
+            if(res.ok) {
+                const items = await res.json();
+                renderHistoryDeck(items);
+            }
+        } catch(e) {
+            console.error("Failed to refresh history:", e);
+        }
     }
-
 
     // --- RENDER FULL ANALYSIS ---
     function renderFullAnalysis(data) {
@@ -581,9 +603,12 @@
     }
 
     async function enableNotifications() {
-        if(window.requestNotificationPermission) {
-            const result = await window.requestNotificationPermission();
-            if(result) document.getElementById('notifyRequest').classList.add('hidden');
+        if ("Notification" in window) {
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                document.getElementById('notifyRequest').classList.add('hidden');
+                new Notification("MABUS INTEL", { body: "Notificações ativadas." });
+            }
         }
     }
 

@@ -163,7 +163,17 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 app.get('/oracle', isAuthenticated, async (req, res) => {
     try {
         const history = await getUserOpportunities(req.session.userId);
-        res.render('oracle', { history });
+        let initialOpportunity = null;
+
+        if (req.query.id) {
+             const { getOpportunityById } = require('./src/database');
+             const opp = await getOpportunityById(req.query.id);
+             // Security check
+             if (opp && (opp.user_id === req.session.userId || (res.locals.user && res.locals.user.role ==='admin'))) {
+                 initialOpportunity = opp;
+             }
+        }
+        res.render('oracle', { history, initialOpportunity });
     } catch (e) {
         res.status(500).send(e.message);
     }
@@ -389,6 +399,16 @@ app.post('/api/process-tr', isAuthenticated, upload.array('pdfFiles'), async (re
         console.error("Oracle Error:", e);
         sendEvent('error', { message: e.message });
         res.end();
+    }
+});
+
+app.get('/api/oracle/history', isAuthenticated, async (req, res) => {
+    try {
+        const { getUserOpportunities } = require('./src/database');
+        const history = await getUserOpportunities(req.session.userId);
+        res.json(history);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 

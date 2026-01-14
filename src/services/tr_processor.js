@@ -34,7 +34,7 @@ async function processPDF(filePaths, onThought = null) {
 
         // Fallback: Check if we have Qwen Key, if not try to use what's configured in DB/Env,
         // but the prompt explicitly asked for this logic. We will try to stick to it if keys exist.
-        let qwenKey = process.env.DASHSCOPE_API_KEY || process.env.QWEN_KEY;
+        let qwenKey = process.env.DASHSCOPE_API_KEY || process.env.QWEN_KEY || process.env.QWEN_API_KEY;
 
         // Try getting Qwen Key from DB if not in Env
         if (!qwenKey) {
@@ -137,14 +137,7 @@ async function processPDF(filePaths, onThought = null) {
         // The following variables (userId, createOpportunity) are not defined in this file.
         // This code snippet seems to be intended for a higher-level function that calls processPDF.
         // For the purpose of faithfully applying the change, it's included, but will cause errors if executed as is.
-        // const opportunityId = await createOpportunity(userId, {
-        //     title: opportunityTitle,
-        //     municipality: meta.municipio || "Desconhecido", // You might need to add this to prompt if not there
-        //     metadata: meta,
-        //     locked_content: locked,
-        //     items: items, // 'items' is defined later in this function, but not here.
-        //     ipm_score: meta.ipm_score || 0
-        // });
+
 
         // Normalize Structure (original logic, now using jsonResponse)
         if (!jsonResponse.public_teaser) jsonResponse.public_teaser = {};
@@ -156,13 +149,13 @@ async function processPDF(filePaths, onThought = null) {
         // We must map the new JSON to these fields to avoid breaking the DB save in server.js.
 
         const metadata = {
-            ...parsed.public_teaser, // ipm_score, classificacao, etc.
-            edital_numero: parsed.public_teaser.resumo_poderoso ? "Análise Estratégica" : "Sem Título", // Fallback
+            ...jsonResponse.public_teaser, // ipm_score, classificacao, etc.
+            edital_numero: jsonResponse.public_teaser.resumo_poderoso ? "Análise Estratégica" : "Sem Título", // Fallback
             municipio_uf: "Brasil", // We don't have this explicitly in new JSON unless we parse it or add to prompt
             // Actually prompt doesn't ask for municipality in JSON. We can try to extract or leave generic.
         };
 
-        const locked_content = parsed.locked_modules; // This matches the concept
+        const locked_content = jsonResponse.locked_modules; // This matches the concept
 
         // Items: Prompt says "NÃO LISTE TODOS OS ITENS".
         // But server.js tries to save `items`. We can return empty array.
