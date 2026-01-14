@@ -1,0 +1,68 @@
+<div class="card bg-base-100 shadow-md hover:shadow-lg cursor-pointer border border-base-200 transition-all duration-200 status-<%= task.status %>" onclick="window.location.href='/task/<%= task.id %>'">
+    <div class="card-body p-4">
+        <div class="flex justify-between items-start mb-2">
+             <h3 class="card-title text-lg truncate w-3/4"><%= task.name %></h3>
+
+             <!-- Status Badge -->
+            <% if (task.status === 'completed') { %>
+                <div class="badge badge-success text-white gap-2">Concluído</div>
+            <% } else if (task.status === 'failed') { %>
+                <div class="badge badge-error text-white gap-2">Falhou</div>
+            <% } else if (task.status === 'running') { %>
+                <div class="badge badge-info text-white gap-2"><span class="loading loading-spinner loading-xs"></span>Executando</div>
+            <% } else if (task.status === 'aborted') { %>
+                <div class="badge badge-warning text-white gap-2">Abortado</div>
+            <% } else { %>
+                <div class="badge badge-ghost gap-2">Pendente</div>
+            <% } %>
+        </div>
+
+        <p class="text-sm text-base-content/60 mb-2">
+            <i class="fas fa-map-marker-alt"></i> <%= task.cep || 'N/A' %>
+        </p>
+
+        <div class="mb-3 flex flex-wrap gap-1">
+             <%
+            let tags = [];
+            try { tags = typeof task.tags === 'string' ? JSON.parse(task.tags) : (task.tags || []); } catch(e) {}
+            tags.forEach(tag => {
+            %>
+                <div class="badge badge-outline text-xs" style="border-color: <%= tag.color %>; color: <%= tag.color %>"><%= tag.name %></div>
+            <% }) %>
+             <button class="btn btn-ghost btn-xs" onclick="openTagModal('<%= task.id %>'); event.stopPropagation();">+</button>
+        </div>
+
+        <div class="card-actions justify-end items-center mt-auto" onclick="event.stopPropagation()">
+             <div class="join">
+                <% if (task.external_link) { %>
+                    <a href="<%= task.external_link %>" target="_blank" class="btn btn-sm btn-outline join-item" title="Link Externo"><i class="fas fa-external-link-alt"></i></a>
+                <% } %>
+                
+                <% if (task.status === 'completed') { %>
+                    <a href="/download/<%= task.id %>" class="btn btn-sm btn-success text-white join-item" title="Baixar Excel"><i class="fas fa-file-excel"></i></a>
+                <% } %>
+
+                 <div class="dropdown dropdown-end join-item">
+                    <div tabindex="0" role="button" class="btn btn-sm btn-ghost"><i class="fas fa-ellipsis-v"></i></div>
+                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200">
+                        <% if (task.status === 'pending') { %>
+                        <li>
+                            <form action="/task/<%= task.id %>/force-start" method="POST" class="w-full m-0">
+                                <button type="submit" class="w-full text-left"><i class="fas fa-play"></i> Forçar Início</button>
+                            </form>
+                        </li>
+                        <% } %>
+                         <li>
+                            <form action="/task/<%= task.id %>/action" method="POST" class="w-full m-0">
+                                <input type="hidden" name="action" value="archive">
+                                <button type="submit" class="w-full text-left"><i class="fas fa-archive"></i> Arquivar</button>
+                            </form>
+                        </li>
+                    </ul>
+                 </div>
+             </div>
+
+             <span class="text-xs text-base-content/50 ml-2"><%= new Date(task.created_at).toLocaleDateString('pt-BR') %></span>
+        </div>
+    </div>
+</div>

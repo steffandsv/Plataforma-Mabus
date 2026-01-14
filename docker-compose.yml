@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    container_name: agente_app
+    restart: always
+    shm_size: '4gb'
+    ports:
+      - "127.0.0.1:3002:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DB_DB=${DB_DB}
+      - DB_HOST=${DB_HOST}
+      - DB_PASS=${DB_PASS}
+      - DB_USER=${DB_USER}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_SEARCH_API_KEY=${GOOGLE_SEARCH_API_KEY}
+      - GOOGLE_SEARCH_CX=${GOOGLE_SEARCH_CX}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - COOKIES_B64=${COOKIES_B64}
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+      - NODE_OPTIONS=--max-old-space-size=8192
+      - UV_THREADPOOL_SIZE=128
+      - PORT=3000
+    volumes:
+      - ./logs:/app/logs
+      - ./outputs:/app/outputs
+      - ./prompts:/app/prompts
+      - ./cookies.json:/app/cookies.json
+      - ./proxies.txt:/app/proxies.txt
+      - ./modules:/app/modules
+      - ./tasks.db:/app/tasks.db
+    depends_on:
+      - redis
+    command: sh -c "echo \"$COOKIES_B64\" | base64 -d > cookies.json && npm start"
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'
+          memory: 16G
+
+  redis:
+    image: redis:alpine
+    container_name: agente_redis
+    command: redis-server --save 60 1 --loglevel warning
+    restart: always
+    volumes:
+      - agente_redis_data:/data
+
+volumes:
+  agente_redis_data:

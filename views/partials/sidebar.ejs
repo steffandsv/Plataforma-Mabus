@@ -1,0 +1,54 @@
+<aside class="w-64 bg-base-100 border-r border-base-300 h-screen overflow-y-auto hidden md:flex flex-col shrink-0">
+    <div class="p-6 border-b border-base-300">
+        <div class="text-2xl font-bold flex items-center gap-2 tracking-tight">
+            <i class="fas fa-cube text-primary"></i> MABUS
+        </div>
+    </div>
+
+    <ul class="menu p-4 w-full text-base-content gap-1 flex-1">
+        <li>
+            <a href="/" class="<%= path === '/' ? 'active' : '' %>">
+                <i class="fas fa-search w-5"></i> BUSCA
+            </a>
+        </li>
+        <li>
+            <a href="/oracle" class="<%= path === '/oracle' ? 'active' : '' %>">
+                <i class="fas fa-chart-pie w-5"></i> ANALISADOR
+            </a>
+        </li>
+        <li>
+            <a href="/sniper" class="<%= path === '/sniper' ? 'active' : '' %>">
+                <i class="fas fa-bullseye w-5"></i> COTADOR
+            </a>
+        </li>
+
+        <li class="menu-title mt-4">GESTÃO</li>
+
+        <li>
+            <a href="/dashboard" class="<%= path === '/dashboard' ? 'active' : '' %>">
+                <i class="fas fa-tasks w-5"></i> DASHBOARD
+            </a>
+        </li>
+
+        <% if (user && user.role === 'admin') { %>
+        <li>
+            <a href="/admin/dashboard" class="<%= path === '/admin/dashboard' ? 'active' : '' %>">
+                <i class="fas fa-user-shield w-5"></i> ADMIN
+            </a>
+        </li>
+        <li>
+            <a href="/admin/ai-config" class="<%= path === '/admin/ai-config' ? 'active' : '' %>">
+                <i class="fas fa-robot w-5"></i> GERENCIAR I.A.
+            </a>
+        </li>
+        <% } %>
+
+        <div class="mt-auto"></div>
+
+        <li>
+            <a href="/logout" class="text-error hover:bg-error/10">
+                <i class="fas fa-power-off w-5"></i> SAIR
+            </a>
+        </li>
+    </ul>
+</aside>

@@ -1,0 +1,540 @@
+<%- include('partials/header') %>
+
+<!-- No custom style block needed, using Tailwind -->
+
+<div class="mb-8 text-center mt-6">
+    <h2 class="text-3xl font-bold text-base-content">COTADOR AUTOMÁTICO</h2>
+    <p class="text-base-content/60">Importação Inteligente de Editais</p>
+</div>
+
+<!-- UPLOAD ZONE -->
+<div id="uploadContainer" class="flex flex-col items-center justify-center min-h-[50vh] gap-6">
+    <!-- Switch Mode -->
+    <div class="flex items-center gap-4 mb-6">
+        <span class="text-base-content/60 font-bold text-sm">ARQUIVO PDF</span>
+        <input type="checkbox" class="toggle toggle-lg toggle-success" onchange="toggleMode(this)">
+        <span class="text-base-content/60 font-bold text-sm">INSERÇÃO MANUAL</span>
+    </div>
+
+    <!-- PDF Content -->
+    <div id="contentPdf" class="w-full flex flex-col items-center gap-6">
+        <label for="pdfFiles" class="w-full max-w-4xl h-80 border-2 border-dashed border-base-300 rounded-2xl flex flex-col justify-center items-center cursor-pointer hover:border-primary hover:bg-base-200 transition-all bg-base-100 shadow-sm relative group" id="dropZoneArea">
+            <i class="fas fa-file-pdf fa-4x text-primary mb-4 group-hover:scale-110 transition-transform"></i>
+            <div class="text-xl font-bold text-primary drop-zone-text">ARRASTE O EDITAL AQUI</div>
+            <div class="text-sm text-base-content/60 mt-2">A I.A. irá ler e preencher tudo automaticamente</div>
+            <input type="file" id="pdfFiles" accept=".pdf" multiple hidden onchange="showProcessButton()">
+        </label>
+
+        <div class="w-full max-w-4xl">
+            <label class="label">
+                <span class="label-text text-xs font-bold uppercase opacity-60"><i class="fas fa-robot"></i> Instruções Especiais para a I.A. (Opcional)</span>
+            </label>
+            <textarea id="aiInstructions" class="textarea textarea-bordered w-full h-24" placeholder="Ex: Cotar apenas itens de informática. Ignorar serviços."></textarea>
+        </div>
+
+        <button id="btnProcessPdf" class="btn btn-success btn-lg w-full max-w-2xl hidden shadow-lg text-white" onclick="handlePdfUpload()">
+            <i class="fas fa-microchip"></i> PROCESSAR EDITAL AGORA
+        </button>
+    </div>
+
+    <!-- Manual Content -->
+    <div id="contentManual" class="w-full flex flex-col items-center gap-6 hidden">
+        <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="label">
+                    <span class="label-text text-xs font-bold uppercase opacity-60">NOME DA MISSÃO</span>
+                </label>
+                <input type="text" id="manualName" class="input input-bordered w-full" placeholder="Ex: Pregão Eletrônico 42/2025">
+            </div>
+            <div>
+                <label class="label">
+                    <span class="label-text text-xs font-bold uppercase opacity-60">CEP DESTINO</span>
+                </label>
+                <input type="text" id="manualCep" class="input input-bordered w-full" placeholder="00000-000">
+            </div>
+        </div>
+
+        <div class="w-full max-w-4xl">
+            <label class="label">
+                <span class="label-text text-xs font-bold uppercase opacity-60">COLE OS DADOS (CSV: ID;Descrição;Valor;Qtd)</span>
+            </label>
+            <textarea id="manualCsvInput" class="textarea textarea-bordered w-full h-80 font-mono text-xs" placeholder="1;Notebook Dell;3500.00;2&#10;2;Mouse USB;50.00;10&#10;3;Teclado ABNT2;80.00;5"></textarea>
+            <div class="text-xs text-base-content/60 mt-2">
+                * O separador deve ser ponto-e-vírgula (;)<br>
+                * A ordem das colunas é: ID; Descrição; Valor Máximo; Quantidade
+            </div>
+        </div>
+        <button class="btn btn-success btn-lg w-full max-w-2xl text-white shadow-lg" onclick="handleManualCsv()">
+            <i class="fas fa-check-circle"></i> PROCESSAR DADOS MANUAIS
+        </button>
+    </div>
+</div>
+
+<!-- RECENT TASKS -->
+<div class="mt-12 mb-8">
+    <div class="container mx-auto max-w-5xl">
+        <h4 class="text-xs font-bold uppercase opacity-60 mb-4 ml-1"><i class="fas fa-history"></i> MISSÕES RECENTES</h4>
+        <div class="grid grid-cols-1 gap-4">
+             <%- include('partials/task_list', { tasks: recentTasks }) %>
+        </div>
+    </div>
+</div>
+
+<!-- FORM CONTAINER (Results) -->
+<div class="flex justify-center hidden pb-12" id="sniperFormContainer">
+    <div class="w-full max-w-6xl">
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body p-6">
+
+                <form action="/create" method="POST" enctype="multipart/form-data" id="sniperForm">
+                    <!-- HIDDEN DATA FIELDS -->
+                    <input type="hidden" name="metadataJSON" id="metadataJSON">
+                    <input type="hidden" name="gridData" id="gridData">
+
+                    <!-- TOP CONFIG -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="md:col-span-2">
+                            <label class="label">
+                                <span class="label-text text-xs font-bold uppercase opacity-60">NOME DA MISSÃO</span>
+                            </label>
+                            <input type="text" name="name" id="taskName" class="input input-bordered w-full" required placeholder="Ex: Município - Pregão 42/2025">
+                        </div>
+                        <div>
+                            <label class="label">
+                                <span class="label-text text-xs font-bold uppercase opacity-60">CEP DESTINO</span>
+                            </label>
+                            <input type="text" name="cep" id="taskCep" class="input input-bordered w-full" required placeholder="00000-000">
+                        </div>
+                    </div>
+
+                    <% if (userGroups && userGroups.length > 0) { %>
+                    <div class="mb-6">
+                         <label class="label">
+                            <span class="label-text text-xs font-bold uppercase opacity-60">VISIBILIDADE (GRUPO)</span>
+                        </label>
+                        <select name="group_id" class="select select-bordered w-full">
+                            <option value="">PRIVADO (APENAS EU)</option>
+                            <% userGroups.forEach(function(group) { %>
+                                <option value="<%= group.id %>"><%= group.name %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <% } %>
+
+                    <!-- ITEM LIST AREA -->
+                    <div class="card bg-base-200 border border-base-300 mb-6 rounded-box overflow-hidden">
+                        <div class="p-4 bg-base-200 flex justify-between items-center border-b border-base-300">
+                            <span class="text-primary font-bold flex items-center gap-2"><i class="fas fa-list"></i> ITENS IDENTIFICADOS</span>
+                            <div class="badge badge-lg bg-base-100 border border-base-300 shadow-sm" id="item-count">0 ITENS</div>
+                        </div>
+                        <div class="overflow-x-auto max-h-[500px]">
+                            <table class="table table-pin-rows w-full bg-base-100">
+                                <thead>
+                                    <tr class="text-xs uppercase opacity-60 bg-base-200 text-base-content">
+                                        <th class="w-16">#</th>
+                                        <th>DESCRIÇÃO</th>
+                                        <th class="w-40">MAX (R$)</th>
+                                        <th class="w-24">QTD</th>
+                                        <th class="w-12"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="items-body">
+                                    <!-- Items go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-4 bg-base-200 border-t border-base-300 flex justify-between flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-ghost border-base-300 bg-base-100" onclick="addRow()">
+                                <i class="fas fa-plus"></i> ADICIONAR MANUALMENTE
+                            </button>
+                            <div class="flex items-center gap-2">
+                                <label class="btn btn-sm btn-ghost border-base-300 bg-base-100" title="Importar CSV Simples">
+                                    <i class="fas fa-file-csv"></i> IMPORTAR CSV
+                                    <input type="file" id="gridCsvInput" accept=".csv,.txt" hidden onchange="handleGridCsvUpload(this)">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <button type="button" class="btn btn-outline btn-error" onclick="resetUpload()">
+                            <i class="fas fa-undo"></i> CANCELAR
+                        </button>
+                        <button type="submit" class="btn btn-success text-white shadow-md" id="btnStart">
+                            <i class="fas fa-rocket"></i> INICIAR COTAÇÃO AUTOMÁTICA
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-base-100/80 backdrop-blur-sm z-[9999] hidden flex-col justify-center items-center">
+    <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
+    <div class="text-xl font-bold text-primary">PROCESSANDO EDITAL...</div>
+    <div class="text-sm opacity-60">Extraindo itens e metadados com I.A.</div>
+</div>
+
+<script>
+    let rowCount = 0;
+    const dropZone = document.getElementById('dropZoneArea');
+    const uploadContainer = document.getElementById('uploadContainer');
+    const formContainer = document.getElementById('sniperFormContainer');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    function toggleMode(checkbox) {
+        if (checkbox.checked) {
+            // Manual Mode
+            document.getElementById('contentPdf').classList.add('hidden');
+            document.getElementById('contentManual').classList.remove('hidden');
+        } else {
+            // PDF Mode
+            document.getElementById('contentPdf').classList.remove('hidden');
+            document.getElementById('contentManual').classList.add('hidden');
+        }
+    }
+
+    function parsePtBrValue(val) {
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        val = val.toString().trim();
+        // Remove quotes, R$, spaces and other currency symbols
+        val = val.replace(/["'R$\s]/g, '');
+
+        // Brazilian Format Check (1.200,50) - comma is strictly decimal
+        if (val.includes(',')) {
+            val = val.replace(/\./g, ''); // Remove thousands separator
+            val = val.replace(',', '.');  // Replace decimal separator
+        }
+        return parseFloat(val) || 0;
+    }
+
+    // New Robust CSV Parser
+    function parseCsvContent(text) {
+        const items = [];
+        let cursor = 0;
+
+        while (cursor < text.length) {
+            let fields = [];
+            let currentField = '';
+            let inQuotes = false;
+            let rowEnded = false;
+
+            while (cursor < text.length) {
+                const char = text[cursor];
+
+                if (char === '"') {
+                    if (inQuotes && text[cursor + 1] === '"') {
+                        currentField += '"';
+                        cursor += 2; // skip both
+                        continue;
+                    }
+                    inQuotes = !inQuotes;
+                    cursor++;
+                } else if (char === ';' && !inQuotes) {
+                    fields.push(currentField);
+                    currentField = '';
+                    cursor++;
+                } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                    // handle CRLF
+                    if (char === '\r' && text[cursor + 1] === '\n') cursor++;
+
+                    fields.push(currentField);
+                    rowEnded = true;
+                    cursor++;
+                    break;
+                } else {
+                    currentField += char;
+                    cursor++;
+                }
+            }
+
+            if (!rowEnded && currentField !== '') {
+                 fields.push(currentField);
+            }
+
+            // Validate Row (Min 2 columns)
+            if (fields.length >= 2) {
+                // Header detection (simple check on first row)
+                const firstVal = fields[0].toLowerCase().trim();
+                if (items.length === 0 && (firstVal.includes('id') || firstVal.includes('item') || firstVal.includes('descricao'))) {
+                    // Skip header
+                } else {
+                    // Map Fields
+                    // ID;Description;Value;Qty
+                    let id = fields[0] ? fields[0].trim() : (items.length + 1);
+                    let desc = fields[1] ? fields[1].trim() : "";
+
+                    let val = 0;
+                    if (fields[2]) val = parsePtBrValue(fields[2]);
+
+                    let qtd = 1;
+                    if (fields[3]) qtd = parsePtBrValue(fields[3]);
+
+                    items.push({
+                        id: id,
+                        description: desc,
+                        valor_venda: val,
+                        quantidade: qtd
+                    });
+                }
+            }
+        }
+
+        return items;
+    }
+
+    function handleManualCsv() {
+        const manualName = document.getElementById('manualName').value.trim();
+        const manualCep = document.getElementById('manualCep').value.trim();
+        const csvText = document.getElementById('manualCsvInput').value;
+
+        if (!manualName) return alert('Por favor, informe o Nome da Missão.');
+        if (!manualCep) return alert('Por favor, informe o CEP de Destino.');
+        if (!csvText.trim()) return alert('Cole o conteúdo CSV primeiro.');
+
+        const items = parseCsvContent(csvText);
+
+        if (items.length === 0) {
+            alert('Nenhum item válido encontrado. Verifique o formato: ID;Descrição;Valor;Qtd');
+            return;
+        }
+
+        // Reset UI
+        uploadContainer.style.display = 'none';
+        formContainer.classList.remove('hidden');
+        formContainer.style.display = 'flex';
+
+        // Transfer Data
+        document.getElementById('taskName').value = manualName;
+        document.getElementById('taskCep').value = manualCep;
+
+        populateGrid(items);
+    }
+
+    // Drag & Drop
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.add('border-primary', 'bg-base-200');
+        }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.remove('border-primary', 'bg-base-200');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        document.getElementById('pdfFiles').files = files;
+        showProcessButton();
+    });
+
+    function showProcessButton() {
+        const input = document.getElementById('pdfFiles');
+        if (input.files.length > 0) {
+            document.getElementById('btnProcessPdf').classList.remove('hidden');
+            document.querySelector('.drop-zone-text').innerText = `${input.files.length} ARQUIVO(S) SELECIONADO(S)`;
+        }
+    }
+
+    async function handlePdfUpload() {
+        const input = document.getElementById('pdfFiles');
+        const instructions = document.getElementById('aiInstructions').value;
+
+        if (input.files.length === 0) return;
+
+        // Show Loading
+        loadingOverlay.classList.remove('hidden');
+        loadingOverlay.style.display = 'flex';
+
+        const formData = new FormData();
+        for (let i = 0; i < input.files.length; i++) {
+            formData.append('pdfFiles', input.files[i]);
+        }
+
+        // Append Instructions
+        if (instructions) {
+            formData.append('instructions', instructions);
+        }
+
+        try {
+            const res = await fetch('/api/sniper/parse-pdf', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.error) throw new Error(data.error);
+
+            // Hide Upload, Show Form
+            uploadContainer.style.display = 'none';
+            formContainer.classList.remove('hidden');
+            formContainer.style.display = 'flex';
+
+            // Fill Data
+            if (data.metadata) {
+                if (data.metadata.name) document.getElementById('taskName').value = data.metadata.name;
+                if (data.metadata.cep) document.getElementById('taskCep').value = data.metadata.cep;
+            }
+
+            if (data.items && data.items.length > 0) {
+                populateGrid(data.items);
+            } else {
+                addRow(); // Add empty row if none
+                alert("Nenhum item detectado automaticamente. Preencha manualmente.");
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("Erro na leitura do PDF: " + e.message);
+            loadingOverlay.classList.add('hidden');
+             loadingOverlay.style.display = 'none';
+        } finally {
+            loadingOverlay.classList.add('hidden');
+             loadingOverlay.style.display = 'none';
+            input.value = '';
+        }
+    }
+
+    function resetUpload() {
+        formContainer.classList.add('hidden');
+         formContainer.style.display = 'none';
+
+        uploadContainer.style.display = 'flex';
+
+        document.getElementById('items-body').innerHTML = '';
+        document.getElementById('taskName').value = '';
+        document.getElementById('taskCep').value = '';
+        document.getElementById('aiInstructions').value = '';
+        document.getElementById('btnProcessPdf').classList.add('hidden');
+
+        document.querySelector('.drop-zone-text').innerText = 'ARRASTE O EDITAL AQUI';
+    }
+
+    function addRow(item = {}) {
+        rowCount++;
+        const tbody = document.getElementById('items-body');
+        const tr = document.createElement('tr');
+
+        // Use document.createElement for inputs to prevent XSS in values
+        const tdId = document.createElement('td');
+        const inputId = document.createElement('input');
+        inputId.type = 'text';
+        inputId.className = 'input input-ghost input-sm w-full font-mono input-id';
+        inputId.value = item.id || rowCount;
+        inputId.placeholder = '#';
+        inputId.required = true;
+        tdId.appendChild(inputId);
+
+        const tdDesc = document.createElement('td');
+        const inputDesc = document.createElement('textarea');
+        inputDesc.className = 'textarea textarea-ghost w-full h-full min-h-[3rem] input-desc focus:bg-base-100 p-2';
+        inputDesc.value = item.description || '';
+        inputDesc.placeholder = 'Item...';
+        inputDesc.required = true;
+        tdDesc.appendChild(inputDesc);
+
+        const tdPrice = document.createElement('td');
+        const inputPrice = document.createElement('input');
+        inputPrice.type = 'number';
+        inputPrice.step = '0.01';
+        inputPrice.className = 'input input-ghost input-sm w-full focus:bg-base-100 input-price';
+        inputPrice.value = item.valor_venda || '';
+        inputPrice.placeholder = '0.00';
+        inputPrice.required = true;
+        tdPrice.appendChild(inputPrice);
+
+        const tdQty = document.createElement('td');
+        const inputQty = document.createElement('input');
+        inputQty.type = 'number';
+        inputQty.className = 'input input-ghost input-sm w-full focus:bg-base-100 input-qty';
+        inputQty.value = item.quantidade || 1;
+        inputQty.required = true;
+        tdQty.appendChild(inputQty);
+
+        const tdAction = document.createElement('td');
+        tdAction.innerHTML = '<button type="button" class="btn btn-ghost btn-xs text-error"><i class="fas fa-times"></i></button>';
+        tdAction.querySelector('button').onclick = function() { this.closest('tr').remove(); updateCount(); };
+
+        tr.appendChild(tdId);
+        tr.appendChild(tdDesc);
+        tr.appendChild(tdPrice);
+        tr.appendChild(tdQty);
+        tr.appendChild(tdAction);
+
+        tbody.appendChild(tr);
+        updateCount();
+    }
+
+    function populateGrid(items) {
+        document.getElementById('items-body').innerHTML = '';
+        rowCount = 0;
+        items.forEach(item => addRow(item));
+    }
+
+    function updateCount() {
+        const count = document.getElementById('items-body').children.length;
+        document.getElementById('item-count').innerText = `${count} ITENS`;
+    }
+
+    function handleGridCsvUpload(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const items = parseCsvContent(text);
+                if (items.length > 0) {
+                    items.forEach(item => addRow(item));
+                } else {
+                    alert("Não foi possível ler itens do CSV. Verifique o formato.");
+                }
+                input.value = ''; // Clear to allow re-upload
+            };
+            reader.readAsText(input.files[0]);
+        }
+    }
+
+    // Form Interceptor to Serialize Grid
+    document.getElementById('sniperForm').addEventListener('submit', (e) => {
+        let data = "ID;Descricao;valor_venda;quantidade\n";
+        const rows = document.querySelectorAll('#items-body tr');
+        let validRows = 0;
+
+        rows.forEach((row, index) => {
+            // Select by class to ensure correct mapping
+            const idVal = row.querySelector('.input-id').value.trim();
+            // Replace semicolons in description to prevent CSV breakage in backend
+            // But now we support robust CSV? Backend expects strictly semi-colon delimited.
+            // If backend is simple split, we MUST sanitize description.
+            // Assuming backend uses simple split (from memory/context), so replace ; with space.
+            const descVal = row.querySelector('.input-desc').value.replace(/;/g, ' ').replace(/\n/g, ' ').trim();
+            const priceVal = row.querySelector('.input-price').value || 0;
+            const qtyVal = row.querySelector('.input-qty').value || 1;
+
+            if (descVal) {
+                // Use the Captured ID, not the index!
+                data += `${idVal};${descVal};${priceVal};${qtyVal}\n`;
+                validRows++;
+            }
+        });
+
+        if (validRows === 0) {
+            e.preventDefault();
+            alert("Adicione pelo menos um item!");
+            return false;
+        }
+
+        document.getElementById('gridData').value = data;
+    });
+
+</script>
+
+<%- include('partials/footer') %>
