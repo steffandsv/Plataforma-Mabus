@@ -42,6 +42,7 @@ jobs:
             
             # --- CRIAÇÃO DO .ENV ---
             echo "DB_HOST=${{ secrets.DB_HOST }}" > .env
+            echo "QWEN_API_KEY=${{ secrets.QWEN_API_KEY }}" > .env
             echo "DB_DB=${{ secrets.DB_DB }}" >> .env
             echo "DB_USER=${{ secrets.DB_USER }}" >> .env
             echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
