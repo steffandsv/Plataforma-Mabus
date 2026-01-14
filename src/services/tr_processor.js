@@ -97,7 +97,7 @@ async function processPDF(filePaths, onThought = null) {
                     onThought: (chunk) => {
                         thoughtBuffer += chunk;
                         finalThoughts += chunk;
-                        if (onThought) onThought("PROCESSANDO..."); // Generic for now unless we parse
+                        if (onThought) onThought(chunk); // Send RAW chunk to server.js callback
                     },
                     onChunk: (chunk) => {
                         finalResponse += chunk;

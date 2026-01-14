@@ -647,7 +647,7 @@ async function createOpportunity(userId, data) {
         (user_id, title, municipality, metadata_json, locked_content_json, items_json, ipm_score, unlocked_modules)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    await p.query(sql, [
+    const [result] = await p.query(sql, [
         userId || null, // If null, it's global/radar
         data.title,
         data.municipality,
@@ -657,6 +657,7 @@ async function createOpportunity(userId, data) {
         data.ipm_score || 0,
         JSON.stringify([]) // unlocked_modules starts empty
     ]);
+    return result.insertId;
 }
 
 async function getRadarOpportunities() {

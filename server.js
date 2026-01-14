@@ -331,14 +331,13 @@ app.post('/api/process-tr', isAuthenticated, upload.array('pdfFiles'), async (re
     try {
         sendEvent('status', { message: 'Iniciando leitura do edital...' });
 
-        const result = await processPDF(filePaths, (thoughtTitle) => {
-            if (thoughtTitle && thoughtTitle !== lastSentTitle) {
-                sendEvent('thought', { title: thoughtTitle });
-                lastSentTitle = thoughtTitle;
-            }
+        // Pass onThought callback that sends event
+        const result = await processPDF(filePaths, (thoughtChunk) => {
+             // Clean up chunk if needed or just send raw
+             sendEvent('thought', { text: thoughtChunk });
         });
 
-        // Clean up files (KEEPING FOR SNIPER IMPORT)
+        // Clean up files (KEEPING FOR SNIPER IMPORT - Optional)
         // filePaths.forEach(p => { if(fs.existsSync(p)) fs.unlinkSync(p); });
 
         // Save to Database (Opportunities)
@@ -355,16 +354,19 @@ app.post('/api/process-tr', isAuthenticated, upload.array('pdfFiles'), async (re
         const user = await getUserById(req.session.userId);
         const targetUserId = (user && user.role === 'admin') ? null : req.session.userId;
 
-        await createOpportunity(targetUserId, opportunityData);
+        const newId = await createOpportunity(targetUserId, opportunityData);
 
-        // Send Final Result
+        // Send Final Result WITH ID
         result.file_path = filePaths[0];
+        result.id = newId; // Critical for frontend
+        result.unlocked_modules = []; 
+
         sendEvent('result', result);
         res.write('event: end\ndata: "DONE"\n\n');
         res.end();
 
     } catch (e) {
-        filePaths.forEach(p => { if (fs.existsSync(p)) fs.unlinkSync(p); });
+        filePaths.forEach(p => { if(fs.existsSync(p)) fs.unlinkSync(p); });
         console.error("Oracle Error:", e);
         sendEvent('error', { message: e.message });
         res.end();
