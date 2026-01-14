@@ -35,7 +35,6 @@ const {
     getRadarOpportunities,
     getUserOpportunities,
     getSetting,
-    getSetting,
     setSetting,
     createNotification,
     getUnreadNotifications,
