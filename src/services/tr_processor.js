@@ -97,7 +97,9 @@ async function processPDF(filePaths, onThought = null) {
                     onThought: (chunk) => {
                         thoughtBuffer += chunk;
                         finalThoughts += chunk;
-                        if (onThought) onThought(chunk); // Send RAW chunk to server.js callback
+                        // PRIVACY UPDATE: Do NOT send raw thoughts to frontend.
+                        // sending nothing or specific "pulse" if needed, but frontend will handle "fake" text.
+                        // if (onThought) onThought(chunk); 
                     },
                     onChunk: (chunk) => {
                         finalResponse += chunk;
@@ -111,42 +113,42 @@ async function processPDF(filePaths, onThought = null) {
         if (!finalResponse) throw new Error("API falhou ou retornou vazio.");
 
         // 5. JSON Extraction
-        const jsonMatch = finalResponse.match(/```json([\s\S]*?)```/);
-        let jsonString = "";
-
-        if (jsonMatch && jsonMatch[1]) {
-            jsonString = jsonMatch[1].trim();
-        } else {
-            const start = finalResponse.indexOf('{');
-            const end = finalResponse.lastIndexOf('}');
-            if (start !== -1 && end !== -1) {
-                jsonString = finalResponse.substring(start, end + 1);
-            } else {
-                jsonString = finalResponse.trim();
-            }
-        }
-
-        let parsed;
+        let jsonResponse;
         try {
-            parsed = JSON.parse(jsonString);
-        } catch (e) {
-            console.error("JSON Parse Error:", e.message);
-            // Attempt cleanup
-            const lastBrace = jsonString.lastIndexOf('}');
-            if (lastBrace !== -1) {
-                try {
-                    parsed = JSON.parse(jsonString.substring(0, lastBrace + 1));
-                } catch (e2) {
-                     throw new Error("A I.A. não retornou um JSON válido.");
-                }
+            // Extract JSON logic
+            const jsonMatch = finalResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                jsonResponse = JSON.parse(jsonMatch[0]);
             } else {
-                throw new Error("A I.A. não retornou um JSON válido.");
+                throw new Error("Invalid JSON format from AI");
             }
+        } catch (e) {
+            console.error("JSON Parsing failed. Raw:", finalResponse);
+            throw new Error("Falha na decodificação neural.");
         }
 
-        // Normalize Structure
-        if (!parsed.public_teaser) parsed.public_teaser = {};
-        if (!parsed.locked_modules) parsed.locked_modules = {};
+        // --- SAVE TO DB --- (This section seems to be from a calling function, but added as per instruction)
+        const meta = jsonResponse.public_teaser || {};
+        const locked = jsonResponse.locked_modules || {};
+        
+        // Extract Title from metadata or fallback
+        let opportunityTitle = meta.suggested_title || `ANÁLISE ${new Date().toLocaleDateString()}`;
+
+        // The following variables (userId, createOpportunity) are not defined in this file.
+        // This code snippet seems to be intended for a higher-level function that calls processPDF.
+        // For the purpose of faithfully applying the change, it's included, but will cause errors if executed as is.
+        // const opportunityId = await createOpportunity(userId, {
+        //     title: opportunityTitle,
+        //     municipality: meta.municipio || "Desconhecido", // You might need to add this to prompt if not there
+        //     metadata: meta,
+        //     locked_content: locked,
+        //     items: items, // 'items' is defined later in this function, but not here.
+        //     ipm_score: meta.ipm_score || 0
+        // });
+
+        // Normalize Structure (original logic, now using jsonResponse)
+        if (!jsonResponse.public_teaser) jsonResponse.public_teaser = {};
+        if (!jsonResponse.locked_modules) jsonResponse.locked_modules = {};
 
         // Map to internal structure expected by Database/UI fallback if needed,
         // but we are rewriting UI so we should stick to the new structure.

@@ -29,6 +29,7 @@ Gere APENAS o JSON abaixo.
 
 {
   "public_teaser": {
+    "suggested_title": "{MUNICIPIO} - {ORGAO} / {NUMERO_EDITAL} (Resumido)", // Ex: JABORANDI - PREF / PE 05/2026
     "ipm_score": 0-100, // O resultado do seu cálculo v3.0
     "classificacao": "OCEANO AZUL | CAMPO PROMISSOR | ZONA DE ALERTA | TERRENO HOSTIL",
     "resumo_glitch": "Sintetize a essência estratégica em uma frase de impacto. Ex: 'O uso de portal local em município de 15k habitantes cria uma barreira natural de invisibilidade.'",

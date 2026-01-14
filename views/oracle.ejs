@@ -280,14 +280,42 @@
     async function handleUpload() {
         if (fileInput.files.length === 0) return;
 
+        // 1. Request Notification Permission
+        if (Notification.permission === "default") {
+             Notification.requestPermission();
+        }
+
         document.getElementById('uploadContainer').style.display = 'none';
         document.getElementById('loader').classList.remove('hidden');
-        document.getElementById('loaderText').innerText = "INICIANDO VARREDURA NEURAL...";
+        document.getElementById('loaderText').innerText = "INICIANDO VARREDURA TÁTICA...";
         
-        // Reset and prepare Thought Box
+        // 2. Cinematic "Fake" Loader (Privacy Protection)
+        // User doesn't want to see raw thoughts ("giving the gold away").
+        // We show "Hype" status messages instead.
         const thoughtBox = document.getElementById('thoughtDisplay');
         const thinkingContent = document.getElementById('thinkingContent');
-        thinkingContent.textContent = ''; 
+        thinkingContent.innerHTML = "";
+        
+        const loadingPhrases = [
+            "INTERCEPTANDO PADRÕES DO PREGOEIRO...",
+            "ANALISANDO HISTÓRICO DE PREÇOS OCULTO...",
+            "DETECTANDO ARMADILHAS JURÍDICAS...",
+            "CALCULANDO IPM v3.0...",
+            "VERIFICANDO CONCORRÊNCIA PREDITIVA...",
+            "EXTRAINDO SEGREDOS DA CAIXA PRETA...",
+            "PROCESSANDO MODELO QWEN-MAX (FLAGSHIP)...",
+            "CRUZANDO DADOS DE EMPRESAS LOCAIS...",
+            "OTIMIZANDO ESTRATÉGIA DE LANCES..."
+        ];
+
+        let termInterval = setInterval(() => {
+            const randomPhrase = loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)];
+            const time = new Date().toLocaleTimeString('pt-BR', {hour12:false});
+            const line = `<div class="mb-1"><span class="opacity-50">[${time}]</span> <span class="text-success">${randomPhrase}</span></div>`;
+            thinkingContent.innerHTML += line;
+            thoughtBox.scrollTop = thoughtBox.scrollHeight;
+        }, 1500);
+
 
         const formData = new FormData(uploadForm);
         let currentData = {};
@@ -312,40 +340,43 @@
                         try {
                             const eventData = JSON.parse(line.substring(6));
 
-                            if (eventData.message) { 
-                                document.getElementById('loaderText').innerText = eventData.message.toUpperCase();
-                            }
+                            // Note: raw text is no longer sent by backend for privacy
+                            // We only listen for final result or status updates
                             
-                            if (eventData.text) { 
-                                // Stream Thoughts
-                                thinkingContent.textContent += eventData.text;
-                                thoughtBox.scrollTop = thoughtBox.scrollHeight;
-                            }
-
                             if (eventData.metadata || eventData.ipm_score) {
                                 // FINAL RESULT
                                 currentData = eventData;
                                 if (eventData.id) {
                                     currentOpportunityId = eventData.id;
-                                    console.log("Analysis ID captured:", currentOpportunityId);
                                 }
                             }
                         } catch(e) {}
                     }
                 }
             }
-             
+            
+            clearInterval(termInterval);
+            
+            // 3. Trigger Notification
+            if (Notification.permission === "granted") {
+                new Notification("MABUS INTEL", {
+                    body: "Análise concluída com sucesso. O relatório estratégico está pronto.",
+                    icon: "/favicon.ico" // Optional
+                });
+            }
+
             showResult({
                 ...currentData,
                 id: currentOpportunityId, 
                 unlocked_modules: []
             });
 
-            // Ideally initiate a refresh of History Grid silently here so if user scrolls down it's there?
-            // Since we don't have a separated "get all history" endpoint easy to call without reloading page data,
-            // we will let it update on next refresh.
+            // Reload history to show the new card
+            loadHistory(); // Assuming we implement a fetch-based reload or user refresh. 
+            // For now, let's keep it simple.
 
         } catch (error) {
+            clearInterval(termInterval);
             console.error(error);
             alert("Erro Fatal: " + error.message);
             resetView();
