@@ -187,6 +187,20 @@ async function initDB() {
             )
         `);
 
+        // --- NOTIFICATIONS TABLE ---
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(255),
+                message TEXT,
+                link VARCHAR(255),
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
         // Check for default admin
         const [users] = await pool.query("SELECT * FROM users WHERE username = 'admin'");
         if (users.length === 0) {
@@ -720,6 +734,26 @@ async function setSetting(key, value) {
     `, [key, value, value]);
 }
 
+// --- NOTIFICATION FUNCTIONS ---
+async function createNotification(userId, title, message, link) {
+    const p = await getPool();
+    if (!p) return;
+    await p.query("INSERT INTO notifications (user_id, title, message, link) VALUES (?, ?, ?, ?)", [userId, title, message, link]);
+}
+
+async function getUnreadNotifications(userId) {
+    const p = await getPool();
+    if (!p) return [];
+    const [rows] = await p.query("SELECT * FROM notifications WHERE user_id = ? AND is_read = FALSE ORDER BY created_at DESC", [userId]);
+    return rows;
+}
+
+async function markNotificationAsRead(id) {
+    const p = await getPool();
+    if (!p) return;
+    await p.query("UPDATE notifications SET is_read = TRUE WHERE id = ?", [id]);
+}
+
 module.exports = {
     initDB,
     createTask,
@@ -761,5 +795,8 @@ module.exports = {
     getOpportunityById,
     unlockOpportunityModule,
     getSetting,
-    setSetting
+    setSetting,
+    createNotification,
+    getUnreadNotifications,
+    markNotificationAsRead
 };

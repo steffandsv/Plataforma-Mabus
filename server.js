@@ -35,7 +35,11 @@ const {
     getRadarOpportunities,
     getUserOpportunities,
     getSetting,
-    setSetting
+    getSetting,
+    setSetting,
+    createNotification,
+    getUnreadNotifications,
+    markNotificationAsRead
 } = require('./src/database');
 const { startWorker } = require('./src/worker');
 const { generateExcelBuffer } = require('./src/export');
@@ -94,8 +98,14 @@ app.use(async (req, res, next) => {
     res.locals.error = req.flash('error');
     res.locals.success = req.flash('success');
     res.locals.path = req.path; // Make current path available
-    if (req.session.userId && !res.locals.user) {
-        req.session.destroy();
+    if (req.session.userId) {
+        if (!res.locals.user) {
+            req.session.destroy();
+        } else {
+             // Fetch Notifications for SSR
+             const notifications = await getUnreadNotifications(req.session.userId);
+             res.locals.notifications = notifications;
+        }
     }
     next();
 });
@@ -360,6 +370,16 @@ app.post('/api/process-tr', isAuthenticated, upload.array('pdfFiles'), async (re
         result.file_path = filePaths[0];
         result.id = newId; // Critical for frontend
         result.unlocked_modules = []; 
+
+        // --- NOTIFICATION TRIGGER ---
+        if (targetUserId) {
+            await createNotification(
+                targetUserId, 
+                "Análise Concluída", 
+                `A análise do edital #${newId} foi finalizada. Clique para ver os detalhes estratégicos.`, 
+                `/oracle?id=${newId}` // We might handle query param in Oracle or just generic link
+            );
+        } 
 
         sendEvent('result', result);
         res.write('event: end\ndata: "DONE"\n\n');
@@ -733,6 +753,21 @@ app.post('/admin/users/delete', isAdmin, async (req, res) => {
 });
 app.post('/admin/users/role', isAdmin, async (req, res) => {
     if (req.body.id && req.body.role) await updateUserRole(req.body.id, req.body.role); res.redirect('/admin/dashboard');
+});
+
+// --- NOTIFICATION ROUTES ---
+app.get('/api/notifications', isAuthenticated, async (req, res) => {
+    try {
+        const notes = await getUnreadNotifications(req.session.userId);
+        res.json(notes);
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/notifications/read/:id', isAuthenticated, async (req, res) => {
+    try {
+        await markNotificationAsRead(req.params.id);
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 

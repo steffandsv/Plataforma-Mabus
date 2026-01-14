@@ -16,10 +16,23 @@
         z-index: 10; transition: opacity 0.3s ease;
     }
 
-    /* Neural Stream Typer */
     .cursor-blink { animation: blink 1s step-end infinite; }
     @keyframes blink { 50% { opacity: 0; } }
+
+    /* SVG Filter for Gooey Effect (Hidden but active) */
+    .visually-hidden { position: absolute; width: 0; height: 0; overflow: hidden; }
 </style>
+
+<!-- SVG Filter Definition -->
+<svg class="visually-hidden">
+    <defs>
+        <filter id="goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+        </filter>
+    </defs>
+</svg>
 
 <div class="min-h-screen bg-base-100 flex flex-col items-center pb-20">
 
@@ -64,20 +77,33 @@
                 </form>
             </div>
 
-            <!-- LOADER & NEURAL STREAM -->
-            <div id="loader" class="hidden text-center py-10 flex flex-col items-center">
-                <div class="mb-8">
-                    <span class="loading loading-bars loading-lg text-primary scale-150"></span>
-                </div>
-                <div class="text-2xl font-bold text-base-content animate-pulse mb-6 tracking-widest uppercase" id="loaderText">INICIANDO UPLINK...</div>
+            <!-- LIQUID LOADER (MABUS CORE) -->
+            <div id="loader" class="hidden text-center py-20 flex flex-col items-center min-h-[50vh] justify-center">
                 
-                <!-- NEURAL STREAM BOX -->
-                <div class="mockup-code w-full max-w-3xl text-left bg-black border border-primary/30 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                    <pre class="px-6 py-4 h-64 overflow-y-auto scrollbar-thin text-xs md:text-sm font-mono leading-relaxed text-green-400" id="thoughtDisplay">
-<span class="opacity-50">/// ESTABLISHING SECURE CONNECTION TO CORE...</span>
-<span class="opacity-50">/// PING: 12ms | PACKET LOSS: 0%</span>
-<span class="opacity-50">/// LOADING PROTOCOL 6.0 (DEEP STRATEGY)...</span>
-<span id="thinkingContent"></span><span class="cursor-blink">█</span></pre>
+                <div class="liquid-container mb-10">
+                    <div class="liquid-circle liquid-main"></div>
+                    <div class="liquid-circle liquid-orbit"></div>
+                    <div class="liquid-circle liquid-orbit"></div>
+                    <div class="liquid-circle liquid-orbit"></div>
+                </div>
+
+                <div class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-4 tracking-tighter" id="loaderTitle">
+                    INICIANDO UPLINK...
+                </div>
+                
+                <div class="text-sm font-mono text-base-content/50 mb-8 h-6 relative">
+                    <span id="loaderText" class="scramble-text">ESTABELECENDO CONEXÃO SEGURA...</span>
+                </div>
+
+                <!-- NOTIFICATION REQUEST -->
+                <div id="notifyRequest" class="hidden animate-bounce-in">
+                    <button onclick="enableNotifications()" class="btn btn-outline btn-sm btn-primary rounded-full gap-2">
+                        <i class="fas fa-bell"></i>
+                        ME AVISE QUANDO TERMINAR
+                    </button>
+                    <p class="text-[10px] text-base-content/30 mt-2 max-w-xs mx-auto">
+                        A análise profunda pode demorar. Ative para não perder o resultado.
+                    </p>
                 </div>
             </div>
         </div>
@@ -280,21 +306,15 @@
     async function handleUpload() {
         if (fileInput.files.length === 0) return;
 
-        // 1. Request Notification Permission
         if (Notification.permission === "default") {
-             Notification.requestPermission();
+             document.getElementById('notifyRequest').classList.remove('hidden');
+        } else {
+             document.getElementById('notifyRequest').classList.add('hidden');
         }
 
         document.getElementById('uploadContainer').style.display = 'none';
         document.getElementById('loader').classList.remove('hidden');
-        document.getElementById('loaderText').innerText = "INICIANDO VARREDURA TÁTICA...";
-        
-        // 2. Cinematic "Fake" Loader (Privacy Protection)
-        // User doesn't want to see raw thoughts ("giving the gold away").
-        // We show "Hype" status messages instead.
-        const thoughtBox = document.getElementById('thoughtDisplay');
-        const thinkingContent = document.getElementById('thinkingContent');
-        thinkingContent.innerHTML = "";
+        document.getElementById('loaderTitle').innerText = "MABUS PROTOCOL V5";
         
         const loadingPhrases = [
             "INTERCEPTANDO PADRÕES DO PREGOEIRO...",
@@ -310,11 +330,8 @@
 
         let termInterval = setInterval(() => {
             const randomPhrase = loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)];
-            const time = new Date().toLocaleTimeString('pt-BR', {hour12:false});
-            const line = `<div class="mb-1"><span class="opacity-50">[${time}]</span> <span class="text-success">${randomPhrase}</span></div>`;
-            thinkingContent.innerHTML += line;
-            thoughtBox.scrollTop = thoughtBox.scrollHeight;
-        }, 1500);
+            document.getElementById('loaderText').innerText = randomPhrase;
+        }, 2200);
 
 
         const formData = new FormData(uploadForm);
@@ -544,6 +561,13 @@
             alert(e.message);
             const btn = document.querySelector(`#overlay-${key} button`);
             if(btn) { btn.disabled = false; btn.innerText = `DESBLOQUEAR | ${cost}`; }
+        }
+    }
+
+    async function enableNotifications() {
+        if(window.requestNotificationPermission) {
+            const result = await window.requestNotificationPermission();
+            if(result) document.getElementById('notifyRequest').classList.add('hidden');
         }
     }
 
