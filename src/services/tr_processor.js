@@ -23,13 +23,13 @@ async function processPDF(filePaths, onThought = null) {
         const charCount = combinedText.length;
         const estimatedTokens = Math.ceil(charCount / 4);
 
-        // Force Qwen for this specific Oracle flow as per "Protocol V4.0" requirements
-        // However, we should respect if the user provided keys. Assuming Qwen Key is available.
+        // Force Qwen for this specific Oracle flow as per "Protocol V5.0" (Qwen 3 Upgrade)
+        // User requested "AT LEAST QWEN 3". 'qwen-max' points to the latest flagship (Qwen 3 Max).
         let provider = PROVIDERS.QWEN;
-        let model = 'qwen-plus'; // Default < 25k
+        let model = 'qwen-max'; // Flagship Model (Qwen 3 Max)
 
-        if (estimatedTokens > 25000) {
-            model = 'qwen-turbo'; // Context up to 1M
+        if (estimatedTokens > 28000) {
+            model = 'qwen-long'; // Specialized for massive contexts
         }
 
         // Fallback: Check if we have Qwen Key, if not try to use what's configured in DB/Env,
