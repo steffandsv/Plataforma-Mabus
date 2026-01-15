@@ -328,7 +328,35 @@ async function initDB() {
             "ALTER TABLE users ADD COLUMN cnpj VARCHAR(20)",
             "ALTER TABLE users ADD COLUMN current_credits INT DEFAULT 0",
             "ALTER TABLE task_items ADD COLUMN is_unlocked BOOLEAN DEFAULT FALSE",
-            "ALTER TABLE opportunities ADD COLUMN unlocked_modules JSON DEFAULT ('[]')"
+            "ALTER TABLE opportunities ADD COLUMN unlocked_modules JSON DEFAULT ('[]')",
+
+            // Licitacoes module - Expansão completa do schema
+            "ALTER TABLE licitacoes ADD COLUMN sequencial_compra INT",
+            "ALTER TABLE licitacoes ADD COLUMN numero_compra VARCHAR(100)",
+            "ALTER TABLE licitacoes ADD COLUMN processo VARCHAR(255)",
+            "ALTER TABLE licitacoes ADD COLUMN link_sistema_origem TEXT",
+            "ALTER TABLE licitacoes ADD COLUMN link_processo_eletronico TEXT",
+            "ALTER TABLE licitacoes ADD COLUMN data_inclusao DATETIME",
+            "ALTER TABLE licitacoes ADD COLUMN data_atualizacao DATETIME",
+            "ALTER TABLE licitacoes ADD COLUMN data_atualizacao_global DATETIME",
+            "ALTER TABLE licitacoes ADD COLUMN modo_disputa_id INT",
+            "ALTER TABLE licitacoes ADD COLUMN modo_disputa_nome VARCHAR(100)",
+            "ALTER TABLE licitacoes ADD COLUMN tipo_instrumento_codigo INT",
+            "ALTER TABLE licitacoes ADD COLUMN tipo_instrumento_nome VARCHAR(200)",
+            "ALTER TABLE licitacoes ADD COLUMN srp BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE licitacoes ADD COLUMN usuario_nome VARCHAR(255)",
+            "ALTER TABLE licitacoes ADD COLUMN uf_sigla CHAR(2)",
+            "ALTER TABLE licitacoes ADD COLUMN uf_nome VARCHAR(100)",
+            "ALTER TABLE licitacoes ADD COLUMN municipio_nome VARCHAR(200)",
+            "ALTER TABLE licitacoes ADD COLUMN codigo_ibge VARCHAR(20)",
+            "ALTER TABLE licitacoes ADD COLUMN codigo_unidade VARCHAR(50)",
+            "ALTER TABLE licitacoes ADD COLUMN nome_unidade VARCHAR(255)",
+            "ALTER TABLE licitacoes ADD COLUMN amparo_legal_codigo INT",
+            "ALTER TABLE licitacoes ADD COLUMN amparo_legal_nome TEXT",
+            "ALTER TABLE licitacoes ADD COLUMN amparo_legal_descricao TEXT",
+            "ALTER TABLE licitacoes ADD COLUMN metadata_json JSON",
+            "ALTER TABLE licitacoes_itens ADD COLUMN material_ou_servico CHAR(1)",
+            "ALTER TABLE licitacoes_itens ADD COLUMN material_ou_servico_nome VARCHAR(50)"
         ];
 
         for (const sql of migrations) {
