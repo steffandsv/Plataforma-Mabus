@@ -6,8 +6,8 @@
     <!-- HEADER -->
     <div class="container mx-auto px-4 max-w-5xl mb-12 text-center relative">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] pointer-events-none"></div>
-        <h2 class="text-4xl font-black text-white mb-2 tracking-tight relative z-10">AUTOMATED SNIPER</h2>
-        <p class="text-starlight/60 font-mono text-sm tracking-[0.2em] relative z-10">INTELLIGENT REQUISITION PARSER</p>
+        <h2 class="text-4xl font-black text-white mb-2 tracking-tight relative z-10">COTADOR AGÊNTICO</h2>
+        <p class="text-starlight/60 font-mono text-sm tracking-[0.2em] relative z-10">SIMULAÇÃO HUMANA DE COTAÇÃO</p>
     </div>
 
     <!-- MAIN INTERFACE -->
@@ -20,10 +20,10 @@
                 <div class="absolute inset-y-1 start-1 w-[calc(50%-4px)] bg-neon-blue/20 rounded-full transition-all duration-300" id="toggleBg"></div>
                 
                 <label for="modeToggle" class="relative z-10 py-2 px-6 rounded-full cursor-pointer text-xs font-bold transition-colors select-none text-white hover:text-white" onclick="document.getElementById('toggleBg').style.transform = 'translateX(0)'">
-                    <i class="fas fa-file-pdf mr-2"></i> PDF PARSE
+                    <i class="fas fa-file-pdf mr-2"></i> LER TR
                 </label>
                 <label for="modeToggle" class="relative z-10 py-2 px-6 rounded-full cursor-pointer text-xs font-bold transition-colors select-none text-starlight hover:text-white" onclick="document.getElementById('toggleBg').style.transform = 'translateX(100%)'">
-                    <i class="fas fa-keyboard mr-2"></i> MANUAL INPUT
+                    <i class="fas fa-keyboard mr-2"></i> DADOS MANUAIS
                 </label>
             </div>
         </div>
@@ -40,14 +40,14 @@
                         <i class="fas fa-file-pdf text-4xl text-neon-blue"></i>
                     </div>
                     
-                    <div class="text-2xl font-bold text-white tracking-tight drop-zone-text">DROP EDITAL HERE</div>
-                    <div class="text-sm text-starlight/50 mt-2 font-mono">AI AUTO-EXTRACTION ENABLED</div>
+                    <div class="text-2xl font-bold text-white tracking-tight drop-zone-text">ENVIE O TR AQUI</div>
+                    <div class="text-sm text-starlight/50 mt-2 font-mono">PROCESSAMENTO NEURAL AUTOMÁTICO</div>
                     <input type="file" id="pdfFiles" accept=".pdf" multiple hidden onchange="showProcessButton()">
                 </label>
 
                 <div class="w-full max-w-3xl">
                     <div class="glass-panel p-[1px] rounded-2xl">
-                        <textarea id="aiInstructions" class="w-full h-24 bg-black/40 rounded-2xl p-4 text-sm text-starlight focus:outline-none focus:bg-black/60 transition-colors resize-none placeholder:text-starlight/20" placeholder="> OPTIONAL INSTRUCTIONS (e.g., 'Target only IT equipment', 'Ignore services')..."></textarea>
+                        <textarea id="aiInstructions" class="w-full h-24 bg-black/40 rounded-2xl p-4 text-sm text-starlight focus:outline-none focus:bg-black/60 transition-colors resize-none placeholder:text-starlight/20" placeholder="> INSTRUÇÕES OPCIONAIS (ex: 'Apenas equipamentos de T.I', 'Ingnore serviços', 'Apenas com maior valor agregado'"></textarea>
                     </div>
                 </div>
 
@@ -169,7 +169,7 @@
 
     <!-- RECENT HISTORY -->
     <div class="container mx-auto px-4 max-w-5xl mt-12 pb-12 border-t border-white/5 pt-12">
-        <h4 class="text-xs font-bold uppercase text-starlight/30 mb-6 tracking-widest pl-2">RECENT MISSIONS</h4>
+        <h4 class="text-xs font-bold uppercase text-starlight/30 mb-6 tracking-widest pl-2">MISSÕES RECENTES</h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
              <%- include('partials/task_list', { tasks: recentTasks }) %>
         </div>
