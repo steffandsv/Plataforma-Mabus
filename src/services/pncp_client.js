@@ -193,6 +193,50 @@ class PNCPClient {
             return { success: false, data: [] };
         }
     }
+
+    /**
+     * Buscar arquivos/anexos de uma licitação (PDFs, editais, termos, etc)
+     * ENDPOINT: /api/pncp/v1/orgaos/{cnpj}/compras/{ano}/{sequencial}/arquivos
+     * 
+     * @param {string} cnpj - CNPJ do órgão
+     * @param {number} ano - Ano da compra
+     * @param {number} sequencial - Sequencial da compra
+     */
+    async buscarArquivos(cnpj, ano, sequencial) {
+        await this.rateLimit();
+
+        const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}/arquivos`;
+
+        try {
+            console.log(`[PNCP Client] Buscando arquivos: ${cnpj}/${ano}/${sequencial}`);
+
+            const response = await axios.get(url, {
+                timeout: 30000,
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mabus-Platform/1.0'
+                }
+            });
+
+            // API retorna array direto
+            const files = Array.isArray(response.data) ? response.data : [];
+            console.log(`[PNCP Client] ✅ ${files.length} arquivo(s) encontrado(s)`);
+
+            return {
+                success: true,
+                data: files
+            };
+        } catch (error) {
+            if (error.response?.status === 404) {
+                // Sem arquivos publicados (comum em licitações antigas)
+                console.log(`[PNCP Client] Sem arquivos publicados`);
+                return { success: false, data: [] };
+            }
+
+            console.warn(`[PNCP Client] Erro ao buscar arquivos: ${error.message}`);
+            return { success: false, data: [] };
+        }
+    }
 }
 
 // Exportar singleton

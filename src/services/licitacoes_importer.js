@@ -2,10 +2,41 @@ const pncpClient = require('./pncp_client');
 const {
     createLicitacao,
     createLicitacaoItem,
+    createLicitacaoArquivo,
     createSyncControl,
     updateSyncControl,
     getActiveSyncControl
 } = require('../database');
+
+// Controle de concorrência: máx 16 operações paralelas
+const pLimit = require('p-limit');
+const CONCURRENCY_LIMIT = 16;
+
+// Classe personalizada para limite de concorrência (evita dep externa)
+class ConcurrencyLimiter {
+    constructor(limit = 16) {
+        this.limit = limit;
+        this.running = 0;
+        this.queue = [];
+    }
+
+    async run(fn) {
+        while (this.running >= this.limit) {
+            await new Promise(resolve => this.queue.push(resolve));
+        }
+
+        this.running++;
+        try {
+            return await fn();
+        } finally {
+            this.running--;
+            const resolve = this.queue.shift();
+            if (resolve) resolve();
+        }
+    }
+}
+
+const limiter = new ConcurrencyLimiter(16);
 
 /**
  * Serviço para importação em lote de licitações do PNCP
@@ -64,34 +95,46 @@ class LicitacoesImporter {
                 totalProcessed += result.data.length;
                 console.log(`[Licitações Importer] 📦 Encontradas ${result.data.length} licitações nesta página`);
 
-                // Processar cada licitação
-                for (const lic of result.data) {
-                    if (!lic) continue;
+                // Processar licitações COM PARALELISMO CONTROLADO (16 simultâneas)
+                const promises = result.data.map(lic =>
+                    limiter.run(async () => {
+                        if (!lic) return null;
 
-                    try {
-                        // storeLicitacao agora retorna objeto com {id, cnpj, ano, sequencial}
-                        const licitacaoInfo = await this.storeLicitacao(lic);
+                        try {
+                            const licitacaoInfo = await this.storeLicitacao(lic);
 
-                        // Tentar buscar e salvar itens usando endpoint correto
-                        if (licitacaoInfo) {
-                            await this.storeItens(licitacaoInfo);
+                            // Buscar ITENS e ARQUIVOS em PARALELO
+                            if (licitacaoInfo) {
+                                await Promise.all([
+                                    this.storeItens(licitacaoInfo).catch(err =>
+                                        console.warn(`[Importer] Erro itens: ${err.message}`)
+                                    ),
+                                    this.storeArquivos(licitacaoInfo).catch(err =>
+                                        console.warn(`[Importer] Erro arquivos: ${err.message}`)
+                                    )
+                                ]);
+                            }
+
+                            return 'imported';
+                        } catch (err) {
+                            if (err.code === 'ER_DUP_ENTRY') {
+                                return 'duplicate';
+                            } else {
+                                const id = lic.numeroControlePNCP || 'UNKNOWN';
+                                console.error(`[Licitações Importer] ❌ Erro ao salvar ${id}:`, err.message);
+                                return 'error';
+                            }
                         }
+                    })
+                );
 
-                        imported++;
+                // Aguardar processing de todas as licitações desta página
+                const results = await Promise.all(promises);
 
-                        if (imported % 10 === 0) {
-                            console.log(`[Licitações Importer] ✓ ${imported} licitações importadas...`);
-                        }
-                    } catch (err) {
-                        if (err.code === 'ER_DUP_ENTRY') {
-                            duplicates++;
-                        } else {
-                            errors++;
-                            const id = lic.numeroControlePNCP || lic.sequencialContratacao || 'UNKNOWN';
-                            console.error(`[Licitações Importer] ❌ Erro ao salvar ${id}:`, err.message);
-                        }
-                    }
-                }
+                // Contabilizar
+                imported += results.filter(r => r === 'imported').length;
+                duplicates += results.filter(r => r === 'duplicate').length;
+                errors += results.filter(r => r === 'error').length;
 
                 // Atualizar progresso
                 await updateSyncControl(syncId, {
@@ -298,6 +341,54 @@ class LicitacoesImporter {
 
         } catch (err) {
             console.warn(`[Importer] Erro ao buscar/salvar itens: ${err.message}`);
+            return 0;
+        }
+    }
+
+    /**
+     * Buscar e armazenar arquivos/anexos de uma licitação (PDFs, editais, etc)
+     * @param {Object} licitacaoInfo - {id, cnpj, ano, sequencial}
+     */
+    async storeArquivos(licitacaoInfo) {
+        const { id, cnpj, ano, sequencial } = licitacaoInfo;
+
+        if (!cnpj || !ano || !sequencial) {
+            return 0;
+        }
+
+        try {
+            const result = await pncpClient.buscarArquivos(cnpj, ano, sequencial);
+
+            if (!result.success || !result.data || result.data.length === 0) {
+                return 0;
+            }
+
+            console.log(`[Importer] 📎 ${result.data.length} arquivo(s), salvando...`);
+            let savedFiles = 0;
+
+            for (const arquivo of result.data) {
+                try {
+                    await createLicitacaoArquivo(id, {
+                        sequencialDocumento: arquivo.sequencialDocumento,
+                        titulo: arquivo.titulo,
+                        tipoDocumentoId: arquivo.tipoDocumentoId,
+                        tipoDocumentoNome: arquivo.tipoDocumentoNome,
+                        tipoDocumentoDescricao: arquivo.tipoDocumentoDescricao,
+                        url: arquivo.url,
+                        dataPublicacao: this.parseDate(arquivo.dataPublicacaoPncp),
+                        statusAtivo: arquivo.statusAtivo !== false
+                    });
+                    savedFiles++;
+                } catch (err) {
+                    console.warn(`[Importer] Erro arquivo ${arquivo.titulo}: ${err.message}`);
+                }
+            }
+
+            console.log(`[Importer] ✅ ${savedFiles}/${result.data.length} arquivo(s) salvo(s)`);
+            return savedFiles;
+
+        } catch (err) {
+            console.warn(`[Importer] Erro ao buscar/salvar arquivos: ${err.message}`);
             return 0;
         }
     }

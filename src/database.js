@@ -305,6 +305,29 @@ async function initDB() {
             )
         `);
 
+        // --- LICITACOES ARQUIVOS TABLE (PDFs e anexos) ---
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS licitacoes_arquivos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                licitacao_id INT NOT NULL,
+                sequencial_documento INT,
+                titulo VARCHAR(500),
+                tipo_documento_id INT,
+                tipo_documento_nome VARCHAR(200),
+                tipo_documento_descricao TEXT,
+                url TEXT NOT NULL,
+                data_publicacao DATETIME,
+                status_ativo BOOLEAN DEFAULT TRUE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
+                INDEX idx_licitacao (licitacao_id),
+                INDEX idx_tipo (tipo_documento_id)
+            )
+        `);
+
+        console.log('[Database] ✅ Tables created/verified');
+
         // Check for default admin
         const [users] = await pool.query("SELECT * FROM users WHERE username = 'admin'");
         if (users.length === 0) {
@@ -993,6 +1016,42 @@ async function getLicitacaoById(id) {
     return rows[0];
 }
 
+async function createLicitacaoArquivo(licitacaoId, data) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    const sql = `INSERT INTO licitacoes_arquivos (
+        licitacao_id, sequencial_documento, titulo, 
+        tipo_documento_id, tipo_documento_nome, tipo_documento_descricao,
+        url, data_publicacao, status_ativo
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const [result] = await p.query(sql, [
+        licitacaoId,
+        data.sequencialDocumento,
+        data.titulo,
+        data.tipoDocumentoId,
+        data.tipoDocumentoNome,
+        data.tipoDocumentoDescricao,
+        data.url,
+        data.dataPublicacao,
+        data.statusAtivo ? 1 : 0
+    ]);
+
+    return result.insertId;
+}
+
+async function getLicitacaoArquivos(licitacaoId) {
+    const p = await getPool();
+    if (!p) return [];
+
+    const [rows] = await p.query(
+        'SELECT * FROM licitacoes_arquivos WHERE licitacao_id = ? AND status_ativo = TRUE ORDER BY sequencial_documento',
+        [licitacaoId]
+    );
+    return rows;
+}
+
 async function getLicitacaoItens(licitacaoId) {
     const p = await getPool();
     if (!p) return [];
@@ -1142,6 +1201,8 @@ module.exports = {
     getLicitacaoById,
     getLicitacaoItens,
     createLicitacaoItem,
+    createLicitacaoArquivo,
+    getLicitacaoArquivos,
     createSyncControl,
     updateSyncControl,
     getActiveSyncControl,

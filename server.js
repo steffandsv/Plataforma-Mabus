@@ -43,6 +43,9 @@ const {
     getLicitacoes,
     getLicitacaoById,
     getLicitacaoItens,
+    getLicitacaoArquivos,
+    createSyncControl,
+    updateSyncControl,
     getActiveSyncControl,
     getLatestSyncControl
 } = require('./src/database');
@@ -219,6 +222,7 @@ app.get('/licitacoes/:id', isAuthenticated, async (req, res) => {
         if (!licitacao) return res.status(404).send('Licitação não encontrada');
 
         const itens = await getLicitacaoItens(licitacao.id);
+        const arquivos = await getLicitacaoArquivos(licitacao.id); // Added this line
 
         // Parse raw_data_json if needed
         if (licitacao.raw_data_json && typeof licitacao.raw_data_json === 'string') {
@@ -227,7 +231,7 @@ app.get('/licitacoes/:id', isAuthenticated, async (req, res) => {
             licitacao.raw_data = licitacao.raw_data_json;
         }
 
-        res.render('licitacao_detail', { licitacao, itens });
+        res.render('licitacao_detail', { licitacao, itens, arquivos }); // Modified this line
     } catch (e) {
         console.error('[Licitação Detail Error]:', e);
         res.status(500).send(e.message);
