@@ -201,6 +201,110 @@ async function initDB() {
             )
         `);
 
+        // --- LICITACOES TABLES (PNCP MODULE) ---
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS licitacoes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                
+                -- Identificadores PNCP
+                numero_sequencial_pncp VARCHAR(100) NOT NULL UNIQUE,
+                numero_controle_pncp VARCHAR(255),
+                ano_compra INT,
+                
+                -- Dados do Órgão
+                cnpj_orgao VARCHAR(18),
+                razao_social_orgao VARCHAR(500),
+                poder VARCHAR(50),
+                esfera VARCHAR(50),
+                
+                -- Dados da Licitação
+                objeto_compra TEXT,
+                informacao_complementar TEXT,
+                situacao_compra VARCHAR(100),
+                modalidade_licitacao VARCHAR(100),
+                modo_disputa VARCHAR(100),
+                criterio_julgamento VARCHAR(100),
+                
+                -- Valores
+                valor_estimado_total DECIMAL(15, 2),
+                valor_total_homologado DECIMAL(15, 2),
+                
+                -- Datas
+                data_publicacao_pncp DATETIME,
+                data_abertura_proposta DATETIME,
+                data_encerramento_proposta DATETIME,
+                
+                -- Dados completos em JSON (Event Sourcing)
+                raw_data_json JSON,
+                
+                -- Controle interno
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                
+                INDEX idx_cnpj (cnpj_orgao),
+                INDEX idx_data_pub (data_publicacao_pncp),
+                INDEX idx_situacao (situacao_compra),
+                INDEX idx_modalidade (modalidade_licitacao),
+                FULLTEXT INDEX ft_objeto (objeto_compra, informacao_complementar)
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS licitacoes_itens (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                licitacao_id INT NOT NULL,
+                
+                numero_item INT,
+                descricao_item TEXT,
+                quantidade DECIMAL(12, 4),
+                unidade_medida VARCHAR(50),
+                valor_unitario_estimado DECIMAL(15, 4),
+                valor_total_estimado DECIMAL(15, 2),
+                
+                -- Classificação
+                codigo_catmat VARCHAR(50),
+                descricao_catmat VARCHAR(500),
+                
+                situacao_item VARCHAR(100),
+                
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
+                INDEX idx_licitacao (licitacao_id)
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS licitacoes_sync_control (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                
+                sync_type VARCHAR(50),
+                status VARCHAR(50),
+                
+                -- Parâmetros da busca
+                data_inicial DATE,
+                data_final DATE,
+                cnpj_orgao VARCHAR(18),
+                
+                -- Controle paginação
+                total_pages INT,
+                current_page INT DEFAULT 1,
+                items_per_page INT DEFAULT 500,
+                
+                -- Resultados
+                total_imported INT DEFAULT 0,
+                total_duplicates INT DEFAULT 0,
+                total_errors INT DEFAULT 0,
+                
+                error_message TEXT,
+                
+                started_at DATETIME,
+                finished_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+
         // Check for default admin
         const [users] = await pool.query("SELECT * FROM users WHERE username = 'admin'");
         if (users.length === 0) {
@@ -321,7 +425,7 @@ async function addUserToGroup(userId, groupId) {
     if (!p) return;
     try {
         await p.query("INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", [userId, groupId]);
-    } catch(e) {
+    } catch (e) {
         // Ignore duplicates
     }
 }
@@ -565,7 +669,7 @@ async function logTaskMessage(taskId, message, level = 'info') {
     if (!p) return;
     try {
         await p.query("INSERT INTO task_logs (task_id, message, level) VALUES (?, ?, ?)", [taskId, message, level]);
-    } catch(e) {
+    } catch (e) {
         console.error("Failed to log to DB:", e);
     }
 }
@@ -583,7 +687,7 @@ async function createTaskMetadata(taskId, data) {
     if (!p) return;
     try {
         await p.query("INSERT INTO task_metadata (task_id, data) VALUES (?, ?)", [taskId, JSON.stringify(data)]);
-    } catch(e) {
+    } catch (e) {
         console.error("Failed to save metadata:", e);
     }
 }
@@ -754,6 +858,181 @@ async function markNotificationAsRead(id) {
     await p.query("UPDATE notifications SET is_read = TRUE WHERE id = ?", [id]);
 }
 
+// --- LICITACOES FUNCTIONS ---
+
+async function createLicitacao(data) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    const sql = `INSERT INTO licitacoes (
+        numero_sequencial_pncp, numero_controle_pncp, ano_compra,
+        cnpj_orgao, razao_social_orgao, poder, esfera,
+        objeto_compra, informacao_complementar, situacao_compra,
+        modalidade_licitacao, modo_disputa, criterio_julgamento,
+        valor_estimado_total, valor_total_homologado,
+        data_publicacao_pncp, data_abertura_proposta, data_encerramento_proposta,
+        raw_data_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const [result] = await p.query(sql, [
+        data.numeroSequencial,
+        data.numeroControle,
+        data.anoCompra,
+        data.cnpjOrgao,
+        data.razaoSocialOrgao,
+        data.poder,
+        data.esfera,
+        data.objetoCompra,
+        data.informacaoComplementar,
+        data.situacaoCompra,
+        data.modalidadeLicitacao,
+        data.modoDisputa,
+        data.criterioJulgamento,
+        data.valorEstimadoTotal,
+        data.valorTotalHomologado,
+        data.dataPublicacaoPncp,
+        data.dataAberturaProposta,
+        data.dataEncerramentoProposta,
+        JSON.stringify(data.rawData)
+    ]);
+
+    return result.insertId;
+}
+
+async function getLicitacoes(filters = {}, limit = 50, offset = 0) {
+    const p = await getPool();
+    if (!p) return [];
+
+    let sql = 'SELECT * FROM licitacoes WHERE 1=1';
+    const params = [];
+
+    if (filters.cnpj_orgao) {
+        sql += ' AND cnpj_orgao = ?';
+        params.push(filters.cnpj_orgao);
+    }
+
+    if (filters.modalidade) {
+        sql += ' AND modalidade_licitacao = ?';
+        params.push(filters.modalidade);
+    }
+
+    if (filters.search) {
+        sql += ' AND MATCH(objeto_compra, informacao_complementar) AGAINST(? IN NATURAL LANGUAGE MODE)';
+        params.push(filters.search);
+    }
+
+    sql += ' ORDER BY data_publicacao_pncp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await p.query(sql, params);
+    return rows;
+}
+
+async function getLicitacaoById(id) {
+    const p = await getPool();
+    if (!p) return null;
+    const [rows] = await p.query('SELECT * FROM licitacoes WHERE id = ?', [id]);
+    return rows[0];
+}
+
+async function getLicitacaoItens(licitacaoId) {
+    const p = await getPool();
+    if (!p) return [];
+    const [rows] = await p.query(
+        'SELECT * FROM licitacoes_itens WHERE licitacao_id = ? ORDER BY numero_item ASC',
+        [licitacaoId]
+    );
+    return rows;
+}
+
+async function createLicitacaoItem(licitacaoId, itemData) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    const sql = `INSERT INTO licitacoes_itens (
+        licitacao_id, numero_item, descricao_item, quantidade,
+        unidade_medida, valor_unitario_estimado, valor_total_estimado,
+        codigo_catmat, descricao_catmat, situacao_item
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const [result] = await p.query(sql, [
+        licitacaoId,
+        itemData.numeroItem,
+        itemData.descricaoItem,
+        itemData.quantidade,
+        itemData.unidadeMedida,
+        itemData.valorUnitarioEstimado,
+        itemData.valorTotalEstimado,
+        itemData.codigoCatmat,
+        itemData.descricaoCatmat,
+        itemData.situacaoItem
+    ]);
+
+    return result.insertId;
+}
+
+async function createSyncControl(params) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    const sql = `INSERT INTO licitacoes_sync_control 
+        (sync_type, status, data_inicial, data_final, cnpj_orgao, total_pages, items_per_page, started_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`;
+
+    const [result] = await p.query(sql, [
+        params.syncType,
+        'running',
+        params.dataInicial,
+        params.dataFinal,
+        params.cnpjOrgao || null,
+        params.totalPages || 0,
+        params.itemsPerPage || 500
+    ]);
+
+    return result.insertId;
+}
+
+async function updateSyncControl(id, updates) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    const fields = [];
+    const values = [];
+
+    if (updates.status) { fields.push('status = ?'); values.push(updates.status); }
+    if (updates.current_page) { fields.push('current_page = ?'); values.push(updates.current_page); }
+    if (updates.total_imported !== undefined) { fields.push('total_imported = ?'); values.push(updates.total_imported); }
+    if (updates.total_duplicates !== undefined) { fields.push('total_duplicates = ?'); values.push(updates.total_duplicates); }
+    if (updates.total_errors !== undefined) { fields.push('total_errors = ?'); values.push(updates.total_errors); }
+    if (updates.error_message) { fields.push('error_message = ?'); values.push(updates.error_message); }
+    if (updates.finished_at) { fields.push('finished_at = NOW()'); }
+
+    if (fields.length === 0) return;
+
+    values.push(id);
+
+    const sql = `UPDATE licitacoes_sync_control SET ${fields.join(', ')} WHERE id = ?`;
+    await p.query(sql, values);
+}
+
+async function getActiveSyncControl() {
+    const p = await getPool();
+    if (!p) return null;
+    const [rows] = await p.query(
+        "SELECT * FROM licitacoes_sync_control WHERE status = 'running' ORDER BY started_at DESC LIMIT 1"
+    );
+    return rows[0];
+}
+
+async function getLatestSyncControl() {
+    const p = await getPool();
+    if (!p) return null;
+    const [rows] = await p.query(
+        "SELECT * FROM licitacoes_sync_control ORDER BY created_at DESC LIMIT 1"
+    );
+    return rows[0];
+}
+
 module.exports = {
     initDB,
     createTask,
@@ -798,5 +1077,16 @@ module.exports = {
     setSetting,
     createNotification,
     getUnreadNotifications,
-    markNotificationAsRead
+    markNotificationAsRead,
+    // Licitações functions
+    createLicitacao,
+    getLicitacoes,
+    getLicitacaoById,
+    getLicitacaoItens,
+    createLicitacaoItem,
+    createSyncControl,
+    updateSyncControl,
+    getActiveSyncControl,
+    getLatestSyncControl
 };
+

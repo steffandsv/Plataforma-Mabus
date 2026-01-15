@@ -1,0 +1,112 @@
+<%- include('partials/header') %>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">🏛️ Licitações Públicas (PNCP)</h1>
+        <% if (user && user.role === 'admin') { %>
+            <a href="/admin/licitacoes/import" class="btn btn-sm btn-primary">⚙️ Importar</a>
+        <% } %>
+    </div>
+    
+    <!-- Filtros -->
+    <form method="GET" class="bg-base-200 p-4 rounded-lg shadow mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Buscar no objeto</span></label>
+                <input type="text" name="search" placeholder="Ex: computadores, notebooks..." 
+                       value="<%= filters.search || '' %>" class="input input-bordered">
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">CNPJ do Órgão</span></label>
+                <input type="text" name="cnpj" placeholder="00.000.000/0000-00..." 
+                       value="<%= filters.cnpj_orgao || '' %>" class="input input-bordered">
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Modalidade</span></label>
+                <select name="modalidade" class="select select-bordered">
+                    <option value="">Todas as Modalidades</option>
+                    <option value="Pregão" <%= filters.modalidade === 'Pregão' ? 'selected' : '' %>>Pregão</option>
+                    <option value="Concorrência" <%= filters.modalidade === 'Concorrência' ? 'selected' : '' %>>Concorrência</option>
+                    <option value="Dispensa" <%= filters.modalidade === 'Dispensa' ? 'selected' : '' %>>Dispensa</option>
+                    <option value="Inexigibilidade" <%= filters.modalidade === 'Inexigibilidade' ? 'selected' : '' %>>Inexigibilidade</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+            <a href="/licitacoes" class="btn btn-ghost">Limpar</a>
+        </div>
+    </form>
+    
+    <!-- Lista de Licitações -->
+    <div class="space-y-4">
+        <% if (licitacoes.length === 0) { %>
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Nenhuma licitação encontrada. Ajuste os filtros ou solicite ao admin uma importação.</span>
+            </div>
+        <% } else { %>
+            <% licitacoes.forEach(lic => { %>
+                <div class="card bg-base-100 shadow hover:shadow-lg transition-shadow">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="card-title text-lg">
+                                    <%= lic.razao_social_orgao || 'Órgão não informado' %>
+                                </h3>
+                                <div class="flex gap-2 mt-1">
+                                    <span class="badge badge-secondary"><%= lic.modalidade_licitacao || 'N/D' %></span>
+                                    <% if (lic.situacao_compra) { %>
+                                        <span class="badge badge-outline"><%= lic.situacao_compra %></span>
+                                    <% } %>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <% if (lic.valor_estimado_total && lic.valor_estimado_total > 0) { %>
+                                    <div class="text-sm text-gray-500">Valor Estimado</div>
+                                    <div class="text-xl font-bold text-success">
+                                        R$ <%= parseFloat(lic.valor_estimado_total).toLocaleString('pt-BR', {minimumFractionDigits: 2}) %>
+                                    </div>
+                                <% } else { %>
+                                    <div class="text-sm text-gray-400">Valor não informado</div>
+                                <% } %>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-gray-600 mt-2 line-clamp-2">
+                            <%= lic.objeto_compra ? lic.objeto_compra.substring(0, 200) + (lic.objeto_compra.length > 200 ? '...' : '') : 'Objeto não informado' %>
+                        </p>
+                        
+                        <div class="card-actions justify-between items-center mt-3">
+                            <div class="text-xs text-gray-500">
+                                <% if (lic.data_publicacao_pncp) { %>
+                                    📅 Publicado: <%= new Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR') %>
+                                <% } %>
+                            </div>
+                            <a href="/licitacoes/<%= lic.id %>" class="btn btn-sm btn-outline btn-primary">
+                                Ver Detalhes →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        <% } %>
+    </div>
+    
+    <!-- Paginação -->
+    <% if (licitacoes.length > 0) { %>
+        <div class="flex justify-center gap-2 mt-6">
+            <% if (page > 1) { %>
+                <a href="?page=<%= page - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.cnpj_orgao ? '&cnpj=' + filters.cnpj_orgao : '' %><%= filters.modalidade ? '&modalidade=' + filters.modalidade : '' %>" 
+                   class="btn btn-outline">← Anterior</a>
+            <% } %>
+            <span class="btn btn-disabled">Página <%= page %></span>
+            <% if (hasNext) { %>
+                <a href="?page=<%= page + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.cnpj_orgao ? '&cnpj=' + filters.cnpj_orgao : '' %><%= filters.modalidade ? '&modalidade=' + filters.modalidade : '' %>" 
+                   class="btn btn-outline">Próxima →</a>
+            <% } %>
+        </div>
+    <% } %>
+</div>
+
+<%- include('partials/footer') %>
