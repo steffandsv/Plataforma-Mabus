@@ -1,0 +1,205 @@
+<% /* Grid View Component - Responsive Card Layout */ %>
+
+    <div class="grid-view-container">
+        <!-- Density Controls -->
+        <div class="flex justify-end items-center gap-2 mb-4">
+            <span class="text-sm opacity-70">Densidade:</span>
+            <div class="btn-group btn-group-sm">
+                <button class="btn <%= (preferences && preferences.cards_per_row === 2) ? 'btn-active' : '' %>"
+                    onclick="setDensity(2)">2</button>
+                <button class="btn <%= (!preferences || preferences.cards_per_row === 3) ? 'btn-active' : '' %>"
+                    onclick="setDensity(3)">3</button>
+                <button class="btn <%= (preferences && preferences.cards_per_row === 4) ? 'btn-active' : '' %>"
+                    onclick="setDensity(4)">4</button>
+            </div>
+        </div>
+
+        <!-- Grid -->
+        <% const density=(preferences && preferences.cards_per_row) ? preferences.cards_per_row : 3; %>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-<%= density %> gap-4" id="grid-container">
+                <% if (!licitacoes || licitacoes.length===0) { %>
+                    <div class="col-span-full">
+                        <div class="alert alert-info">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="stroke-current shrink-0 w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Nenhuma licitação encontrada. Ajuste os filtros ou <a href="/profile/preferences"
+                                    class="link">configure suas preferências</a>.</span>
+                        </div>
+                    </div>
+                    <% } else { %>
+                        <% licitacoes.forEach(lic=> { %>
+                            <div class="grid-card group hover:scale-105 transition-all duration-300 cursor-pointer"
+                                data-id="<%= lic.id %>" onclick="window.location.href='/licitacoes/<%= lic.id %>'">
+
+                                <!-- Match Score Corner Badge -->
+                                <% const score=lic.relevance_score || 0; %>
+                                    <% if (score> 0) { %>
+                                        <div class="absolute -top-2 -right-2 z-10">
+                                            <div
+                                                class="w-12 h-12 rounded-full bg-gradient-to-br <%= score >= 70 ? 'from-success to-primary' : score >= 40 ? 'from-warning to-secondary' : 'from-info to-accent' %> flex items-center justify-center text-white font-bold shadow-lg text-sm">
+                                                <%= Math.round(score) %>%
+                                            </div>
+                                        </div>
+                                        <% } %>
+
+                                            <div
+                                                class="card bg-base-100 shadow-md hover:shadow-2xl transition-shadow h-full">
+                                                <div class="card-body p-4">
+                                                    <!-- Org Name with Avatar -->
+                                                    <div class="flex items-start gap-2 mb-2">
+                                                        <div class="avatar placeholder">
+                                                            <div class="bg-primary text-white rounded-full w-10 h-10">
+                                                                <span class="text-xs font-bold">
+                                                                    <%= (lic.razao_social_orgao || 'X' ).substring(0,
+                                                                        2).toUpperCase() %>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <h3 class="text-sm font-bold truncate"
+                                                                title="<%= lic.razao_social_orgao %>">
+                                                                <%= lic.razao_social_orgao || 'Órgão não informado' %>
+                                                            </h3>
+                                                            <p class="text-xs opacity-70 truncate">
+                                                                <i class="fas fa-map-marker-alt"></i>
+                                                                <%= lic.municipio_nome || 'N/D' %> - <%= lic.uf_sigla
+                                                                        || 'N/D' %>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Badges -->
+                                                    <div class="flex gap-1 flex-wrap mb-2">
+                                                        <span class="badge badge-primary badge-sm">
+                                                            <%= lic.modalidade_licitacao || 'N/D' %>
+                                                        </span>
+                                                        <% if (lic.srp) { %>
+                                                            <span class="badge badge-success badge-sm">SRP</span>
+                                                            <% } %>
+                                                                <% if (lic.situacao_compra) { %>
+                                                                    <span class="badge badge-outline badge-sm">
+                                                                        <%= lic.situacao_compra %>
+                                                                    </span>
+                                                                    <% } %>
+                                                    </div>
+
+                                                    <!-- Value -->
+                                                    <div class="mb-2">
+                                                        <% if (lic.valor_estimado_total && lic.valor_estimado_total> 0)
+                                                            { %>
+                                                            <div class="text-xs opacity-60">Valor Estimado</div>
+                                                            <div class="text-lg font-bold text-success">
+                                                                R$ <%=
+                                                                    parseFloat(lic.valor_estimado_total).toLocaleString('pt-BR',
+                                                                    {minimumFractionDigits: 2, maximumFractionDigits:
+                                                                    0}) %>
+                                                            </div>
+                                                            <% } else { %>
+                                                                <div class="text-sm opacity-50">Valor não informado
+                                                                </div>
+                                                                <% } %>
+                                                    </div>
+
+                                                    <!-- Description -->
+                                                    <p class="text-xs line-clamp-3 mb-3 flex-1 opacity-80">
+                                                        <%= lic.objeto_compra || 'Objeto não informado' %>
+                                                    </p>
+
+                                                    <!-- Footer -->
+                                                    <div
+                                                        class="card-actions justify-between items-center pt-2 border-t border-base-300">
+                                                        <div class="text-xs opacity-60">
+                                                            <% if (lic.data_publicacao_pncp) { %>
+                                                                📅 <%= new
+                                                                    Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
+                                                                    %>
+                                                                    <% } %>
+                                                        </div>
+                                                        <button class="btn btn-primary btn-xs gap-1"
+                                                            onclick="event.stopPropagation(); window.location.href='/licitacoes/<%= lic.id %>'">
+                                                            Ver <i class="fas fa-arrow-right"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Hover Overlay with Quick Preview -->
+                                            <div
+                                                class="grid-card-overlay hidden group-hover:flex absolute inset-0 z-20">
+                                                <div
+                                                    class="p-4 bg-base-300 bg-opacity-95 backdrop-blur rounded-2xl m-2 flex flex-col">
+                                                    <h4 class="font-bold mb-2 text-sm">Preview Rápido</h4>
+                                                    <div class="space-y-1 text-xs flex-1 overflow-y-auto">
+                                                        <% if (lic.data_abertura_proposta) { %>
+                                                            <div><strong>Abertura:</strong>
+                                                                <%= new
+                                                                    Date(lic.data_abertura_proposta).toLocaleDateString('pt-BR')
+                                                                    %>
+                                                            </div>
+                                                            <% } %>
+                                                                <div><strong>CNPJ:</strong>
+                                                                    <%= lic.cnpj_orgao || 'N/D' %>
+                                                                </div>
+                                                                <% if (lic.processo) { %>
+                                                                    <div><strong>Processo:</strong>
+                                                                        <%= lic.processo %>
+                                                                    </div>
+                                                                    <% } %>
+                                                                        <% if (lic.poder) { %>
+                                                                            <div><strong>Poder:</strong>
+                                                                                <%= lic.poder %>
+                                                                            </div>
+                                                                            <% } %>
+                                                    </div>
+                                                    <div class="flex gap-2 mt-3">
+                                                        <button class="btn btn-sm btn-ghost flex-1"
+                                                            onclick="event.stopPropagation(); saveOpportunity(<%= lic.id %>)">
+                                                            <i class="fas fa-heart"></i>
+                                                        </button>
+                                                        <a href="/licitacoes/<%= lic.id %>"
+                                                            class="btn btn-sm btn-primary flex-1"
+                                                            onclick="event.stopPropagation()">
+                                                            Detalhes Completos
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                            </div>
+                            <% }) %>
+                                <% } %>
+            </div>
+    </div>
+
+    <!-- Load Grid View Scripts -->
+    <link rel="stylesheet" href="/css/dopamine.css">
+    <script>
+        function setDensity(columns) {
+            const grid = document.getElementById('grid-container');
+            // Remove existing column classes
+            grid.className = grid.className.replace(/lg:grid-cols-\d+/g, '');
+            // Add new column class
+            grid.classList.add(`lg:grid-cols-${columns}`);
+
+            // Save preference to localStorage
+            localStorage.setItem('gridDensity', columns);
+
+            // Update active button
+            document.querySelectorAll('.btn-group button').forEach(btn => {
+                btn.classList.remove('btn-active');
+            });
+            event.target.classList.add('btn-active');
+        }
+
+        // Load saved density on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedDensity = localStorage.getItem('gridDensity');
+            if (savedDensity) {
+                const grid = document.getElementById('grid-container');
+                grid.className = grid.className.replace(/lg:grid-cols-\d+/g, '');
+                grid.classList.add(`lg:grid-cols-${savedDensity}`);
+            }
+        });
+    </script>

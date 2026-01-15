@@ -1,0 +1,138 @@
+<% /* Story Feed Component - Vertical Swipe Interface */ %>
+
+    <div
+        class="story-feed-container relative h-[80vh] overflow-hidden bg-gradient-to-b from-base-100 to-base-300 rounded-2xl">
+        <% if (!licitacoes || licitacoes.length===0) { %>
+            <div class="flex flex-col items-center justify-center h-full text-center p-8">
+                <div class="text-6xl mb-4">🎯</div>
+                <h3 class="text-2xl font-bold mb-2">Nenhuma licitação encontrada</h3>
+                <p class="text-base-content/70 mb-4">Ajuste suas preferências para ver oportunidades relevantes</p>
+                <a href="/profile/preferences" class="btn btn-primary">⚙️ Configurar Preferências</a>
+            </div>
+            <% } else { %>
+                <div class="story-cards-wrapper h-full" id="story-wrapper">
+                    <% licitacoes.forEach((lic, index)=> { %>
+                        <div class="story-card <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>"
+                            data-id="<%= lic.id %>">
+
+                            <!-- Relevance Score Badge -->
+                            <div class="absolute top-4 right-4 z-10">
+                                <% const score=lic.relevance_score || 0; %>
+                                    <div
+                                        class="score-badge <%= score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low' %>">
+                                        <span class="score-number">
+                                            <%= Math.round(score) %>%
+                                        </span>
+                                        <span class="score-label">Match</span>
+                                    </div>
+                            </div>
+
+                            <!-- Card Header -->
+                            <div class="story-card-header">
+                                <div class="flex items-center gap-3 flex-1">
+                                    <div class="org-avatar">
+                                        <%= (lic.razao_social_orgao || 'X' ).charAt(0).toUpperCase() %>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="font-bold text-lg truncate">
+                                            <%= lic.razao_social_orgao || 'Órgão não informado' %>
+                                        </h3>
+                                        <p class="text-sm opacity-70">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            <%= lic.municipio_nome || 'N/D' %> - <%= lic.uf_sigla || 'N/D' %>
+                                        </p>
+                                    </div>
+                                </div>
+                                <span class="badge badge-lg badge-primary pulse-animation">
+                                    <%= lic.modalidade_licitacao || 'N/D' %>
+                                </span>
+                            </div>
+
+                            <!-- Value Spotlight -->
+                            <% if (lic.valor_estimado_total && lic.valor_estimado_total> 0) { %>
+                                <div class="value-spotlight">
+                                    <div class="value-label">Valor Estimado</div>
+                                    <div class="value-amount animate-count-up">
+                                        R$ <%= parseFloat(lic.valor_estimado_total).toLocaleString('pt-BR',
+                                            {minimumFractionDigits: 2}) %>
+                                    </div>
+                                </div>
+                                <% } %>
+
+                                    <!-- Object Description with Keyword Highlights -->
+                                    <div class="object-description">
+                                        <h4 class="font-semibold mb-2 flex items-center gap-2">
+                                            <i class="fas fa-file-alt text-primary"></i>
+                                            Objeto
+                                        </h4>
+                                        <p class="text-base leading-relaxed"
+                                            data-keywords="<%= lic.matched_keywords || '' %>">
+                                            <%= (lic.objeto_compra || 'Não informado' ).substring(0, 300) %>
+                                                <%= (lic.objeto_compra || '' ).length> 300 ? '...' : '' %>
+                                        </p>
+                                    </div>
+
+                                    <!-- Quick Info Pills -->
+                                    <div class="info-pills">
+                                        <% if (lic.data_publicacao_pncp) { %>
+                                            <div class="pill">
+                                                <i class="fas fa-calendar"></i>
+                                                <%= new Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR') %>
+                                            </div>
+                                            <% } %>
+                                                <% if (lic.data_abertura_proposta) { %>
+                                                    <div class="pill">
+                                                        <i class="fas fa-clock"></i>
+                                                        Abertura: <%= new
+                                                            Date(lic.data_abertura_proposta).toLocaleDateString('pt-BR')
+                                                            %>
+                                                    </div>
+                                                    <% } %>
+                                                        <% if (lic.srp) { %>
+                                                            <div class="pill">
+                                                                <i class="fas fa-box-open"></i>
+                                                                SRP
+                                                            </div>
+                                                            <% } %>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="story-actions">
+                                        <button class="action-btn skip-btn" onclick="skipCard()"
+                                            title="Pular esta licitação">
+                                            <i class="fas fa-forward"></i>
+                                            <span>Pular</span>
+                                        </button>
+                                        <a href="/licitacoes/<%= lic.id %>" class="action-btn details-btn"
+                                            title="Ver todos os detalhes">
+                                            <i class="fas fa-eye"></i>
+                                            <span>Detalhes</span>
+                                        </a>
+                                        <button class="action-btn save-btn" onclick="saveOpportunity(<%= lic.id %>)"
+                                            title="Salvar para depois">
+                                            <i class="fas fa-heart"></i>
+                                            <span>Salvar</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Progress Indicator -->
+                                    <div class="progress-indicator">
+                                        <span class="font-bold">
+                                            <%= index + 1 %>
+                                        </span> de <%= licitacoes.length %>
+                                    </div>
+                        </div>
+                        <% }) %>
+                </div>
+
+                <!-- Swipe Navigation Hints (aparecem na primeira visita) -->
+                <div class="swipe-hints" id="swipe-hints">
+                    <div class="hint-up">☝️ Deslize para cima ou ↑</div>
+                    <div class="hint-down">👇 Deslize para baixo ou ↓</div>
+                </div>
+                <% } %>
+    </div>
+
+    <!-- Load Story Feed JS -->
+    <link rel="stylesheet" href="/css/dopamine.css">
+    <script src="/js/story-feed.js" defer></script>

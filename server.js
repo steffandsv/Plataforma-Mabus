@@ -47,7 +47,15 @@ const {
     createSyncControl,
     updateSyncControl,
     getActiveSyncControl,
-    getLatestSyncControl
+    getLatestSyncControl,
+    // Preferences & Personalization
+    getUserLicitacoesPreferences,
+    updateUserLicitacoesPreferences,
+    getPersonalizedLicitacoes,
+    saveUserLicitacao,
+    unsaveUserLicitacao,
+    getUserSavedLicitacoes,
+    isLicitacaoSaved
 } = require('./src/database');
 const { startWorker } = require('./src/worker');
 const { generateExcelBuffer } = require('./src/export');
@@ -200,16 +208,34 @@ app.get('/licitacoes', isAuthenticated, async (req, res) => {
         const limit = 50;
         const offset = (page - 1) * limit;
 
+        // Get user preferences for default view mode
+        const prefs = await getUserLicitacoesPreferences(req.session.userId);
+        const viewMode = req.query.view || prefs.default_view_mode || 'story';
+
         const filters = {
             search: req.query.search,
             cnpj_orgao: req.query.cnpj,
             modalidade: req.query.modalidade
         };
 
-        const licitacoes = await getLicitacoes(filters, limit, offset);
+        // Use personalized feed with scoring
+        const licitacoes = await getPersonalizedLicitacoes(
+            req.session.userId,
+            filters,
+            limit,
+            offset
+        );
+
         const hasNext = licitacoes.length === limit;
 
-        res.render('licitacoes', { licitacoes, page, hasNext, filters });
+        res.render('licitacoes', {
+            licitacoes,
+            page,
+            hasNext,
+            filters,
+            viewMode,
+            preferences: prefs
+        });
     } catch (e) {
         console.error('[Licitações Route Error]:', e);
         res.status(500).send(e.message);
@@ -294,6 +320,98 @@ app.get('/api/licitacoes/sync-status', isAdmin, async (req, res) => {
     } catch (e) {
         console.error('[Sync Status API Error]:', e);
         res.status(500).json({ error: e.message });
+    }
+});
+
+// === PREFERENCES & PERSONALIZATION ROUTES ===
+
+// Profile Preferences Page
+app.get('/profile/preferences', isAuthenticated, async (req, res) => {
+    try {
+        const preferences = await getUserLicitacoesPreferences(req.session.userId);
+        res.render('profile_preferences', { preferences });
+    } catch (e) {
+        console.error('[Preferences Error]:', e);
+        res.status(500).send(e.message);
+    }
+});
+
+app.post('/profile/preferences', isAuthenticated, async (req, res) => {
+    try {
+        // Parse form data
+        const preferences = {
+            keywords: req.body.keywords ? req.body.keywords.split(',').map(k => k.trim()).filter(k => k) : [],
+            preferred_ufs: Array.isArray(req.body.preferred_ufs) ? req.body.preferred_ufs : (req.body.preferred_ufs ? [req.body.preferred_ufs] : []),
+            preferred_municipios: req.body.preferred_municipios ? req.body.preferred_municipios.split(',').map(m => m.trim()).filter(m => m) : [],
+            preferred_modalidades: Array.isArray(req.body.preferred_modalidades) ? req.body.preferred_modalidades : (req.body.preferred_modalidades ? [req.body.preferred_modalidades] : []),
+            min_value: parseFloat(req.body.min_value) || 0,
+            max_value: parseFloat(req.body.max_value) || 999999999,
+            preferred_esferas: Array.isArray(req.body.preferred_esferas) ? req.body.preferred_esferas : [],
+            preferred_poderes: Array.isArray(req.body.preferred_poderes) ? req.body.preferred_poderes : [],
+            default_view_mode: req.body.default_view_mode || 'story',
+            cards_per_row: parseInt(req.body.cards_per_row) || 3
+        };
+
+        await updateUserLicitacoesPreferences(req.session.userId, preferences);
+        req.flash('success', '💾 Preferências atualizadas com sucesso!');
+        res.redirect('/profile/preferences');
+    } catch (e) {
+        console.error('[Preferences Update Error]:', e);
+        req.flash('error', 'Erro ao salvar preferências: ' + e.message);
+        res.redirect('/profile/preferences');
+    }
+});
+
+// API: Save licitação
+app.post('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
+    try {
+        const saved = await saveUserLicitacao(req.session.userId, req.params.id, req.body.notes);
+        if (saved) {
+            res.json({ success: true, message: 'Oportunidade salva!' });
+        } else {
+            res.json({ success: false, message: 'Já estava salva' });
+        }
+    } catch (e) {
+        console.error('[Save Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Unsave licitação
+app.delete('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
+    try {
+        await unsaveUserLicitacao(req.session.userId, req.params.id);
+        res.json({ success: true, message: 'Removida dos salvos' });
+    } catch (e) {
+        console.error('[Unsave Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Saved Licitações Page
+app.get('/licitacoes/saved', isAuthenticated, async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 50;
+        const offset = (page - 1) * limit;
+
+        const licitacoes = await getUserSavedLicitacoes(req.session.userId, limit, offset);
+        const hasNext = licitacoes.length === limit;
+        const prefs = await getUserLicitacoesPreferences(req.session.userId);
+        const viewMode = req.query.view || prefs.default_view_mode || 'grid';
+
+        res.render('licitacoes', {
+            licitacoes,
+            page,
+            hasNext,
+            filters: {},
+            viewMode,
+            preferences: prefs,
+            savedMode: true
+        });
+    } catch (e) {
+        console.error('[Saved Licitacoes Error]:', e);
+        res.status(500).send(e.message);
     }
 });
 

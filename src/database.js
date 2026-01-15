@@ -326,6 +326,57 @@ async function initDB() {
             )
         `);
 
+        // --- USER LICITACOES PREFERENCES TABLE ---
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_licitacoes_preferences (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                
+                -- Palavras-chave (JSON array)
+                keywords JSON,
+                
+                -- Localizações preferenciais
+                preferred_ufs JSON,
+                preferred_municipios JSON,
+                
+                -- Modalidades preferidas
+                preferred_modalidades JSON,
+                
+                -- Faixas de valor
+                min_value DECIMAL(15, 2),
+                max_value DECIMAL(15, 2),
+                
+                -- Categorias (órgãos, esfera, poder)
+                preferred_esferas JSON,
+                preferred_poderes JSON,
+                
+                -- Configurações de visualização
+                default_view_mode VARCHAR(20) DEFAULT 'story',
+                cards_per_row INT DEFAULT 3,
+                
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_user (user_id)
+            )
+        `);
+
+        // --- USER SAVED LICITACOES TABLE (for favorites) ---
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_saved_licitacoes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                licitacao_id INT NOT NULL,
+                saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                notes TEXT,
+                
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_save (user_id, licitacao_id)
+            )
+        `);
+
         console.log('[Database] ✅ Tables created/verified');
 
         // Check for default admin
@@ -1150,6 +1201,259 @@ async function getLatestSyncControl() {
     return rows[0];
 }
 
+// --- USER LICITACOES PREFERENCES FUNCTIONS ---
+
+async function getUserLicitacoesPreferences(userId) {
+    const p = await getPool();
+    if (!p) return null;
+
+    const [rows] = await p.query(
+        'SELECT * FROM user_licitacoes_preferences WHERE user_id = ?',
+        [userId]
+    );
+
+    if (rows.length === 0) {
+        // Return default preferences if none exist
+        return {
+            user_id: userId,
+            keywords: [],
+            preferred_ufs: [],
+            preferred_municipios: [],
+            preferred_modalidades: [],
+            min_value: 0,
+            max_value: 999999999,
+            preferred_esferas: [],
+            preferred_poderes: [],
+            default_view_mode: 'story',
+            cards_per_row: 3
+        };
+    }
+
+    const prefs = rows[0];
+    // Parse JSON fields
+    if (typeof prefs.keywords === 'string') prefs.keywords = JSON.parse(prefs.keywords || '[]');
+    if (typeof prefs.preferred_ufs === 'string') prefs.preferred_ufs = JSON.parse(prefs.preferred_ufs || '[]');
+    if (typeof prefs.preferred_municipios === 'string') prefs.preferred_municipios = JSON.parse(prefs.preferred_municipios || '[]');
+    if (typeof prefs.preferred_modalidades === 'string') prefs.preferred_modalidades = JSON.parse(prefs.preferred_modalidades || '[]');
+    if (typeof prefs.preferred_esferas === 'string') prefs.preferred_esferas = JSON.parse(prefs.preferred_esferas || '[]');
+    if (typeof prefs.preferred_poderes === 'string') prefs.preferred_poderes = JSON.parse(prefs.preferred_poderes || '[]');
+
+    return prefs;
+}
+
+async function updateUserLicitacoesPreferences(userId, preferences) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    // Check if preferences exist
+    const existing = await getUserLicitacoesPreferences(userId);
+
+    const data = {
+        keywords: JSON.stringify(preferences.keywords || []),
+        preferred_ufs: JSON.stringify(preferences.preferred_ufs || []),
+        preferred_municipios: JSON.stringify(preferences.preferred_municipios || []),
+        preferred_modalidades: JSON.stringify(preferences.preferred_modalidades || []),
+        min_value: preferences.min_value || 0,
+        max_value: preferences.max_value || 999999999,
+        preferred_esferas: JSON.stringify(preferences.preferred_esferas || []),
+        preferred_poderes: JSON.stringify(preferences.preferred_poderes || []),
+        default_view_mode: preferences.default_view_mode || 'story',
+        cards_per_row: preferences.cards_per_row || 3
+    };
+
+    if (existing && existing.id) {
+        // Update existing
+        await p.query(
+            `UPDATE user_licitacoes_preferences 
+             SET keywords = ?, preferred_ufs = ?, preferred_municipios = ?, 
+                 preferred_modalidades = ?, min_value = ?, max_value = ?,
+                 preferred_esferas = ?, preferred_poderes = ?,
+                 default_view_mode = ?, cards_per_row = ?
+             WHERE user_id = ?`,
+            [
+                data.keywords, data.preferred_ufs, data.preferred_municipios,
+                data.preferred_modalidades, data.min_value, data.max_value,
+                data.preferred_esferas, data.preferred_poderes,
+                data.default_view_mode, data.cards_per_row,
+                userId
+            ]
+        );
+    } else {
+        // Insert new
+        await p.query(
+            `INSERT INTO user_licitacoes_preferences 
+             (user_id, keywords, preferred_ufs, preferred_municipios, 
+              preferred_modalidades, min_value, max_value,
+              preferred_esferas, preferred_poderes, default_view_mode, cards_per_row)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                userId,
+                data.keywords, data.preferred_ufs, data.preferred_municipios,
+                data.preferred_modalidades, data.min_value, data.max_value,
+                data.preferred_esferas, data.preferred_poderes,
+                data.default_view_mode, data.cards_per_row
+            ]
+        );
+    }
+}
+
+async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offset = 0) {
+    const p = await getPool();
+    if (!p) return [];
+
+    // Get user preferences
+    const prefs = await getUserLicitacoesPreferences(userId);
+
+    // Build base query with scoring
+    let sql = `
+        SELECT l.*,
+        (
+            -- KEYWORD MATCH (40 points max)
+            ${prefs.keywords.length > 0 ? `
+            (
+                ${prefs.keywords.map((kw, idx) =>
+        `(CASE WHEN LOWER(l.objeto_compra) LIKE ? THEN 10 ELSE 0 END)`
+    ).join(' + ')}
+            )
+            ` : '0'}
+            +
+            -- LOCATION MATCH (30 points)
+            (CASE 
+                ${prefs.preferred_ufs.length > 0 ?
+            `WHEN l.uf_sigla IN (${prefs.preferred_ufs.map(() => '?').join(',')}) THEN 30`
+            : 'WHEN 1=0 THEN 30'}
+                ELSE 0 
+            END)
+            +
+            -- MODALIDADE MATCH (20 points)
+            (CASE 
+                ${prefs.preferred_modalidades.length > 0 ?
+            `WHEN l.modalidade_licitacao IN (${prefs.preferred_modalidades.map(() => '?').join(',')}) THEN 20`
+            : 'WHEN 1=0 THEN 20'}
+                ELSE 0 
+            END)
+            +
+            -- VALUE RANGE (10 points)
+            (CASE 
+                WHEN l.valor_estimado_total BETWEEN ? AND ? THEN 10
+                ELSE 0 
+            END)
+        ) AS relevance_score
+        FROM licitacoes l
+        WHERE 1=1
+    `;
+
+    const params = [];
+
+    // Add keyword params (for LIKE matching)
+    prefs.keywords.forEach(kw => {
+        params.push(`%${kw.toLowerCase()}%`);
+    });
+
+    // Add UF params
+    prefs.preferred_ufs.forEach(uf => {
+        params.push(uf);
+    });
+
+    // Add modalidade params
+    prefs.preferred_modalidades.forEach(mod => {
+        params.push(mod);
+    });
+
+    // Add value range params
+    params.push(prefs.min_value || 0, prefs.max_value || 999999999);
+
+    // Apply additional filters from request
+    if (filters.cnpj_orgao) {
+        sql += ' AND l.cnpj_orgao = ?';
+        params.push(filters.cnpj_orgao);
+    }
+
+    if (filters.modalidade) {
+        sql += ' AND l.modalidade_licitacao = ?';
+        params.push(filters.modalidade);
+    }
+
+    if (filters.search) {
+        sql += ' AND MATCH(l.objeto_compra, l.informacao_complementar) AGAINST(? IN NATURAL LANGUAGE MODE)';
+        params.push(filters.search);
+    }
+
+    // Order by relevance score DESC, then by date
+    sql += ' ORDER BY relevance_score DESC, l.data_publicacao_pncp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await p.query(sql, params);
+
+    // Add matched keywords to each row for highlighting
+    rows.forEach(row => {
+        const matchedKeywords = prefs.keywords.filter(kw =>
+            row.objeto_compra && row.objeto_compra.toLowerCase().includes(kw.toLowerCase())
+        );
+        row.matched_keywords = matchedKeywords.join(',');
+    });
+
+    return rows;
+}
+
+// --- USER SAVED LICITACOES FUNCTIONS ---
+
+async function saveUserLicitacao(userId, licitacaoId, notes = null) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    try {
+        await p.query(
+            'INSERT INTO user_saved_licitacoes (user_id, licitacao_id, notes) VALUES (?, ?, ?)',
+            [userId, licitacaoId, notes]
+        );
+        return true;
+    } catch (e) {
+        // Ignore duplicate key errors
+        if (e.code === 'ER_DUP_ENTRY') return false;
+        throw e;
+    }
+}
+
+async function unsaveUserLicitacao(userId, licitacaoId) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    await p.query(
+        'DELETE FROM user_saved_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+        [userId, licitacaoId]
+    );
+}
+
+async function getUserSavedLicitacoes(userId, limit = 50, offset = 0) {
+    const p = await getPool();
+    if (!p) return [];
+
+    const [rows] = await p.query(
+        `SELECT l.*, s.saved_at, s.notes, 0 AS relevance_score
+         FROM user_saved_licitacoes s
+         JOIN licitacoes l ON s.licitacao_id = l.id
+         WHERE s.user_id = ?
+         ORDER BY s.saved_at DESC
+         LIMIT ? OFFSET ?`,
+        [userId, limit, offset]
+    );
+
+    return rows;
+}
+
+async function isLicitacaoSaved(userId, licitacaoId) {
+    const p = await getPool();
+    if (!p) return false;
+
+    const [rows] = await p.query(
+        'SELECT id FROM user_saved_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+        [userId, licitacaoId]
+    );
+
+    return rows.length > 0;
+}
+
 module.exports = {
     initDB,
     createTask,
@@ -1206,6 +1510,15 @@ module.exports = {
     createSyncControl,
     updateSyncControl,
     getActiveSyncControl,
-    getLatestSyncControl
+    getLatestSyncControl,
+    // Preferences & Personalization
+    getUserLicitacoesPreferences,
+    updateUserLicitacoesPreferences,
+    getPersonalizedLicitacoes,
+    saveUserLicitacao,
+    unsaveUserLicitacao,
+    getUserSavedLicitacoes,
+    isLicitacaoSaved
 };
+
 
