@@ -5,9 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MABUS | Initialize</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/liquid.css">
     <link rel="stylesheet" href="/css/liquid-studio.css">
-    <link rel="stylesheet" href="/css/output.css">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "cosmic-void": "#030014",
+              "starlight": "#E2E8F0",
+              "neon-blue": "#00F0FF",
+              "neon-purple": "#7000FF",
+              "glass-surface": "rgba(255, 255, 255, 0.05)",
+              "glass-border": "rgba(255, 255, 255, 0.1)",
+            },
+            fontFamily: {
+              sans: ['Outfit', 'Inter', 'sans-serif'],
+            },
+            animation: {
+              'float': 'float 6s ease-in-out infinite',
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'glow': 'glow 2s ease-in-out infinite alternate',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              glow: {
+                'from': { boxShadow: '0 0 10px -10px #00F0FF' },
+                'to': { boxShadow: '0 0 20px 5px #00F0FF' },
+              }
+            }
+          }
+        },
+        daisyui: {
+            themes: [
+            {
+                neuro: {
+                "primary": "#00F0FF",
+                "secondary": "#7000FF",
+                "accent": "#FF0080",
+                "neutral": "#1D1D1F",
+                "base-100": "#030014",
+                "base-200": "#0A0A1E",
+                "base-300": "#15152E",
+                "info": "#00F0FF",
+                "success": "#34C759",
+                "warning": "#FF9500",
+                "error": "#FF3B30",
+                },
+            },
+            ],
+        },
+      }
+    </script>
 </head>
 <body class="bg-cosmic-void min-h-screen flex items-center justify-center relative overflow-hidden selection:bg-neon-blue selection:text-white">
 
