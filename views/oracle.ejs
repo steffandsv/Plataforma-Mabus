@@ -206,7 +206,6 @@
         document.getElementById('uploadForm').reset();
         
         // Reset Loader UI
-        document.getElementById('thinkingContent').innerHTML = '';
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('uploadContainer').style.display = 'flex';
         
@@ -277,8 +276,7 @@
             document.getElementById('uploadView').classList.remove('hidden');
             document.getElementById('uploadContainer').style.display = 'none';
             document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('loaderText').innerText = "RECUPERANDO DADOS...";
-            document.getElementById('thinkingContent').innerText = ""; 
+            document.getElementById('loaderText').innerText = "RECUPERANDO DADOS..."; 
 
             const res = await fetch(`/api/oracle/history/${id}`);
             if(!res.ok) throw new Error("Erro ao carregar");
