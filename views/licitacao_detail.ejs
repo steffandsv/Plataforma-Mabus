@@ -36,45 +36,97 @@
                     <!-- Botões de Ação -->
                     <div class="flex gap-2 flex-wrap">
                         <% if (arquivos && arquivos.length> 0) { %>
-                            <% arquivos.forEach(arquivo=> { %>
-                                <a href="<%= arquivo.url %>" target="_blank" rel="noopener noreferrer"
+                            <% if (arquivos.length===1) { %>
+                                <!-- Single file: Direct download -->
+                                <a href="<%= arquivos[0].url %>" target="_blank" rel="noopener noreferrer"
                                     class="btn btn-primary gap-2"
-                                    title="<%= arquivo.tipo_documento_descricao || arquivo.tipo_documento_nome %>">
-                                    <% if (arquivo.tipo_documento_nome &&
-                                        arquivo.tipo_documento_nome.toLowerCase().includes('edital')) { %>
-                                        <i class="fas fa-file-pdf text-red-500"></i>
-                                        <% } else if (arquivo.tipo_documento_nome &&
-                                            arquivo.tipo_documento_nome.toLowerCase().includes('termo')) { %>
-                                            <i class="fas fa-file-contract text-blue-500"></i>
-                                            <% } else { %>
-                                                <i class="fas fa-file-alt"></i>
-                                                <% } %>
-                                                    <%= arquivo.titulo || arquivo.tipo_documento_nome || 'Documento' %>
+                                    title="<%= arquivos[0].tipo_documento_descricao || arquivos[0].tipo_documento_nome %>">
+                                    <i class="fas fa-download"></i>
+                                    Baixar Arquivo
                                 </a>
-                                <% }) %>
-                                    <% } else { %>
-                                        <% if (licitacao.link_sistema_origem) { %>
-                                            <a href="<%= licitacao.link_sistema_origem %>" target="_blank"
-                                                rel="noopener noreferrer" class="btn btn-secondary gap-2">
-                                                <i class="fas fa-external-link-alt"></i>
-                                                Ver no Portal
-                                            </a>
-                                            <% } %>
+                                <% } else { %>
+                                    <!-- Multiple files: Dropdown -->
+                                    <div class="dropdown dropdown-hover">
+                                        <div tabindex="0" role="button" class="btn btn-primary gap-2">
+                                            <i class="fas fa-download"></i>
+                                            Baixar Arquivos
+                                            <span class="badge badge-sm">
+                                                <%= arquivos.length %>
+                                            </span>
+                                        </div>
+                                        <ul tabindex="0"
+                                            class="dropdown-content z-[999] menu p-2 shadow-2xl bg-base-200 rounded-box w-80 max-h-96 overflow-y-auto flex-nowrap border border-base-300">
+                                            <li class="menu-title">
+                                                <span class="text-xs opacity-60">Documentos Disponíveis</span>
+                                            </li>
+                                            <% arquivos.forEach((arquivo, idx)=> { %>
+                                                <li>
+                                                    <a href="<%= arquivo.url %>" target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        class="flex items-start gap-2 hover:bg-primary/20 py-2"
+                                                        title="<%= arquivo.tipo_documento_descricao || 'Clique para baixar' %>">
+                                                        <% if (arquivo.tipo_documento_nome &&
+                                                            arquivo.tipo_documento_nome.toLowerCase().includes('edital'))
+                                                            { %>
+                                                            <i class="fas fa-file-pdf text-error mt-1"></i>
+                                                            <% } else if (arquivo.tipo_documento_nome &&
+                                                                arquivo.tipo_documento_nome.toLowerCase().includes('termo'))
+                                                                { %>
+                                                                <i class="fas fa-file-contract text-info mt-1"></i>
+                                                                <% } else { %>
+                                                                    <i
+                                                                        class="fas fa-file-alt text-base-content/60 mt-1"></i>
+                                                                    <% } %>
+                                                                        <div class="flex-1 min-w-0">
+                                                                            <div class="font-medium text-sm truncate">
+                                                                                <%= arquivo.titulo ||
+                                                                                    arquivo.tipo_documento_nome ||
+                                                                                    `Documento ${idx + 1}` %>
+                                                                            </div>
+                                                                            <% if (arquivo.tipo_documento_descricao &&
+                                                                                arquivo.tipo_documento_descricao
+                                                                                !==arquivo.titulo) { %>
+                                                                                <div
+                                                                                    class="text-xs opacity-60 truncate">
+                                                                                    <%= arquivo.tipo_documento_descricao.substring(0,
+                                                                                        60) %>
+                                                                                        <%=
+                                                                                            arquivo.tipo_documento_descricao.length>
+                                                                                            60 ? '...' : '' %>
+                                                                                </div>
+                                                                                <% } %>
+                                                                        </div>
+                                                                        <i
+                                                                            class="fas fa-external-link-alt text-xs opacity-40 mt-1"></i>
+                                                    </a>
+                                                </li>
+                                                <% }) %>
+                                        </ul>
+                                    </div>
+                                    <% } %>
+                                        <% } else { %>
+                                            <% if (licitacao.link_sistema_origem) { %>
+                                                <a href="<%= licitacao.link_sistema_origem %>" target="_blank"
+                                                    rel="noopener noreferrer" class="btn btn-secondary gap-2">
+                                                    <i class="fas fa-external-link-alt"></i>
+                                                    Ver no Portal
+                                                </a>
                                                 <% } %>
+                                                    <% } %>
 
-                                                    <% if (licitacao.link_processo_eletronico) { %>
-                                                        <a href="<%= licitacao.link_processo_eletronico %>"
-                                                            target="_blank" rel="noopener noreferrer"
-                                                            class="btn btn-secondary gap-2">
-                                                            <i class="fas fa-folder-open"></i>
-                                                            Processo Eletrônico
-                                                        </a>
-                                                        <% } %>
-
-                                                            <a href="/licitacoes" class="btn btn-ghost gap-2">
-                                                                <i class="fas fa-arrow-left"></i>
-                                                                Voltar
+                                                        <% if (licitacao.link_processo_eletronico) { %>
+                                                            <a href="<%= licitacao.link_processo_eletronico %>"
+                                                                target="_blank" rel="noopener noreferrer"
+                                                                class="btn btn-secondary gap-2">
+                                                                <i class="fas fa-folder-open"></i>
+                                                                Processo Eletrônico
                                                             </a>
+                                                            <% } %>
+
+                                                                <a href="/licitacoes" class="btn btn-ghost gap-2">
+                                                                    <i class="fas fa-arrow-left"></i>
+                                                                    Voltar
+                                                                </a>
                     </div>
                 </div>
 
