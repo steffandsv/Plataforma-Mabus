@@ -53,7 +53,7 @@ class LicitacoesImporter {
                     codigoModalidadeContratacao: params.codigoModalidadeContratacao || 8,
                     cnpjOrgao,
                     pagina: page,
-                    tamanhoPagina: 100 // máximo suportado pela API
+                    tamanhoPagina: 50 // máximo suportado pela API (descoberto por testes)
                 });
 
                 if (!result.success || !result.data || result.data.length === 0) {
@@ -100,8 +100,8 @@ class LicitacoesImporter {
                     total_errors: errors
                 });
 
-                // Se última página tinha menos que 500, acabou
-                if (result.data.length < 500) {
+                // Se última página tinha menos que 50, acabou
+                if (result.data.length < 50) {
                     console.log(`[Licitações Importer] ✅ Última página (${result.data.length} itens), finalizando.`);
                     break;
                 }
