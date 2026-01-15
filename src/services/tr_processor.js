@@ -227,9 +227,8 @@ async function processPDF(filePaths, onThought = null) {
 
         const metadata = {
             ...jsonResponse.public_teaser, // ipm_score, classificacao, etc.
-            edital_numero: jsonResponse.public_teaser.resumo_poderoso ? "Análise Estratégica" : "Sem Título", // Fallback
-            municipio_uf: "Brasil", // We don't have this explicitly in new JSON unless we parse it or add to prompt
-            // Actually prompt doesn't ask for municipality in JSON. We can try to extract or leave generic.
+            edital_numero: jsonResponse.public_teaser.suggested_title || "Análise Estratégica",
+            municipio_uf: "Brasil", // Generic location fallback
         };
 
         const locked_content = jsonResponse.locked_modules; // This matches the concept
