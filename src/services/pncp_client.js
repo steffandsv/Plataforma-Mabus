@@ -151,13 +151,47 @@ class PNCPClient {
 
     /**
      * Buscar itens de uma licitação
-     * NOTA: Geralmente não disponível na API pública de consulta
-     * @param {string} numeroSequencial - ID da licitação no PNCP
+     * ENDPOINT CORRETO: /api/pncp/v1/orgaos/{cnpj}/compras/{ano}/{sequencial}/itens
+     * 
+     * @param {string} cnpj - CNPJ do órgão
+     * @param {number} ano - Ano da compra
+     * @param {number} sequencial - Sequencial da compra
      */
-    async buscarItens(numeroSequencial) {
-        // Itens geralmente não estão disponíveis na API de consulta
-        // Retornar vazio silenciosamente
-        return { success: false, data: [] };
+    async buscarItens(cnpj, ano, sequencial) {
+        await this.rateLimit();
+
+        // Endpoint correto descoberto por testes
+        const url = `https://pncp.gov.br/api/pncp/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}/itens`;
+
+        try {
+            console.log(`[PNCP Client] Buscando itens: ${cnpj}/${ano}/${sequencial}`);
+
+            const response = await axios.get(url, {
+                timeout: 30000,
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mabus-Platform/1.0'
+                }
+            });
+
+            // API retorna array direto
+            const items = Array.isArray(response.data) ? response.data : [];
+            console.log(`[PNCP Client] ✅ ${items.length} itens encontrados`);
+
+            return {
+                success: true,
+                data: items
+            };
+        } catch (error) {
+            if (error.response?.status === 404) {
+                // Licitação sem itens publicados (comum)
+                console.log(`[PNCP Client] Sem itens publicados`);
+                return { success: false, data: [] };
+            }
+
+            console.warn(`[PNCP Client] Erro ao buscar itens: ${error.message}`);
+            return { success: false, data: [] };
+        }
     }
 }
 

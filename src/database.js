@@ -865,19 +865,28 @@ async function createLicitacao(data) {
     if (!p) throw new Error("DB not ready");
 
     const sql = `INSERT INTO licitacoes (
-        numero_sequencial_pncp, numero_controle_pncp, ano_compra,
+        numero_sequencial_pncp, numero_controle_pncp, ano_compra, sequencial_compra, numero_compra, processo,
         cnpj_orgao, razao_social_orgao, poder, esfera,
         objeto_compra, informacao_complementar, situacao_compra,
-        modalidade_licitacao, modo_disputa, criterio_julgamento,
+        modalidade_licitacao, modo_disputa, modo_disputa_id, modo_disputa_nome, criterio_julgamento,
+        tipo_instrumento_codigo, tipo_instrumento_nome,
         valor_estimado_total, valor_total_homologado,
         data_publicacao_pncp, data_abertura_proposta, data_encerramento_proposta,
-        raw_data_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        data_inclusao, data_atualizacao, data_atualizacao_global,
+        link_sistema_origem, link_processo_eletronico,
+        srp, usuario_nome,
+        uf_sigla, uf_nome, municipio_nome, codigo_ibge, codigo_unidade, nome_unidade,
+        amparo_legal_codigo, amparo_legal_nome, amparo_legal_descricao,
+        raw_data_json, metadata_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const [result] = await p.query(sql, [
         data.numeroSequencial,
         data.numeroControle,
         data.anoCompra,
+        data.sequencialCompra,
+        data.numeroCompra,
+        data.processo,
         data.cnpjOrgao,
         data.razaoSocialOrgao,
         data.poder,
@@ -887,13 +896,34 @@ async function createLicitacao(data) {
         data.situacaoCompra,
         data.modalidadeLicitacao,
         data.modoDisputa,
+        data.modoDisputaId,
+        data.modoDisputaNome,
         data.criterioJulgamento,
+        data.tipoInstrumentoCodigo,
+        data.tipoInstrumentoNome,
         data.valorEstimadoTotal,
         data.valorTotalHomologado,
         data.dataPublicacaoPncp,
         data.dataAberturaProposta,
         data.dataEncerramentoProposta,
-        JSON.stringify(data.rawData)
+        data.dataInclusao,
+        data.dataAtualizacao,
+        data.dataAtualizacaoGlobal,
+        data.linkSistemaOrigem,
+        data.linkProcessoEletronico,
+        data.srp ? 1 : 0,
+        data.usuarioNome,
+        data.ufSigla,
+        data.ufNome,
+        data.municipioNome,
+        data.codigoIbge,
+        data.codigoUnidade,
+        data.nomeUnidade,
+        data.amparoLegalCodigo,
+        data.amparoLegalNome,
+        data.amparoLegalDescricao,
+        JSON.stringify(data.rawData || {}),
+        JSON.stringify(data.metadata || {})
     ]);
 
     return result.insertId;
