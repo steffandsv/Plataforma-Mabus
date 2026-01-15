@@ -3,12 +3,14 @@ const axios = require('axios');
 /**
  * Cliente HTTP para API do PNCP (Portal Nacional de Contratações Públicas)
  * 
- * Documentação: https://pncp.gov.br/api/consulta
+ * Endpoint correto descoberto via testes: /api/consulta/v1/contratacoes/publicacao
+ * Requer parâmetro obrigatório: codigoModalidadeContratacao
+ * 
  * Rate limit: 5 requisições/segundo
  */
 class PNCPClient {
     constructor() {
-        this.baseURL = 'https://pncp.gov.br/api/pncp/v1';
+        this.baseURL = 'https://pncp.gov.br/api/consulta/v1';
         this.lastRequestTime = 0;
         this.minRequestInterval = 250; // 4 req/s para segurança (limite é 5/s)
     }
@@ -27,17 +29,24 @@ class PNCPClient {
 
     /**
      * Buscar licitações com paginação
-     * @param {Object} params - { dataInicial, dataFinal, cnpjOrgao, pagina, tamanhoPagina }
-     * @returns {Promise<Object>} { success, data, pagination, total }
+     * IMPORTANTE: API requer codigoModalidadeContratacao!
+     * 
+     * @param {Object} params - { dataInicial, dataFinal, codigoModalidadeContratacao, pagina, tamanhoPagina }
+     * @returns {Promise<Object>} { success, data, totalRegistros, totalPaginas, numeroPagina }
      */
     async buscarLicitacoes(params = {}) {
         await this.rateLimit();
 
+        // Modalidade padrão: 8 (Dispensa) se não especificado
+        // Outras modalidades comuns: 1=Pregão Eletrônico, 8=Dispensa
+        const modalidade = params.codigoModalidadeContratacao || 8;
+
         const queryParams = {
             dataInicial: params.dataInicial, // formato: YYYYMMDD
             dataFinal: params.dataFinal,      // formato: YYYYMMDD
+            codigoModalidadeContratacao: modalidade, // OBRIGATÓRIO!
             pagina: params.pagina || 1,
-            tamanhoPagina: params.tamanhoPagina || 500 // máx suportado pela API
+            tamanhoPagina: Math.max(params.tamanhoPagina || 100, 10) // min 10, default 100
         };
 
         if (params.cnpjOrgao) {
@@ -45,7 +54,7 @@ class PNCPClient {
         }
 
         try {
-            console.log(`[PNCP Client] Buscando licitações: ${params.dataInicial} a ${params.dataFinal}, página ${queryParams.pagina}`);
+            console.log(`[PNCP Client] Buscando licitações: ${params.dataInicial} a ${params.dataFinal}, modalidade ${modalidade}, página ${queryParams.pagina}`);
 
             const response = await axios.get(`${this.baseURL}/contratacoes/publicacao`, {
                 params: queryParams,
@@ -56,16 +65,37 @@ class PNCPClient {
                 }
             });
 
-            // A API pode retornar diferentes formatos
-            const data = response.data.items || response.data.data || response.data;
-            const items = Array.isArray(data) ? data : [];
+            // Status 204 = Sem conteúdo (nenhuma licitação encontrada)
+            if (response.status === 204) {
+                console.log(`[PNCP Client] ℹ️ Nenhuma licitação encontrada`);
+                return {
+                    success: true,
+                    data: [],
+                    totalRegistros: 0,
+                    totalPaginas: 0,
+                    numeroPagina: 1,
+                    paginasRestantes: 0
+                };
+            }
+
+            // Resposta bem-sucedida
+            const responseData = response.data;
+
+            // A API retorna um objeto com estrutura:
+            // { data: [...], totalRegistros, totalPaginas, numeroPagina, paginasRestantes, empty }
+            const items = responseData.data || [];
+
+            console.log(`[PNCP Client] ✅ Recebidas ${items.length} licitações (total: ${responseData.totalRegistros}, página ${responseData.numeroPagina}/${responseData.totalPaginas})`);
 
             return {
                 success: true,
                 data: items,
-                pagination: response.data.pagination || null,
-                total: response.data.total || items.length
+                totalRegistros: responseData.totalRegistros || 0,
+                totalPaginas: responseData.totalPaginas || 0,
+                numeroPagina: responseData.numeroPagina || 1,
+                paginasRestantes: responseData.paginasRestantes || 0
             };
+
         } catch (error) {
             if (error.response?.status === 429) {
                 // Rate limited - esperar mais tempo
@@ -81,13 +111,21 @@ class PNCPClient {
                 return this.buscarLicitacoes(params);
             }
 
-            console.error('[PNCP Client] Erro:', error.response?.data || error.message);
-            throw new Error(`PNCP API Error [${error.response?.status || 'NETWORK'}]: ${error.message}`);
+            console.error('[PNCP Client] ❌ Erro completo:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                url: error.config?.url,
+                params: error.config?.params
+            });
+
+            throw new Error(`PNCP API Error [${error.response?.status || 'NETWORK'}]: ${error.response?.data?.message || error.message}`);
         }
     }
 
     /**
      * Buscar detalhes completos de uma licitação específica
+     * NOTA: Este endpoint pode não estar disponível na API de consulta pública
      * @param {string} numeroSequencial - ID da licitação no PNCP
      */
     async buscarDetalhes(numeroSequencial) {
@@ -106,39 +144,20 @@ class PNCPClient {
             );
             return { success: true, data: response.data };
         } catch (error) {
-            throw new Error(`PNCP Details Error: ${error.message}`);
+            console.warn(`[PNCP Client] Detalhes não disponível para ${numeroSequencial}`);
+            return { success: false, data: null };
         }
     }
 
     /**
      * Buscar itens de uma licitação
+     * NOTA: Geralmente não disponível na API pública de consulta
      * @param {string} numeroSequencial - ID da licitação no PNCP
      */
     async buscarItens(numeroSequencial) {
-        await this.rateLimit();
-
-        try {
-            const response = await axios.get(
-                `${this.baseURL}/contratacoes/${numeroSequencial}/itens`,
-                {
-                    timeout: 30000,
-                    headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'Mabus-Platform/1.0'
-                    }
-                }
-            );
-
-            const items = response.data.items || response.data.data || response.data;
-            return {
-                success: true,
-                data: Array.isArray(items) ? items : []
-            };
-        } catch (error) {
-            // Nem todas licitações têm itens detalhados
-            console.warn(`[PNCP Client] Erro ao buscar itens: ${error.message}`);
-            return { success: false, data: [] };
-        }
+        // Itens geralmente não estão disponíveis na API de consulta
+        // Retornar vazio silenciosamente
+        return { success: false, data: [] };
     }
 }
 
