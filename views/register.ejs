@@ -1,51 +1,85 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="neuro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - Agente Mabus</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; }
-        .register-container { max-width: 500px; margin: 50px auto; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    </style>
+    <title>MABUS | Initialize</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/liquid.css">
+    <link rel="stylesheet" href="/css/liquid-studio.css">
+    <link rel="stylesheet" href="/css/output.css">
 </head>
-<body>
-    <div class="container">
-        <div class="register-container">
-            <h3 class="text-center mb-4">Criar Conta</h3>
+<body class="bg-cosmic-void min-h-screen flex items-center justify-center relative overflow-hidden selection:bg-neon-blue selection:text-white">
 
-            <% if (error && error.length > 0) { %>
-                <div class="alert alert-danger"><%= error %></div>
-            <% } %>
+    <!-- Background Animation -->
+    <div class="absolute inset-0 z-0">
+        <div class="absolute top-0 right-1/4 w-96 h-96 bg-neon-blue/20 rounded-full blur-[128px] animate-pulse-slow"></div>
+        <div class="absolute bottom-0 left-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[128px] animate-pulse-slow" style="animation-delay: 2s;"></div>
+    </div>
 
-            <form action="/register" method="POST">
-                <div class="mb-3">
-                    <label class="form-label">Nome Completo</label>
-                    <input type="text" name="full_name" class="form-control" required>
+    <!-- Main Card -->
+    <div class="relative z-10 w-full max-w-md p-8 glass-card animate-float">
+        <div class="text-center mb-8">
+             <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-purple/20 to-neon-blue/20 border border-white/10 mb-4 shadow-[0_0_30px_rgba(112,0,255,0.3)]">
+                <i class="fas fa-fingerprint text-3xl text-transparent bg-clip-text bg-gradient-to-r from-neon-purple to-neon-blue"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight mb-2">Initialize Protocol</h1>
+            <p class="text-starlight/60 text-sm tracking-widest uppercase">Create your neural identity</p>
+        </div>
+
+        <% if (messages.error) { %>
+            <div class="alert alert-error mb-6 bg-error/10 border-error/20 text-error shadow-lg backdrop-blur-md">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="font-medium"><%= messages.error %></span>
+            </div>
+        <% } %>
+
+        <form action="/register" method="POST" class="space-y-5">
+            <div class="form-group">
+                <label class="text-xs font-bold text-starlight/70 uppercase tracking-wider ml-1 mb-2">Username</label>
+                <div class="relative group">
+                    <i class="fas fa-user-astronaut absolute left-4 top-1/2 -translate-y-1/2 text-starlight/30 group-focus-within:text-neon-blue transition-colors"></i>
+                    <input type="text" name="username" class="input input-lg w-full bg-black/20 border border-white/10 focus:border-neon-blue focus:bg-black/40 pl-12 rounded-xl text-starlight placeholder:text-starlight/20 transition-all duration-300" placeholder="Operator Name" required>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">CPF</label>
-                    <input type="text" name="cpf" class="form-control" placeholder="000.000.000-00" required>
+            </div>
+
+            <div class="form-group">
+                <label class="text-xs font-bold text-starlight/70 uppercase tracking-wider ml-1 mb-2">Email</label>
+                <div class="relative group">
+                    <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-starlight/30 group-focus-within:text-neon-purple transition-colors"></i>
+                    <input type="email" name="email" class="input input-lg w-full bg-black/20 border border-white/10 focus:border-neon-purple focus:bg-black/40 pl-12 rounded-xl text-starlight placeholder:text-starlight/20 transition-all duration-300" placeholder="neural@mabus.ai" required>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">CNPJ</label>
-                    <input type="text" name="cnpj" class="form-control" placeholder="00.000.000/0000-00" required>
+            </div>
+
+            <div class="form-group">
+                <label class="text-xs font-bold text-starlight/70 uppercase tracking-wider ml-1 mb-2">Secret Code</label>
+                <div class="relative group">
+                    <i class="fas fa-key absolute left-4 top-1/2 -translate-y-1/2 text-starlight/30 group-focus-within:text-warning transition-colors"></i>
+                    <input type="password" name="password" class="input input-lg w-full bg-black/20 border border-white/10 focus:border-warning focus:bg-black/40 pl-12 rounded-xl text-starlight placeholder:text-starlight/20 transition-all duration-300" placeholder="••••••••" required>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Usuário (Login)</label>
-                    <input type="text" name="username" class="form-control" required>
+            </div>
+
+             <!-- Secret Key Field -->
+             <div class="form-group">
+                <label class="text-xs font-bold text-starlight/70 uppercase tracking-wider ml-1 mb-2 text-warning/80">Access Key</label>
+                <div class="relative group">
+                    <i class="fas fa-shield-alt absolute left-4 top-1/2 -translate-y-1/2 text-starlight/30 group-focus-within:text-warning transition-colors"></i>
+                    <input type="password" name="adminSecret" class="input input-lg w-full bg-warning/5 border border-warning/10 focus:border-warning focus:bg-warning/10 pl-12 rounded-xl text-warning placeholder:text-warning/30 transition-all duration-300" placeholder="Required for registration">
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Senha</label>
-                    <input type="password" name="password" class="form-control" required>
-                </div>
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">Cadastrar</button>
-                    <a href="/login" class="btn btn-link">Já tem conta? Faça Login</a>
-                </div>
-            </form>
+            </div>
+
+            <button type="submit" class="btn btn-lg w-full bg-gradient-to-r from-neon-purple to-neon-blue hover:opacity-90 border-none text-white font-bold tracking-wider shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_40px_rgba(0,240,255,0.6)] transition-all duration-300 transform hover:-translate-y-1 mt-4">
+                INITIALIZE
+            </button>
+        </form>
+
+        <div class="mt-8 text-center">
+            <p class="text-starlight/40 text-sm">
+                Already part of the network? 
+                <a href="/login" class="text-neon-purple hover:text-neon-blue transition-colors font-medium ml-1">Access Portal</a>
+            </p>
         </div>
     </div>
+
 </body>
 </html>

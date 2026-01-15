@@ -1,266 +1,225 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações de I.A - Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/liquid.css">
-    <style>
-        /* Inherits from liquid.css */
-        .config-card { background: var(--bg-card); border-radius: var(--radius-lg); margin-bottom: 20px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-soft); }
-        .config-card .card-header { background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); font-weight: 600; padding: 15px 20px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
-        .config-card .card-body { padding: 20px; }
-        .form-label { color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; font-weight: 600; }
-        .form-control, .form-select { background: var(--bg-main); border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: var(--radius-md); }
-        .form-control:focus, .form-select:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1); color: var(--text-primary); }
-    </style>
-</head>
-<body>
-    <%- include('partials/header') %>
+<%- include('partials/header') %>
 
-    <div class="container mt-5">
-        <h2 class="mb-4 brand-font" style="color: var(--text-primary);"><i class="fas fa-brain text-primary"></i> Configurações de Inteligência Artificial</h2>
-
-        <form action="/admin/ai-config/save" method="POST">
-
-            <!-- ORACLE CONFIG -->
-            <div class="config-card">
-                <div class="card-header text-primary">Analisador (Análise de Editais)</div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Provedor</label>
-                            <select class="form-select provider-select" name="oracle_provider" data-target="oracle_model" id="oracle_provider">
-                                <option value="">Selecione...</option>
-                                <option value="deepseek" <%= settings.oracle_provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
-                                <option value="qwen" <%= settings.oracle_provider === 'qwen' ? 'selected' : '' %>>Qwen (Alibaba)</option>
-                                <option value="gemini" <%= settings.oracle_provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
-                                <option value="perplexity" <%= settings.oracle_provider === 'perplexity' ? 'selected' : '' %>>Perplexity</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">API Key</label>
-                            <input type="password" class="form-control api-key-input" name="oracle_api_key" id="oracle_api_key" value="<%= settings.oracle_api_key || '' %>" placeholder="Deixe vazio para usar ENV">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Modelo</label>
-                            <div class="input-group">
-                                <select class="form-select" name="oracle_model" id="oracle_model">
-                                    <option value="<%= settings.oracle_model %>"><%= settings.oracle_model %></option>
-                                </select>
-                                <button type="button" class="btn btn-outline-secondary refresh-models" data-provider="oracle_provider" data-key="oracle_api_key" data-target="oracle_model">
-                                    <i class="fas fa-sync"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SNIPER CONFIG -->
-            <div class="config-card">
-                <div class="card-header text-warning">Cotador (Descoberta de Produtos)</div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Provedor</label>
-                            <select class="form-select provider-select" name="sniper_provider" data-target="sniper_model" id="sniper_provider">
-                                <option value="">Selecione...</option>
-                                <option value="gemini" <%= settings.sniper_provider === 'gemini' ? 'selected' : '' %>>Google Gemini (Recomendado)</option>
-                                <option value="qwen" <%= settings.sniper_provider === 'qwen' ? 'selected' : '' %>>Qwen (Alibaba)</option>
-                                <option value="deepseek" <%= settings.sniper_provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">API Key</label>
-                            <input type="password" class="form-control api-key-input" name="sniper_api_key" id="sniper_api_key" value="<%= settings.sniper_api_key || '' %>" placeholder="Deixe vazio para usar ENV">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Modelo</label>
-                            <div class="input-group">
-                                <select class="form-select" name="sniper_model" id="sniper_model">
-                                    <option value="<%= settings.sniper_model %>"><%= settings.sniper_model %></option>
-                                </select>
-                                <button type="button" class="btn btn-outline-secondary refresh-models" data-provider="sniper_provider" data-key="sniper_api_key" data-target="sniper_model">
-                                    <i class="fas fa-sync"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SNIPER PARSER CONFIG -->
-            <div class="config-card">
-                <div class="card-header text-success">Cotador Parser (Extração de PDF)</div>
-                <div class="card-body">
-                    <p class="text-secondary small">Configure a ordem de tentativa da I.A. para extração de PDFs. Se a principal falhar, o sistema tentará as reservas.</p>
-
-                    <%
-                       const parser_primary = settings.parser_primary || { provider: 'gemini', model: 'gemini-2.0-flash-lite-preview-02-05' };
-                       const parser_backup1 = settings.parser_backup1 || { provider: 'gemini', model: 'gemini-2.0-flash' };
-                       const parser_backup2 = settings.parser_backup2 || { provider: 'deepseek', model: 'deepseek-chat' };
-                       const parser_backup3 = settings.parser_backup3 || { provider: '', model: '' };
-                    %>
-
-                    <!-- PRIMARY -->
-                    <h6 class="text-primary mt-2 border-bottom border-light pb-1">Prioridade 1 (Principal)</h6>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Provedor</label>
-                            <select class="form-select" name="parser_provider_0" id="parser_provider_0">
-                                <option value="">Selecione...</option>
-                                <option value="gemini" <%= parser_primary.provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
-                                <option value="qwen" <%= parser_primary.provider === 'qwen' ? 'selected' : '' %>>Qwen</option>
-                                <option value="deepseek" <%= parser_primary.provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">API Key (Opcional - usa do sistema se vazio)</label>
-                            <input type="password" class="form-control" name="parser_key_0" id="parser_key_0" value="<%= parser_primary.key || '' %>" placeholder="Herdar do Sistema">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Modelo</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" name="parser_model_0" id="parser_model_0" value="<%= parser_primary.model || '' %>" placeholder="Ex: gemini-2.0-flash">
-                                 <button type="button" class="btn btn-outline-secondary refresh-models" data-provider="parser_provider_0" data-key="parser_key_0" data-target="parser_model_0_select">
-                                    <i class="fas fa-sync"></i>
-                                </button>
-                            </div>
-                             <select class="form-select d-none" id="parser_model_0_select"></select>
-                        </div>
-                    </div>
-
-                    <!-- BACKUP 1 -->
-                    <h6 class="text-secondary mt-2 border-bottom border-light pb-1">Reserva 1</h6>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                             <select class="form-select" name="parser_provider_1" id="parser_provider_1">
-                                <option value="">(Desativado)</option>
-                                <option value="gemini" <%= parser_backup1.provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
-                                <option value="qwen" <%= parser_backup1.provider === 'qwen' ? 'selected' : '' %>>Qwen</option>
-                                <option value="deepseek" <%= parser_backup1.provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
-                            </select>
-                        </div>
-                         <div class="col-md-4 mb-3">
-                            <input type="password" class="form-control" name="parser_key_1" value="<%= parser_backup1.key || '' %>" placeholder="API Key (Opcional)">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <input type="text" class="form-control" name="parser_model_1" value="<%= parser_backup1.model || '' %>" placeholder="Modelo">
-                        </div>
-                    </div>
-
-                    <!-- BACKUP 2 -->
-                    <h6 class="text-secondary mt-2 border-bottom border-light pb-1">Reserva 2</h6>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                             <select class="form-select" name="parser_provider_2" id="parser_provider_2">
-                                <option value="">(Desativado)</option>
-                                <option value="gemini" <%= parser_backup2.provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
-                                <option value="qwen" <%= parser_backup2.provider === 'qwen' ? 'selected' : '' %>>Qwen</option>
-                                <option value="deepseek" <%= parser_backup2.provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
-                            </select>
-                        </div>
-                         <div class="col-md-4 mb-3">
-                            <input type="password" class="form-control" name="parser_key_2" value="<%= parser_backup2.key || '' %>" placeholder="API Key (Opcional)">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <input type="text" class="form-control" name="parser_model_2" value="<%= parser_backup2.model || '' %>" placeholder="Modelo">
-                        </div>
-                    </div>
-
-                     <!-- BACKUP 3 -->
-                    <h6 class="text-secondary mt-2 border-bottom border-light pb-1">Reserva 3</h6>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                             <select class="form-select" name="parser_provider_3" id="parser_provider_3">
-                                <option value="">(Desativado)</option>
-                                <option value="gemini" <%= parser_backup3.provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
-                                <option value="qwen" <%= parser_backup3.provider === 'qwen' ? 'selected' : '' %>>Qwen</option>
-                                <option value="deepseek" <%= parser_backup3.provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
-                            </select>
-                        </div>
-                         <div class="col-md-4 mb-3">
-                            <input type="password" class="form-control" name="parser_key_3" value="<%= parser_backup3.key || '' %>" placeholder="API Key (Opcional)">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <input type="text" class="form-control" name="parser_model_3" value="<%= parser_backup3.model || '' %>" placeholder="Modelo">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row mt-4 mb-5">
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary w-100 btn-lg">SALVAR CONFIGURAÇÕES</button>
-                </div>
-            </div>
-        </form>
+<div class="container mx-auto px-4 max-w-5xl py-12">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
+        <div>
+            <h2 class="text-4xl font-black text-white tracking-tight mb-2">NEURAL CORE CONFIG</h2>
+            <p class="text-starlight/60 font-mono text-xs tracking-[0.2em] border-l-2 border-neon-blue pl-3">ARTIFICIAL INTELLIGENCE PARAMETERS</p>
+        </div>
+        <button type="submit" form="aiConfigForm" class="btn btn-primary rounded-full px-8 shadow-[0_0_20px_rgba(0,240,255,0.4)] text-black font-bold hover:scale-105 transition-transform">
+            <i class="fas fa-save mr-2"></i> SAVE CONFIGURATION
+        </button>
     </div>
 
-    <%- include('partials/footer') %>
+    <form action="/admin/ai-config/save" method="POST" id="aiConfigForm" class="space-y-8">
 
-    <script>
-        document.querySelectorAll('.refresh-models').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const providerSelect = document.getElementById(btn.dataset.provider);
-                const keyInput = document.getElementById(btn.dataset.key);
-                const targetId = btn.dataset.target;
+        <!-- ORACLE (ANALYZER) -->
+        <div class="glass-card p-8 rounded-3xl border border-white/10 relative overflow-hidden group hover:border-neon-blue/30 transition-colors">
+            <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-30 transition-opacity">
+                <i class="fas fa-brain text-6xl text-neon-blue"></i>
+            </div>
+            
+            <h3 class="text-neon-blue font-bold tracking-widest text-sm mb-6 flex items-center gap-2">
+                <i class="fas fa-search"></i> ANALYZER MODULE (ORACLE)
+            </h3>
 
-                // Handle hidden select logic for text inputs
-                const isHiddenSelect = targetId.includes('_select');
-                const targetSelect = document.getElementById(targetId);
-                const targetInput = isHiddenSelect ? document.getElementById(targetId.replace('_select', '')) : document.getElementById(targetId);
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Provider -->
+                <div>
+                    <label class="text-[10px] font-bold text-starlight/50 uppercase mb-2 block ml-2">Provider</label>
+                    <select class="select w-full bg-black/40 border-white/5 focus:border-neon-blue focus:bg-black/60 text-white rounded-xl provider-select" name="oracle_provider" data-target="oracle_model" id="oracle_provider">
+                        <option value="">Select...</option>
+                        <option value="deepseek" <%= settings.oracle_provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
+                        <option value="qwen" <%= settings.oracle_provider === 'qwen' ? 'selected' : '' %>>Qwen (Alibaba)</option>
+                        <option value="gemini" <%= settings.oracle_provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
+                        <option value="perplexity" <%= settings.oracle_provider === 'perplexity' ? 'selected' : '' %>>Perplexity</option>
+                    </select>
+                </div>
+                <!-- API Key -->
+                <div>
+                    <label class="text-[10px] font-bold text-starlight/50 uppercase mb-2 block ml-2">API Key</label>
+                    <input type="password" class="input w-full bg-black/40 border-white/5 focus:border-neon-blue focus:bg-black/60 text-white rounded-xl" name="oracle_api_key" id="oracle_api_key" value="<%= settings.oracle_api_key || '' %>" placeholder="Empty for ENV">
+                </div>
+                <!-- Model -->
+                <div>
+                    <label class="text-[10px] font-bold text-starlight/50 uppercase mb-2 block ml-2">Model ID</label>
+                    <div class="join w-full">
+                        <select class="select join-item w-full bg-black/40 border-white/5 focus:border-neon-blue text-white" name="oracle_model" id="oracle_model">
+                            <option value="<%= settings.oracle_model %>"><%= settings.oracle_model %></option>
+                        </select>
+                        <button type="button" class="btn join-item border-white/5 bg-white/5 hover:bg-white/10 text-white refresh-models" data-provider="oracle_provider" data-key="oracle_api_key" data-target="oracle_model">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                const provider = providerSelect.value;
-                const apiKey = keyInput.value;
+        <!-- SNIPER (QUOTER) -->
+        <div class="glass-card p-8 rounded-3xl border border-white/10 relative overflow-hidden group hover:border-warning/30 transition-colors">
+            <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-30 transition-opacity">
+                <i class="fas fa-crosshairs text-6xl text-warning"></i>
+            </div>
 
-                if(!provider) {
-                    alert('Selecione um provedor primeiro.');
-                    return;
-                }
+            <h3 class="text-warning font-bold tracking-widest text-sm mb-6 flex items-center gap-2">
+                <i class="fas fa-shopping-cart"></i> SNIPER MODULE (QUOTER)
+            </h3>
 
-                // Show loading
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Provider -->
+                <div>
+                    <label class="text-[10px] font-bold text-starlight/50 uppercase mb-2 block ml-2">Provider</label>
+                    <select class="select w-full bg-black/40 border-white/5 focus:border-warning focus:bg-black/60 text-white rounded-xl provider-select" name="sniper_provider" data-target="sniper_model" id="sniper_provider">
+                        <option value="">Select...</option>
+                        <option value="gemini" <%= settings.sniper_provider === 'gemini' ? 'selected' : '' %>>Google Gemini (Recommended)</option>
+                        <option value="qwen" <%= settings.sniper_provider === 'qwen' ? 'selected' : '' %>>Qwen (Alibaba)</option>
+                        <option value="deepseek" <%= settings.sniper_provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
+                    </select>
+                </div>
+                <!-- API Key -->
+                <div>
+                    <label class="text-[10px] font-bold text-starlight/50 uppercase mb-2 block ml-2">API Key</label>
+                    <input type="password" class="input w-full bg-black/40 border-white/5 focus:border-warning focus:bg-black/60 text-white rounded-xl" name="sniper_api_key" id="sniper_api_key" value="<%= settings.sniper_api_key || '' %>" placeholder="Empty for ENV">
+                </div>
+                <!-- Model -->
+                <div>
+                    <label class="text-[10px] font-bold text-starlight/50 uppercase mb-2 block ml-2">Model ID</label>
+                    <div class="join w-full">
+                        <select class="select join-item w-full bg-black/40 border-white/5 focus:border-warning text-white" name="sniper_model" id="sniper_model">
+                            <option value="<%= settings.sniper_model %>"><%= settings.sniper_model %></option>
+                        </select>
+                        <button type="button" class="btn join-item border-white/5 bg-white/5 hover:bg-white/10 text-white refresh-models" data-provider="sniper_provider" data-key="sniper_api_key" data-target="sniper_model">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                try {
-                    const res = await fetch('/api/admin/fetch-models', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ provider, apiKey })
+        <!-- PARSER (PDF) -->
+        <div class="glass-card p-8 rounded-3xl border border-white/10 relative overflow-hidden group hover:border-success/30 transition-colors">
+            <h3 class="text-success font-bold tracking-widest text-sm mb-6 flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i> PARSER MODULE (FAILOVER SYSTEM)
+            </h3>
+            
+            <p class="text-xs text-starlight/50 mb-6 font-mono">Define the AI cascade for PDF extraction. If Primary fails, Backup 1 engages, and so on.</p>
+
+            <%
+               const parser_primary = settings.parser_primary || { provider: 'gemini', model: 'gemini-2.0-flash-lite-preview-02-05' };
+               const parser_backup1 = settings.parser_backup1 || { provider: 'gemini', model: 'gemini-2.0-flash' };
+               const parser_backup2 = settings.parser_backup2 || { provider: 'deepseek', model: 'deepseek-chat' };
+               const parser_backup3 = settings.parser_backup3 || { provider: '', model: '' };
+            %>
+
+            <!-- PRIORITY 1 -->
+            <div class="bg-black/20 p-4 rounded-2xl mb-4 border border-white/5">
+                <h4 class="text-xs font-bold text-white mb-3 uppercase opacity-70">Priority 1 (Primary)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div>
+                        <select class="select w-full select-sm bg-black/40 border-white/10 text-white" name="parser_provider_0" id="parser_provider_0">
+                            <option value="">Select...</option>
+                            <option value="gemini" <%= parser_primary.provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
+                            <option value="qwen" <%= parser_primary.provider === 'qwen' ? 'selected' : '' %>>Qwen</option>
+                            <option value="deepseek" <%= parser_primary.provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
+                        </select>
+                    </div>
+                    <div>
+                         <input type="password" class="input input-sm w-full bg-black/40 border-white/10 text-white" name="parser_key_0" id="parser_key_0" value="<%= parser_primary.key || '' %>" placeholder="System Key (Default)">
+                    </div>
+                    <div>
+                        <div class="join w-full">
+                            <input type="text" class="input input-sm join-item w-full bg-black/40 border-white/10 text-white" name="parser_model_0" id="parser_model_0" value="<%= parser_primary.model || '' %>" placeholder="Model ID">
+                             <button type="button" class="btn btn-sm join-item border-white/10 bg-white/5 text-starlight refresh-models" data-provider="parser_provider_0" data-key="parser_key_0" data-target="parser_model_0_select">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                        <select class="hidden" id="parser_model_0_select"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BACKUPS -->
+            <% [parser_backup1, parser_backup2, parser_backup3].forEach((backup, idx) => { %>
+                <div class="bg-black/10 p-4 rounded-2xl mb-2 border border-white/5 opacity-70 hover:opacity-100 transition-opacity">
+                    <h4 class="text-[10px] font-bold text-starlight mb-2 uppercase tracking-wide">Backup <%= idx + 1 %></h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <select class="select select-xs w-full bg-black/40 border-white/5 text-starlight" name="parser_provider_<%= idx + 1 %>">
+                            <option value="">(Disabled)</option>
+                            <option value="gemini" <%= backup.provider === 'gemini' ? 'selected' : '' %>>Google Gemini</option>
+                            <option value="qwen" <%= backup.provider === 'qwen' ? 'selected' : '' %>>Qwen</option>
+                            <option value="deepseek" <%= backup.provider === 'deepseek' ? 'selected' : '' %>>DeepSeek</option>
+                        </select>
+                        <input type="password" class="input input-xs w-full bg-black/40 border-white/5 text-starlight" name="parser_key_<%= idx + 1 %>" value="<%= backup.key || '' %>" placeholder="API Key">
+                        <input type="text" class="input input-xs w-full bg-black/40 border-white/5 text-starlight" name="parser_model_<%= idx + 1 %>" value="<%= backup.model || '' %>" placeholder="Model ID">
+                    </div>
+                </div>
+            <% }); %>
+
+        </div>
+
+    </form>
+</div>
+
+<%- include('partials/footer') %>
+
+<script>
+    document.querySelectorAll('.refresh-models').forEach(btn => {
+        btn.addEventListener('click', async () => {
+             const providerSelect = document.getElementById(btn.dataset.provider);
+            const keyInput = document.getElementById(btn.dataset.key);
+            const targetId = btn.dataset.target;
+            const isHiddenSelect = targetId.includes('_select');
+            
+            // Logic to find correct target
+            const targetSelect = document.getElementById(targetId);
+            // If hidden select is used (for text inputs), get the text input as target
+            const targetInput = isHiddenSelect ? document.getElementById(targetId.replace('_select', '')) : document.getElementById(targetId);
+
+            const provider = providerSelect.value;
+            const apiKey = keyInput.value;
+
+            if(!provider) return alert('Select a provider first.');
+
+            // Animation
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/admin/fetch-models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey })
+                });
+
+                if(!res.ok) throw new Error(await res.text());
+                const models = await res.json();
+
+                if(isHiddenSelect) {
+                    // For simpler text inputs, we just show a prompt or populate a hidden select to copy from
+                    // For now, let's just create a simple prompt selection for the "Parser" inputs which are text fields
+                    let optionsString = models.map(m => m.id).join('\n');
+                     let selected = prompt('Available Models (Copy ID):\\n' + optionsString, models[0].id);
+                     if(selected) targetInput.value = selected;
+                } else {
+                    targetSelect.innerHTML = '';
+                    models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.textContent = m.name || m.id;
+                        targetSelect.appendChild(opt);
                     });
-
-                    if(!res.ok) throw new Error(await res.text());
-
-                    const models = await res.json();
-
-                    if(isHiddenSelect) {
-                         let options = models.map(m => m.id).join('\\n');
-                         let selected = prompt('Modelos Disponíveis (Copie o ID):\\n' + options, models[0].id);
-                         if(selected) targetInput.value = selected;
-
-                    } else {
-                        // Clear and populate standard select
-                        targetSelect.innerHTML = '';
-                        models.forEach(m => {
-                            const opt = document.createElement('option');
-                            opt.value = m.id;
-                            opt.textContent = m.name;
-                            opt.title = m.description;
-                            targetSelect.appendChild(opt);
-                        });
-                        alert('Modelos carregados com sucesso!');
-                    }
-
-                } catch(e) {
-                    alert('Erro ao carregar modelos: ' + e.message);
-                } finally {
-                    btn.innerHTML = '<i class="fas fa-sync"></i>';
+                    // Flash success
+                    targetSelect.classList.add('ring-2', 'ring-success');
+                    setTimeout(() => targetSelect.classList.remove('ring-2', 'ring-success'), 1000);
                 }
-            });
+            } catch(e) {
+                alert('Fetch failed: ' + e.message);
+            } finally {
+                btn.innerHTML = originalIcon;
+                btn.disabled = false;
+            }
         });
-    </script>
-</body>
-</html>
+    });
+</script>

@@ -2,154 +2,165 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="/js/neural_network.js"></script>
 
+<!-- Custom Styles for Oracle Specifics -->
 <style>
-    /* Custom Scrollbar */
-    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
-    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-    .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.1); border-radius: 20px; }
+    .animate-float-slow { animation: float 8s ease-in-out infinite; }
+    .animate-float-reverse { animation: float 10s ease-in-out infinite reverse; }
+    
+    .neon-text-glow { text-shadow: 0 0 10px rgba(0, 240, 255, 0.7); }
+    .neon-box-glow { box-shadow: 0 0 20px rgba(112, 0, 255, 0.3); }
 
-    /* Module Locking Effects */
-    .locked-blur { filter: blur(8px); pointer-events: none; user-select: none; }
-    .lock-overlay { 
-        position: absolute; inset: 0; 
-        display: flex; flex-direction: column; justify-content: center; items-center;
-        background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-        z-index: 10; transition: opacity 0.3s ease;
+    .scanner-line {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 2px;
+        background: linear-gradient(to right, transparent, #00F0FF, transparent);
+        animation: scan 3s linear infinite;
+        opacity: 0.5;
     }
-
-    .cursor-blink { animation: blink 1s step-end infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
-
-    /* SVG Filter for Gooey Effect (Hidden but active) */
-    .visually-hidden { position: absolute; width: 0; height: 0; overflow: hidden; }
+    @keyframes scan {
+        0% { transform: translateY(-100%); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(500px); opacity: 0; }
+    }
 </style>
-<link rel="stylesheet" href="/css/liquid-studio.css">
 
-<!-- SVG Filter Definition -->
-<svg class="visually-hidden">
-    <defs>
-        <filter id="goo">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
-            <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
-        </filter>
-    </defs>
-</svg>
-
-<div class="min-h-screen flex flex-col items-center pb-20 relative overflow-hidden">
-    <div class="liquid-bg"></div> <!-- Animated Mesh Background -->
-
-    <!-- TOP NAV / STATS (Floating) -->
-    <div class="fixed top-24 right-6 z-50 bg-base-100/90 backdrop-blur shadow-xl rounded-full px-6 py-3 border border-warning flex items-center gap-3 animate-fade-in-down">
-        <i class="fas fa-bolt text-warning animate-pulse text-xl"></i>
-        <span class="font-black text-xl font-mono" id="userCredits"><%= user.current_credits %></span>
-        <span class="text-xs uppercase tracking-widest opacity-60">Watts</span>
+<div class="min-h-screen flex flex-col items-center pb-20 relative overflow-hidden bg-cosmic-void">
+    
+    <!-- Ambient Background -->
+    <div class="fixed inset-0 pointer-events-none z-0">
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-purple/10 rounded-full blur-[150px] animate-pulse-slow"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-blue/10 rounded-full blur-[150px] animate-pulse-slow" style="animation-delay: 2s"></div>
     </div>
 
-    <div class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- Container -->
+    <div class="container mx-auto px-4 py-8 max-w-6xl relative z-10">
 
-        <!-- HEADER BUTTONS -->
-        <div class="flex justify-between items-center mb-8">
-            <button onclick="resetView()" class="btn btn-ghost hover:bg-base-200 gap-2 group">
+        <!-- Header Controls -->
+        <div class="flex justify-between items-center mb-12">
+            <button onclick="resetView()" class="btn btn-ghost hover:bg-white/5 gap-2 group text-starlight hover:text-white transition-all">
                 <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
-                VOLTAR AO INÍCIO
+                <span class="tracking-widest text-xs font-bold">RESET PROTOCOL</span>
             </button>
-            <div class="text-xs font-mono opacity-30">MABUS ORACLE PROTOCOL V6.0</div>
+            <div class="text-xs font-mono text-starlight/30 tracking-[0.3em]">ORACLE_SYS_V6.1 :: <span class="text-neon-blue animate-pulse">ONLINE</span></div>
         </div>
 
         <!-- =========== VIEW: UPLOAD ============ -->
-        <div id="uploadView" class="animate-fade-in-up transition-all duration-500">
-            <div class="text-center mb-12">
-                <h1 class="text-7xl font-black text-base-content tracking-tighter mb-4">ORÁCULO <span class="text-primary">V5</span></h1>
-                <p class="text-xl text-base-content/60 font-light tracking-wide">Inteligência Estratégica & Decodificação </p>
+        <div id="uploadView" class="transition-all duration-700 ease-out">
+            <div class="text-center mb-16 relative">
+                 <div class="inline-block relative">
+                    <h1 class="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/10 tracking-tighter mb-4 relative z-10">ORACLE</h1>
+                    <div class="absolute -top-10 -right-10 text-neon-purple/20 text-9xl blur-sm select-none z-0"><i class="fas fa-brain"></i></div>
+                 </div>
+                <p class="text-xl text-starlight/60 font-light tracking-wide max-w-2xl mx-auto">
+                    Upload tactical documents for <span class="text-neon-blue font-bold">Deep Neural Analysis</span> & Strategic Decryption.
+                </p>
             </div>
 
-            <div id="uploadContainer" class="flex justify-center items-center">
-                <form id="uploadForm" class="w-full max-w-2xl relative group">
-                    <!-- Glow Effect -->
-                    <div class="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+            <div id="uploadContainer" class="flex justify-center items-center perspective-1000">
+                <form id="uploadForm" class="w-full max-w-2xl relative group transform hover:rotate-x-2 transition-transform duration-500">
+                    <!-- Scanner Effect -->
+                    <div class="absolute inset-0 z-20 pointer-events-none overflow-hidden rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        <div class="scanner-line"></div>
+                    </div>
+
+                    <!-- Glow Backdrop -->
+                    <div class="absolute -inset-1 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-blue rounded-[2.5rem] blur-xl opacity-20 group-hover:opacity-50 transition duration-500 animate-gradient-xy"></div>
                     
-                    <label for="pdfFiles" class="relative w-full h-80 border-2 border-dashed border-base-300 bg-base-100 rounded-3xl flex flex-col justify-center items-center cursor-pointer hover:border-primary transition-all shadow-2xl" id="dropZoneArea">
-                        <div class="p-6 rounded-full bg-base-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 mb-6">
-                            <i class="fas fa-microchip fa-4x text-primary"></i>
+                    <label for="pdfFiles" class="relative w-full h-96 glass-card rounded-[2.5rem] flex flex-col justify-center items-center cursor-pointer hover:border-neon-blue/50 transition-all duration-300 group-hover:shadow-[0_0_50px_rgba(0,240,255,0.2)]" id="dropZoneArea">
+                        <div class="relative mb-8">
+                            <div class="absolute inset-0 bg-neon-blue/20 rounded-full blur-xl animate-pulse-slow"></div>
+                            <div class="w-24 h-24 rounded-full bg-black/40 border border-white/10 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform duration-300">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-white group-hover:text-neon-blue transition-colors"></i>
+                            </div>
                         </div>
-                        <div class="text-3xl font-bold text-base-content drop-zone-text">SOLTAR EDITAL</div>
-                        <div class="text-base-content/50 mt-2 font-mono text-sm">PDF APENAS • MÁX 50MB</div>
+                        
+                        <div class="text-3xl font-bold text-white tracking-tight group-hover:text-neon-blue transition-colors">INITIATE UPLOAD</div>
+                        <div class="text-starlight/40 mt-3 font-mono text-xs tracking-widest uppercase border border-white/10 px-3 py-1 rounded-full">PDF Files Only • Secure Channel</div>
                         <input type="file" id="pdfFiles" name="pdfFiles" accept=".pdf" multiple hidden required>
                     </label>
                 </form>
             </div>
 
-            <!-- NEURAL LOADER (MABUS CORE) -->
-            <div id="loader" class="hidden text-center py-20 flex flex-col items-center min-h-[50vh] justify-center">
-                
-                <canvas id="neuralCanvas" class="mb-4" style="width: 100%; height: 400px;"></canvas>
-
-                <div class="text-3xl font-black text-base-content mb-4 tracking-tighter" id="loaderTitle">
-                    MABUS PROTOCOL V5
-                </div>
-                
-                <div class="text-sm font-mono text-base-content/50 mb-8 h-6 relative">
-                     <span id="loaderText" class="scramble-text">VARREDURA INICIAL EM ANDAMENTO...</span>
+            <!-- NEURAL LOADER -->
+            <div id="loader" class="hidden text-center py-20 flex flex-col items-center min-h-[50vh] justify-center relative">
+                <!-- Canvas Container -->
+                <div class="relative w-full max-w-lg aspect-square mb-8">
+                    <canvas id="neuralCanvas" class="w-full h-full opacity-80 mix-blend-screen"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                         <div class="w-32 h-32 rounded-full border border-neon-blue/30 animate-ping"></div>
+                         <div class="w-48 h-48 rounded-full border border-neon-purple/20 animate-ping" style="animation-delay: 0.5s"></div>
+                    </div>
                 </div>
 
-                <!-- NOTIFICATION REQUEST -->
-                <div id="notifyRequest" class="hidden animate-bounce-in">
-                    <button onclick="enableNotifications()" class="btn btn-outline btn-sm btn-primary rounded-full gap-2">
+                <div class="text-4xl font-black text-white mb-2 tracking-tighter animate-pulse" id="loaderTitle">
+                    PROCESSING NEURAL DATA
+                </div>
+                
+                <div class="h-8 relative overflow-hidden w-full max-w-md bg-black/20 rounded-full border border-white/5">
+                     <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-neon-blue to-neon-purple opacity-50 animate-progress"></div>
+                     <div class="absolute inset-0 flex items-center justify-center text-xs font-mono font-bold text-white z-10" id="loaderText">
+                        INITIALIZING...
+                     </div>
+                </div>
+
+                <div id="notifyRequest" class="mt-8 hidden animate-fade-in-up">
+                    <button onclick="enableNotifications()" class="btn btn-outline btn-sm border-neon-blue text-neon-blue hover:bg-neon-blue hover:text-black gap-2 transition-all shadow-[0_0_20px_rgba(0,240,255,0.3)]">
                         <i class="fas fa-bell"></i>
-                        ME AVISE QUANDO TERMINAR
+                        NOTIFY ON COMPLETION
                     </button>
-                    <p class="text-[10px] text-base-content/30 mt-2 max-w-xs mx-auto">
-                        A análise profunda pode demorar. Ative para não perder o resultado.
-                    </p>
+                    <p class="text-[10px] text-starlight/30 mt-2 font-mono">Process may take several minutes.</p>
                 </div>
             </div>
         </div>
 
         <!-- =========== VIEW: RESULT ============ -->
-        <div id="resultView" class="hidden animate-fade-in transition-all duration-500">
-            <!-- Header / Teaser -->
-            <div class="text-center mb-16 relative">
-                <div class="absolute top-0 right-0 opacity-20">
-                     <div class="text-6xl font-black font-mono" id="metaIdDisplay">#000</div>
+        <div id="resultView" class="hidden transition-opacity duration-700">
+            <!-- Header Info -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 items-center">
+                
+                <!-- Left: Tags & Class -->
+                <div class="text-center lg:text-left order-2 lg:order-1">
+                    <div id="metaIdDisplay" class="text-xs font-mono text-starlight/30 mb-2">#ID_UNKNOWN</div>
+                    <div id="classificacaoDisplay" class="text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-starlight uppercase leading-none mb-6">---</div>
+                    <div id="tagsDisplay" class="flex flex-wrap gap-2 justify-center lg:justify-start"></div>
                 </div>
 
-                                <!-- LIQUID BLOB IPM DISPLAY -->
-                <div class="liquid-blob-container mx-auto mb-12 transform hover:scale-105 transition-transform duration-500 cursor-help group" title="Índice de Potencial Mabus">
-                    <div class="liquid-blob"></div>
-                    <div class="liquid-blob-core">
-                         <div class="text-center relative z-10">
-                            <div class="relative">
-                                <div id="ipmDisplay" class="text-6xl font-black tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] font-mono">0</div>
-                                <div class="absolute -top-3 -right-5 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded text-white/80">V5</div>
-                            </div>
-                            <div class="text-xs font-bold tracking-[0.3em] text-white/60 mt-1 border-t border-white/20 pt-1 w-12 mx-auto">/ 100</div>
-                         </div>
+                <!-- Center: Score (The Core) -->
+                <div class="relative h-64 w-64 mx-auto flex items-center justify-center order-1 lg:order-2 group">
+                    <!-- Rotating Rings -->
+                    <div class="absolute inset-0 border-2 border-neon-blue/30 rounded-full border-t-transparent animate-spin duration-[10s]"></div>
+                    <div class="absolute inset-4 border-2 border-neon-purple/30 rounded-full border-b-transparent animate-spin duration-[15s] reverse"></div>
+                    <div class="absolute inset-0 bg-neon-blue/5 rounded-full blur-xl group-hover:bg-neon-blue/10 transition-colors duration-500"></div>
+
+                    <!-- Score Value -->
+                    <div class="text-center relative z-10">
+                        <div id="ipmDisplay" class="text-7xl font-black text-white drop-shadow-[0_0_20px_rgba(0,240,255,0.8)] font-sans tracking-tighter">0</div>
+                         <div class="text-xs font-bold tracking-[0.4em] text-neon-blue mt-1">IPM SCORE</div>
                     </div>
                 </div>
-                
-                <div id="classificacaoDisplay" class="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-cyan-200 mb-8 uppercase drop-shadow-lg scale-y-110">---</div>
-                
-                <div id="tagsDisplay" class="flex flex-wrap justify-center gap-3 mb-10"></div>
-                
-                <div class="glass-studio p-12 rounded-[3rem] max-w-4xl mx-auto shadow-2xl relative overflow-visible mt-10 mb-16 group hover:scale-[1.01] transition-transform duration-500">
-                    <div class="absolute -top-8 -left-8 text-7xl text-white/10 rotate-12 transition-transform group-hover:rotate-0"><i class="fas fa-quote-left"></i></div>
-                    <div class="absolute -bottom-8 -right-8 text-7xl text-white/10 rotate-12 transition-transform group-hover:rotate-0"><i class="fas fa-quote-right"></i></div>
-                    
-                    <h3 class="text-center text-white/60 font-mono text-xs tracking-[0.5em] uppercase mb-6">Insight Estratégico</h3>
-                    <p id="resumoDisplay" class="text-2xl text-white font-light leading-relaxed text-center relative z-10 font-sans tracking-wide drop-shadow-md text-glow">...</p>
+
+                <!-- Right: Summary -->
+                <div class="glass-card p-6 rounded-2xl order-3 relative overflow-hidden group hover:border-white/20 transition-colors">
+                     <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+                        <i class="fas fa-quote-right text-4xl text-white"></i>
+                     </div>
+                     <h3 class="text-xs font-bold text-neon-purple mb-3 tracking-widest uppercase">Strategic Insight</h3>
+                     <p id="resumoDisplay" class="text-lg text-starlight/90 leading-relaxed font-light">...</p>
                 </div>
             </div>
 
             <!-- MODULES GRID -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-24" id="modulesGrid">
-                <!-- Cards injected here -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8 mb-24" id="modulesGrid">
+                <!-- JS Injected Cards -->
             </div>
 
-            <!-- SNIPER ACTION -->
+            <!-- ACTION FOOTER -->
             <div class="text-center pb-20 border-t border-white/5 pt-12">
-                <h3 class="text-3xl font-black mb-8 tracking-tight">PRONTO PARA O ATAQUE?</h3>
-                <form action="/create" method="POST" id="sniperForm" class="inline-block">
+                <h3 class="text-2xl font-bold text-white mb-8 tracking-tight">READY TO ENGAGE?</h3>
+                <form action="/create" method="POST" id="sniperForm" class="inline-block relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-neon-blue to-neon-purple rounded-full blur opacity-30 group-hover:opacity-70 transition duration-300"></div>
+                    
                     <input type="hidden" name="name" id="sniperName">
                     <input type="hidden" name="cep" value="00000-000">
                     <input type="hidden" name="gridData" id="sniperGridData">
@@ -157,23 +168,25 @@
                     <input type="hidden" name="moduleName" value="gemini_meli">
                     <input type="hidden" name="existingFilePath" id="sniperExistingFilePath">
 
-                    <button type="submit" class="btn btn-primary btn-lg rounded-full px-16 text-xl shadow-[0_0_40px_rgba(var(--p),0.4)] hover:shadow-[0_0_60px_rgba(var(--p),0.6)] hover:scale-105 transition-all font-black border-2 border-primary">
-                        <i class="fas fa-crosshairs mr-3"></i> INICIAR CAPTURA (SNIPER)
+                    <button type="submit" class="btn btn-lg h-16 px-12 rounded-full relative bg-black border border-white/20 text-white font-black text-xl tracking-widest overflow-hidden group-hover:text-neon-blue transition-colors">
+                         <span class="relative z-10 flex items-center gap-3">
+                            <i class="fas fa-crosshairs"></i>
+                            LAUNCH SNIPER
+                         </span>
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- =========== HISTORY DECK (BELOW MAIN) ============ -->
-        <div class="mt-20 pt-10 border-t border-base-300">
-            <h2 class="text-2xl font-black tracking-tight text-white mb-8 flex items-center gap-3">
-                <i class="fas fa-history text-primary"></i> 
-                TRANSMISSÕES RECENTES
+        <!-- HISTORY DECK -->
+        <div class="mt-20 pt-10 border-t border-white/5">
+            <h2 class="text-xl font-bold text-starlight mb-8 flex items-center gap-3 tracking-widest uppercase text-xs">
+                <i class="fas fa-history text-neon-purple"></i> 
+                Transmission Log
             </h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="historyGrid">
-                <!-- History Cards injected via JS -->
-                <div class="col-span-3 text-center py-20 opacity-30 font-mono">CARREGANDO ARQUIVOS...</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5" id="historyGrid">
+                <div class="col-span-full text-center py-10 opacity-30 font-mono text-xs">LOADING ARCHIVES...</div>
             </div>
         </div>
 
@@ -183,12 +196,12 @@
 <%- include('partials/footer') %>
 
 <script>
+    // Logic remains similar but updating render functions for new classes
     let currentOpportunityId = null;
     let currentUserCredits = <%= user.current_credits %>;
     const historyGrid = document.getElementById('historyGrid');
-    const userCreditsEl = document.getElementById('userCredits');
+    const userCreditsEl = document.getElementById('userCredits'); // Make sure header has this ID updated if changed
 
-    // --- INIT ---
     // --- INIT ---
     document.addEventListener('DOMContentLoaded', () => {
         const initialHistory = <%- JSON.stringify(history || []) %>;
@@ -219,21 +232,19 @@
         currentOpportunityId = null;
         document.getElementById('uploadForm').reset();
         
-        // Reset Loader UI
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('uploadContainer').style.display = 'flex';
         
-        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function showResult(data) {
         document.getElementById('uploadView').classList.add('hidden');
         document.getElementById('resultView').classList.remove('hidden');
-        document.getElementById('loader').classList.add('hidden');
+        // ensure loader hidden
+        document.getElementById('loader').classList.add('hidden'); 
         renderFullAnalysis(data);
         
-        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -245,7 +256,7 @@
     function renderHistoryDeck(items) {
         historyGrid.innerHTML = '';
         if(items.length === 0) {
-            historyGrid.innerHTML = '<div class="col-span-3 text-center p-10 bg-base-200/30 rounded-3xl border border-dashed border-base-300">Sem histórico recente.</div>';
+            historyGrid.innerHTML = '<div class="col-span-full text-center p-8 border border-dashed border-white/10 rounded-2xl text-starlight/30 text-xs">No recent transmissions found.</div>';
             return;
         }
 
@@ -253,31 +264,23 @@
             const meta = typeof item.metadata_json === 'string' ? JSON.parse(item.metadata_json || '{}') : item.metadata_json;
             const unlocked = typeof item.unlocked_modules === 'string' ? JSON.parse(item.unlocked_modules || '[]') : (item.unlocked_modules || []);
             const score = item.ipm_score || 0;
-            const title = item.title || 'Sem Título';
-            const date = new Date(item.created_at).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
-            
-            // Unlocked Count
+            const title = item.title || 'Untitled';
+            const date = new Date(item.created_at).toLocaleDateString();
             const unlockedCount = unlocked.length;
 
             const card = document.createElement('div');
-            card.className = `glass-studio p-6 rounded-2xl cursor-pointer shadow-lg group relative overflow-hidden`;
+            card.className = `glass-card p-5 rounded-xl cursor-pointer group relative hover:-translate-y-1 transition-transform duration-300`;
             card.innerHTML = `
-                <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                <div class="flex justify-between items-start mb-4 relative z-10">
-                    <div class="tag-studio px-2 py-0.5 rounded text-[10px] font-mono font-bold ${score > 70 ? 'text-green-300 border-green-500/30' : 'text-white'}">${score}</div>
-                    <div class="text-xs font-mono opacity-50 text-white">${date}</div>
+                <div class="flex justify-between items-center mb-3">
+                    <div class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-bold ${score > 70 ? 'text-neon-blue' : 'text-white'}">${score} IPM</div>
+                    <div class="text-[10px] opacity-40 font-mono">${date}</div>
                 </div>
                 
-                <h4 class="font-bold text-lg mb-2 line-clamp-2 text-white group-hover:text-primary transition-colors leading-tight relative z-10">${title}</h4>
-                <p class="text-sm text-white/60 line-clamp-2 mb-4 h-10 relative z-10">${meta.classificacao || 'Análise Mabus Protocol'}</p>
-
-                <div class="flex justify-between items-center border-t border-white/5 pt-4 mt-auto relative z-10">
-                    <div class="flex items-center gap-2 text-xs font-bold ${unlockedCount > 0 ? 'text-success' : 'text-white/30'}">
-                        <i class="fas ${unlockedCount > 0 ? 'fa-lock-open' : 'fa-lock'}"></i>
-                        ${unlockedCount > 0 ? `${unlockedCount} ITENS LIBERADOS` : 'BLOQUEADO'}
-                    </div>
-                    <i class="fas fa-arrow-right text-primary opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1"></i>
+                <h4 class="font-bold text-sm text-white group-hover:text-neon-purple transition-colors line-clamp-2 mb-2">${title}</h4>
+                
+                <div class="flex items-center gap-2 mt-auto pt-3 border-t border-white/5 text-[10px] font-bold ${unlockedCount > 0 ? 'text-success' : 'text-starlight/30'}">
+                     <i class="fas ${unlockedCount > 0 ? 'fa-lock-open' : 'fa-lock'}"></i>
+                     ${unlockedCount > 0 ? `${unlockedCount} UNLOCKED` : 'LOCKED'}
                 </div>
             `;
             card.onclick = () => loadAnalysis(item.id);
@@ -287,15 +290,14 @@
 
     async function loadAnalysis(id) {
         try {
-            // Show Loader Overlay? Or just smooth scroll to top and show generic loader
             document.getElementById('resultView').classList.add('hidden');
             document.getElementById('uploadView').classList.remove('hidden');
             document.getElementById('uploadContainer').style.display = 'none';
             document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('loaderText').innerText = "RECUPERANDO DADOS..."; 
+            document.getElementById('loaderText').innerText = "RETRIEVING ARCHIVED DATA..."; 
 
             const res = await fetch(`/api/oracle/history/${id}`);
-            if(!res.ok) throw new Error("Erro ao carregar");
+            if(!res.ok) throw new Error("Load failed");
             const data = await res.json();
 
             const parsed = {
@@ -311,145 +313,8 @@
 
         } catch(e) {
             console.error(e);
-            alert("Erro ao carregar análise.");
+            alert("Error loading analysis.");
             resetView();
-        }
-    }
-
-
-    // --- UPLOAD LOGIC ---
-    const dropZone = document.getElementById('dropZoneArea');
-    const fileInput = document.getElementById('pdfFiles');
-    const uploadForm = document.getElementById('uploadForm');
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.add('border-primary', 'bg-base-200'); }, false);
-    });
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.remove('border-primary', 'bg-base-200'); }, false);
-    });
-    dropZone.addEventListener('drop', (e) => { fileInput.files = e.dataTransfer.files; handleUpload(); });
-    fileInput.addEventListener('change', handleUpload);
-
-    async function handleUpload() {
-        if (fileInput.files.length === 0) return;
-
-        if (Notification.permission === "default") {
-             document.getElementById('notifyRequest').classList.remove('hidden');
-        } else {
-             document.getElementById('notifyRequest').classList.add('hidden');
-        }
-
-        document.getElementById('uploadContainer').style.display = 'none';
-        document.getElementById('loader').classList.remove('hidden');
-        
-        // Init Neural Animation
-        if(window.neuralLoader) delete window.neuralLoader;
-        window.neuralLoader = new NeuralLoader('neuralCanvas');
-        
-        const formData = new FormData(uploadForm);
-        let currentData = {};
-
-        // Status Messages
-        const loadingPhrases = [
-            "MAPEANDO CONCORRÊNCIA GLOBAL...",
-            "ANALISANDO 15.000+ PADRÕES OCULTOS...",
-            "DECODIFICANDO ESTRATÉGIAS DE PREÇO...",
-            "CALCULANDO PROBABILIDADE DE ÊXITO (IPM)...",
-            "IDENTIFICANDO FALHAS NO EDITAL...",
-            "CRUZANDO DADOS TÁTICOS...",
-            "FINALIZANDO RELATÓRIO DE INTELIGÊNCIA..."
-        ];
-        
-        // Start text cycle
-        if(window.statusInterval) clearInterval(window.statusInterval);
-        window.statusInterval = setInterval(() => {
-            const randomPhrase = loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)];
-            const el = document.getElementById('loaderText');
-            if(el) el.innerText = randomPhrase;
-        }, 3000);
-
-        try {
-            const response = await fetch('/api/process-tr', { method: 'POST', body: formData });
-            if (!response.ok) throw new Error(`Erro: ${response.status}`);
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let buffer = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop(); // Keep incomplete line
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const eventData = JSON.parse(line.substring(6));
-
-                            // Note: raw text is no longer sent by backend for privacy
-                            // We only listen for final result or status updates
-                            
-                            if (eventData.metadata || eventData.ipm_score) {
-                                // FINAL RESULT
-                                currentData = eventData;
-                                if (eventData.id) {
-                                    currentOpportunityId = eventData.id;
-                                }
-                            }
-                        } catch(e) {}
-                    }
-                }
-            }
-            
-            
-            if(window.statusInterval) clearInterval(window.statusInterval);
-
-            // 3. Trigger Notification
-            if (Notification.permission === "granted") {
-                const notif = new Notification("MABUS INTEL", {
-                    body: "Análise concluída com sucesso. O relatório estratégico está pronto.",
-                    icon: "/favicon.ico",
-                    tag: "analysis-complete"
-                });
-                notif.onclick = () => {
-                    window.focus();
-                    if(currentOpportunityId) {
-                        window.location.href = `/oracle?id=${currentOpportunityId}`;
-                    }
-                };
-            }
-
-            showResult({
-                ...currentData,
-                id: currentOpportunityId, 
-                unlocked_modules: []
-            });
-
-            // Reload history to show the new card
-            // loadHistory is not defined in this scope, let's just refresh the list manually or via fetch if we had an endpoint
-            // or we can reload the page if essential, but keeping SPA feel is better.
-            // Let's implement a simple fetch for history
-            fetchHistoryDeck();
-
-        } catch (error) {
-            console.error(error);
-            alert("Erro Fatal: " + error.message);
-            resetView();
-        }
-    }
-
-    async function fetchHistoryDeck() {
-        try {
-            const res = await fetch('/api/oracle/history');
-            if(res.ok) {
-                const items = await res.json();
-                renderHistoryDeck(items);
-            }
-        } catch(e) {
-            console.error("Failed to refresh history:", e);
         }
     }
 
@@ -460,44 +325,28 @@
         const lockedModules = data.locked_content || {};
         const unlockedList = data.unlocked_modules || [];
 
-        document.getElementById('metaIdDisplay').innerText = data.id ? `#${data.id}` : 'NOVO';
-        // ANIMATE SCORE (No Gauge, Just Numbers & Pulse)
+        document.getElementById('metaIdDisplay').innerText = data.id ? `#${data.id}` : 'NEW_ANALYSIS';
+        
+        // Animate Score
         const score = meta.ipm_score || data.ipm_score || 0;
         const scoreDisplay = document.getElementById('ipmDisplay');
-        // Reset
-        scoreDisplay.innerText = "0";
-
-        // Animate Text
         let start = 0;
-        const duration = 2000;
-        const stepTime = 20;
-        const steps = duration / stepTime;
-        const increment = score / steps;
-        
-        const timer = setInterval(() => {
-            start += increment;
-            if (start >= score) {
+        const interval = setInterval(() => {
+            start += 1;
+            if(start >= score) {
                 start = score;
-                clearInterval(timer);
-                
-                // Final Pulse
-                scoreDisplay.parentElement.parentElement.classList.add('scale-110');
-                setTimeout(() => scoreDisplay.parentElement.parentElement.classList.remove('scale-110'), 200);
+                clearInterval(interval);
             }
-            scoreDisplay.innerText = Math.floor(start);
-        }, stepTime);
+            scoreDisplay.innerText = start;
+        }, 20);
 
-        // Animate Circle
-        // Circle animation removed for Blob
-        // ...
-
-        document.getElementById('classificacaoDisplay').innerText = meta.classificacao || 'ANÁLISE';
-        document.getElementById('resumoDisplay').innerText = meta.resumo_glitch || meta.resumo_poderoso || '...';
+        document.getElementById('classificacaoDisplay').innerText = meta.classificacao || 'ANALYSIS READY';
+        document.getElementById('resumoDisplay').innerText = meta.resumo_glitch || meta.resumo_poderoso || 'Intelligence report generated successfully.';
         
         const tagsBox = document.getElementById('tagsDisplay');
         tagsBox.innerHTML = '';
         (meta.tags_visuais || meta.tags_elite || []).forEach(tag => {
-            tagsBox.innerHTML += `<span class="tag-studio uppercase tracking-widest px-4 py-2 text-xs rounded-full font-bold">${tag}</span>`;
+            tagsBox.innerHTML += `<span class="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-wider text-starlight hover:bg-neon-blue/20 hover:border-neon-blue/50 transition-colors">${tag}</span>`;
         });
 
         const grid = document.getElementById('modulesGrid');
@@ -509,6 +358,7 @@
             renderModuleCard(key, moduleData, isUnlocked, grid);
         });
 
+        // Setup Sniper Form
         document.getElementById('sniperName').value = meta.edital_numero || 'Oracle Mission';
         document.getElementById('sniperMetadata').value = JSON.stringify(meta);
         if (data.file_path) document.getElementById('sniperExistingFilePath').value = data.file_path;
@@ -517,148 +367,174 @@
 
     function renderModuleCard(key, data, isUnlocked, container) {
         const cost = data.custo_watts || 100;
-        const domId = `card-${key}`;
-
+        const isBlur = !isUnlocked;
+        
         let innerHtml = '';
+        // Content rendering logic...
         if (data.taticas) {
-            innerHtml = data.taticas.map(t => `
-                <div class="bg-base-300/50 border-l-4 border-accent p-3 mb-2 rounded">
-                    <div class="font-bold text-accent mb-1">${t.icone || ''} ${t.titulo}</div>
-                    <div class="text-sm opacity-80">${t.texto}</div>
-                </div>
-            `).join('');
+            innerHtml = data.taticas.map(t => `<div class="mb-3 p-3 rounded bg-white/5 border-l-2 border-neon-blue"><div class="font-bold text-neon-blue text-sm mb-1">${t.titulo}</div><div class="text-xs opacity-70">${t.texto}</div></div>`).join('');
         } else if (data.dados) {
-            innerHtml = `<table class="table table-sm w-full"><tbody>` + 
-                data.dados.map(d => `<tr><td class="opacity-70">${d.label}</td><td class="font-bold text-right ${d.alerta === 'ALTO RISCO' || d.alerta === 'PERIGO' ? 'text-error' : 'text-success'}">${d.valor}</td></tr>`).join('') +
+            innerHtml = `<table class="w-full text-sm"><tbody>` + 
+                data.dados.map(d => `<tr class="border-b border-white/5"><td class="py-2 opacity-70">${d.label}</td><td class="text-right font-bold ${d.alerta === 'ALTO RISCO' ? 'text-error' : 'text-success'}">${d.valor}</td></tr>`).join('') +
                 `</tbody></table>`;
         } else if (data.lista_riscos) {
-            innerHtml = `<ul class="space-y-2">` + 
-                data.lista_riscos.map(r => `<li class="flex items-start gap-2 text-error text-sm font-medium"><i class="fas fa-exclamation-circle mt-1"></i> <span>${r}</span></li>`).join('') +
+            innerHtml = `<ul class="space-y-2 text-sm">` + 
+                data.lista_riscos.map(r => `<li class="flex gap-2 text-error"><i class="fas fa-exclamation-triangle mt-1"></i> <span>${r}</span></li>`).join('') +
                 `</ul>`;
         } else if (data.conteudo_oculto) {
             if(Array.isArray(data.conteudo_oculto)) {
-                innerHtml = `<ul class="list-disc pl-4 space-y-1">` + data.conteudo_oculto.map(i => `<li>${i}</li>`).join('') + `</ul>`;
+                innerHtml = `<ul class="list-disc pl-4 space-y-1 text-sm opacity-80">` + data.conteudo_oculto.map(i => `<li>${i}</li>`).join('') + `</ul>`;
             } else {
                  innerHtml = marked.parse(data.conteudo_oculto);
             }
         }
 
-        const isBlur = !isUnlocked;
-        
-        const cardHtml = `
-            <div class="glass-studio h-full flex flex-col rounded-3xl group" id="card-${key}">
-                
-                <div class="px-6 py-5 border-b border-white/10 bg-white/5 flex justify-between items-center relative">
-                    <h3 class="font-black text-md font-mono uppercase tracking-widest z-10 text-white flex items-center gap-2 truncate pr-2">
-                        <i class="fas fa-cube text-white/50"></i>
-                        ${data.titulo || key}
-                    </h3>
-                    
-                    ${!isUnlocked ? 
-                        `<span class="tag-studio text-xs"><i class="fas fa-bolt mr-1 text-yellow-400"></i> ${cost}</span>` : 
-                        `<span class="tag-studio text-xs !border-green-500/30 !text-green-300"><i class="fas fa-check mr-1"></i></span>`
-                    }
+        const card = document.createElement('div');
+        card.className = `glass-card rounded-3xl overflow-hidden flex flex-col h-full min-h-[300px] relative group`;
+        card.innerHTML = `
+            <div class="px-6 py-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
+                <h3 class="font-bold text-white uppercase tracking-widest text-xs flex items-center gap-2">
+                    <i class="fas fa-cube text-neon-purple"></i> ${data.titulo || key}
+                </h3>
+                ${!isUnlocked ? `<span class="text-[10px] font-bold text-warning"><i class="fas fa-bolt"></i> ${cost}</span>` : `<span class="text-success"><i class="fas fa-check"></i></span>`}
+            </div>
+            
+            <div class="p-6 flex-1 relative">
+                <div class="transition-all duration-500 h-full ${isBlur ? 'blur-md opacity-30 select-none' : 'text-starlight'}" id="content-${key}">
+                    ${innerHtml}
                 </div>
-                
-                <div class="p-8 flex-1 relative flex flex-col min-h-[250px]">
-                    <!-- CONTENT -->
-                    <div class="transition-all duration-700 flex-grow ${isBlur ? 'blur-md opacity-30 select-none pointer-events-none' : 'text-white/80'}" id="content-${key}">
-                        ${innerHtml}
-                    </div>
 
-                    <!-- LOCK OVERLAY -->
-                    ${isBlur ? `
-                    <div class="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center" id="overlay-${key}">
-                        <!-- Glass Overlay Background -->
-                        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm z-[-1]"></div>
-                        
-                        <div class="mb-6 relative group/lock cursor-pointer transition-transform duration-300 hover:scale-110" onclick="unlockModule('${key}', ${cost})">
-                            <div class="absolute -inset-8 bg-primary/20 rounded-full blur-2xl opacity-0 group-hover/lock:opacity-100 transition-opacity duration-500"></div>
-                            <div class="relative w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
-                                <i class="fas fa-lock text-2xl text-white/80 group-hover/lock:text-primary transition-colors duration-300"></i>
-                            </div>
-                        </div>
-                        
-                        <h4 class="font-bold text-white text-lg mb-2 tracking-tight drop-shadow-lg">DADOS ENCRIPTADOS</h4>
-                        <p class="text-white/60 text-xs mb-8 max-w-[220px] font-mono leading-relaxed">
-                            Acesso restrito à inteligência estratégica.
-                        </p>
-
-                        <button onclick="unlockModule('${key}', ${cost})" class="btn-studio w-full max-w-[180px] py-3 flex items-center justify-center gap-3 group/btn text-sm rounded-full font-bold tracking-widest">
-                            <span>DESBLOQUEAR</span>
-                            <span class="w-px h-3 bg-white/20"></span>
-                            <span class="font-mono">${cost} W</span>
-                        </button>
+                ${isBlur ? `
+                <div class="absolute inset-0 flex flex-col items-center justify-center z-20 text-center p-6 bg-black/40 backdrop-blur-sm transition-opacity duration-300" id="overlay-${key}">
+                    <div class="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform cursor-pointer" onclick="unlockModule('${key}', ${cost})">
+                        <i class="fas fa-lock text-2xl text-starlight group-hover:text-neon-blue transition-colors"></i>
                     </div>
-                    ` : ''}
+                    <h4 class="font-bold text-white mb-2">ENCRYPTED DATA</h4>
+                    <button onclick="unlockModule('${key}', ${cost})" class="btn btn-sm rounded-full bg-neon-blue/20 border-neon-blue/40 text-neon-blue hover:bg-neon-blue/40 gap-2 px-6 tracking-widest text-[10px]">
+                        UNLOCK <span class="opacity-50">|</span> ${cost} W
+                    </button>
                 </div>
+                ` : ''}
             </div>
         `;
-
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = cardHtml;
-        container.appendChild(wrapper.firstElementChild);
+        container.appendChild(card);
     }
 
     async function unlockModule(key, cost) {
-        if (!currentOpportunityId) {
-            alert("Erro: ID da análise não encontrado. Tente recarregar a página.");
-            return;
-        }
+        if (!currentOpportunityId) return;
+        if(!confirm(`Unlock module for ${cost} Watts?`)) return;
 
-        if(!confirm(`Desbloquear "${key}" por ${cost} Watts?`)) return;
+        const overlay = document.getElementById(`overlay-${key}`);
+        const content = document.getElementById(`content-${key}`);
+        const btn = overlay.querySelector('button');
+        if(btn) { btn.innerHTML = 'DECRYPTING...'; btn.disabled = true; }
 
         try {
-            const btn = document.querySelector(`#overlay-${key} button`);
-            if(btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading loading-spinner"></span> PROCESSANDO...';
-            }
-
             const res = await fetch('/api/oracle/unlock-module', {
                 headers: { 'Content-Type': 'application/json' },
                 method: 'POST',
                 body: JSON.stringify({ opportunityId: currentOpportunityId, moduleKey: key, cost: cost })
             });
-
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error || "Falha no desbloqueio");
+            if (!res.ok) throw new Error(json.error || "Unlock failed");
 
-            // Success
             currentUserCredits = json.newBalance;
-            userCreditsEl.innerText = currentUserCredits;
-            
-            const overlay = document.getElementById(`overlay-${key}`);
-            const content = document.getElementById(`content-${key}`);
-            const badge = document.querySelector(`#card-${key} .badge`);
+            if(userCreditsEl) userCreditsEl.innerText = currentUserCredits; // Update header info if present
 
-            if(overlay) {
-                overlay.style.opacity = '0';
-                setTimeout(() => overlay.remove(), 300);
-            }
-            if(content) {
-                content.classList.remove('locked-blur', 'opacity-50');
-            }
-            if(badge) {
-                badge.className = "badge badge-success font-bold shadow-[0_0_15px_rgba(34,197,94,0.4)]";
-                badge.innerHTML = '<i class="fas fa-check mr-1"></i> LIBERADO';
-            }
+            // Animate Unlock
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.remove(), 300);
+            content.classList.remove('blur-md', 'opacity-30', 'select-none');
 
         } catch (e) {
             alert(e.message);
-            const btn = document.querySelector(`#overlay-${key} button`);
-            if(btn) { btn.disabled = false; btn.innerText = `DESBLOQUEAR | ${cost}`; }
+            if(btn) { btn.innerHTML = `UNLOCK | ${cost} W`; btn.disabled = false; }
         }
     }
 
-    async function enableNotifications() {
-        if ("Notification" in window) {
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                document.getElementById('notifyRequest').classList.add('hidden');
-                new Notification("MABUS INTEL", { body: "Notificações ativadas." });
+    // --- UPLOAD LOGIC ---
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('pdfFiles');
+    const dropZone = document.getElementById('dropZoneArea');
+    
+    fileInput.addEventListener('change', handleUpload);
+    document.addEventListener('dragover', e => e.preventDefault());
+    document.addEventListener('drop', e => e.preventDefault());
+    
+    // Simple drag effects
+    dropZone.addEventListener('dragenter', () => dropZone.classList.add('border-neon-blue'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-neon-blue'));
+    dropZone.addEventListener('drop', (e) => {
+        dropZone.classList.remove('border-neon-blue');
+        fileInput.files = e.dataTransfer.files;
+        handleUpload();
+    });
+
+    async function handleUpload() {
+        if (fileInput.files.length === 0) return;
+        
+        document.getElementById('uploadContainer').style.display = 'none';
+        document.getElementById('loader').classList.remove('hidden');
+        
+        // Init Canvas Animation
+        if(window.NeuralLoader) new NeuralLoader('neuralCanvas'); // Assuming lib exists
+
+        const formData = new FormData(uploadForm);
+        let currentData = {};
+
+        try {
+            const response = await fetch('/api/process-tr', { method: 'POST', body: formData });
+            if (!response.ok) throw new Error("Upload Error");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep incomplete
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const eventData = JSON.parse(line.substring(6));
+                            if (eventData.metadata || eventData.ipm_score) {
+                                currentData = eventData;
+                                if(eventData.id) currentOpportunityId = eventData.id;
+                            }
+                            // Update Status Text
+                            const loaderText = document.getElementById('loaderText');
+                            if(eventData.status) loaderText.innerText = eventData.status.toUpperCase();
+                        } catch(e) {}
+                    }
+                }
             }
+
+            // Finish
+            showResult({ ...currentData, id: currentOpportunityId, unlocked_modules: [] });
+            fetchHistoryDeck();
+
+        } catch (error) {
+            console.error(error);
+            alert("Process Failed: " + error.message);
+            resetView();
         }
     }
 
+    async function fetchHistoryDeck() {
+        try {
+            const res = await fetch('/api/oracle/history');
+            if(res.ok) {
+                const items = await res.json();
+                renderHistoryDeck(items);
+            }
+        } catch(e) {}
+    }
+
+    function enableNotifications() {
+        Notification.requestPermission();
+    }
 </script>
