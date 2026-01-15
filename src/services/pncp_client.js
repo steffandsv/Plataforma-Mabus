@@ -8,7 +8,7 @@ const axios = require('axios');
  */
 class PNCPClient {
     constructor() {
-        this.baseURL = 'https://pncp.gov.br/api/consulta/v1';
+        this.baseURL = 'https://pncp.gov.br/api/pncp/v1';
         this.lastRequestTime = 0;
         this.minRequestInterval = 250; // 4 req/s para segurança (limite é 5/s)
     }
@@ -47,7 +47,7 @@ class PNCPClient {
         try {
             console.log(`[PNCP Client] Buscando licitações: ${params.dataInicial} a ${params.dataFinal}, página ${queryParams.pagina}`);
 
-            const response = await axios.get(`${this.baseURL}/contratacoes`, {
+            const response = await axios.get(`${this.baseURL}/contratacoes/publicacao`, {
                 params: queryParams,
                 timeout: 30000,
                 headers: {
@@ -81,6 +81,7 @@ class PNCPClient {
                 return this.buscarLicitacoes(params);
             }
 
+            console.error('[PNCP Client] Erro:', error.response?.data || error.message);
             throw new Error(`PNCP API Error [${error.response?.status || 'NETWORK'}]: ${error.message}`);
         }
     }
