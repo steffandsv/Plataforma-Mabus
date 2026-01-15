@@ -27,10 +27,16 @@
             <p class="text-starlight/60 text-sm tracking-widest uppercase">The Dopamine Engine</p>
         </div>
 
-        <% if (messages.error) { %>
+        <% if (messages.error && messages.error.length > 0) { %>
             <div class="alert alert-error mb-6 bg-error/10 border-error/20 text-error shadow-lg backdrop-blur-md">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span class="font-medium"><%= messages.error %></span>
+            </div>
+        <% } %>
+        <% if (messages.success && messages.success.length > 0) { %>
+            <div class="alert alert-success mb-6 bg-success/10 border-success/20 text-success shadow-lg backdrop-blur-md">
+                <i class="fas fa-check-circle"></i>
+                <span class="font-medium"><%= messages.success %></span>
             </div>
         <% } %>
 
