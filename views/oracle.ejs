@@ -23,6 +23,7 @@
     /* SVG Filter for Gooey Effect (Hidden but active) */
     .visually-hidden { position: absolute; width: 0; height: 0; overflow: hidden; }
 </style>
+<link rel="stylesheet" href="/css/liquid-studio.css">
 
 <!-- SVG Filter Definition -->
 <svg class="visually-hidden">
@@ -35,7 +36,8 @@
     </defs>
 </svg>
 
-<div class="min-h-screen bg-base-100 flex flex-col items-center pb-20">
+<div class="min-h-screen flex flex-col items-center pb-20 relative overflow-hidden">
+    <div class="liquid-bg"></div> <!-- Animated Mesh Background -->
 
     <!-- TOP NAV / STATS (Floating) -->
     <div class="fixed top-24 right-6 z-50 bg-base-100/90 backdrop-blur shadow-xl rounded-full px-6 py-3 border border-warning flex items-center gap-3 animate-fade-in-down">
@@ -112,48 +114,30 @@
                      <div class="text-6xl font-black font-mono" id="metaIdDisplay">#000</div>
                 </div>
 
-                <!-- GLOWING ORB / GAUGE IPM DISPLAY -->
-                <div class="relative w-72 h-72 mx-auto mb-12 flex items-center justify-center transform hover:scale-105 transition-transform duration-500 cursor-help group" title="Índice de Potencial Mabus">
-                    <!-- Outer Glows -->
-                    <div class="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse group-hover:bg-primary/30 transition-colors"></div>
-                    <div class="absolute inset-4 bg-black/40 rounded-full backdrop-blur-md border border-white/5 shadow-inner"></div>
-
-                    <!-- SVG Gauge -->
-                    <svg class="w-full h-full transform -rotate-90 drop-shadow-2xl relative z-10">
-                        <circle cx="144" cy="144" r="120" stroke="currentColor" stroke-width="8" fill="transparent" class="text-white/5" />
-                        <circle cx="144" cy="144" r="120" stroke="url(#gradientScore)" stroke-width="12" fill="transparent" stroke-dasharray="753" stroke-dashoffset="753" stroke-linecap="round" class="transition-all duration-[2000ms] ease-out" id="scoreCircle" />
-                        <defs>
-                            <linearGradient id="gradientScore" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#ef4444" />
-                                <stop offset="40%" stop-color="#eab308" />
-                                <stop offset="100%" stop-color="#22c55e" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-
-                    <!-- Inner Text -->
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center z-20">
-                        <div class="relative">
-                            <div id="ipmDisplay" class="text-7xl font-black tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] font-mono">0</div>
-                            <div class="absolute -top-4 -right-6 text-xs font-bold bg-white/10 px-2 py-0.5 rounded text-white/60">V5</div>
-                        </div>
-                        <div class="text-sm font-bold tracking-[0.3em] text-white/40 mt-2 border-t border-white/10 pt-2 w-20">/ 100</div>
-                        <div class="text-[10px] items-center gap-1 flex text-primary mt-3 font-mono uppercase tracking-widest opacity-80 animate-pulse">
-                            <i class="fas fa-bolt"></i> IPM SCORE
-                        </div>
+                                <!-- LIQUID BLOB IPM DISPLAY -->
+                <div class="liquid-blob-container mx-auto mb-12 transform hover:scale-105 transition-transform duration-500 cursor-help group" title="Índice de Potencial Mabus">
+                    <div class="liquid-blob"></div>
+                    <div class="liquid-blob-core">
+                         <div class="text-center relative z-10">
+                            <div class="relative">
+                                <div id="ipmDisplay" class="text-6xl font-black tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] font-mono">0</div>
+                                <div class="absolute -top-3 -right-5 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded text-white/80">V5</div>
+                            </div>
+                            <div class="text-xs font-bold tracking-[0.3em] text-white/60 mt-1 border-t border-white/20 pt-1 w-12 mx-auto">/ 100</div>
+                         </div>
                     </div>
                 </div>
                 
-                <div id="classificacaoDisplay" class="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 mb-8 uppercase drop-shadow-lg scale-y-110">---</div>
+                <div id="classificacaoDisplay" class="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-cyan-200 mb-8 uppercase drop-shadow-lg scale-y-110">---</div>
                 
                 <div id="tagsDisplay" class="flex flex-wrap justify-center gap-3 mb-10"></div>
                 
-                <div class="glass-panel p-12 rounded-[3rem] max-w-4xl mx-auto shadow-2xl relative overflow-visible mt-10 mb-16 group hover:scale-[1.01] transition-transform duration-500 mask-image-gradient">
-                    <div class="absolute -top-8 -left-8 text-7xl text-primary/20 rotate-12 transition-transform group-hover:rotate-0"><i class="fas fa-quote-left"></i></div>
-                    <div class="absolute -bottom-8 -right-8 text-7xl text-primary/20 rotate-12 transition-transform group-hover:rotate-0"><i class="fas fa-quote-right"></i></div>
+                <div class="glass-studio p-12 rounded-[3rem] max-w-4xl mx-auto shadow-2xl relative overflow-visible mt-10 mb-16 group hover:scale-[1.01] transition-transform duration-500">
+                    <div class="absolute -top-8 -left-8 text-7xl text-white/10 rotate-12 transition-transform group-hover:rotate-0"><i class="fas fa-quote-left"></i></div>
+                    <div class="absolute -bottom-8 -right-8 text-7xl text-white/10 rotate-12 transition-transform group-hover:rotate-0"><i class="fas fa-quote-right"></i></div>
                     
-                    <h3 class="text-center text-primary font-mono text-xs tracking-[0.5em] uppercase mb-6 opacity-60">Insight Estratégico</h3>
-                    <p id="resumoDisplay" class="text-2xl text-white font-light leading-relaxed text-center relative z-10 font-sans tracking-wide drop-shadow-md">...</p>
+                    <h3 class="text-center text-white/60 font-mono text-xs tracking-[0.5em] uppercase mb-6">Insight Estratégico</h3>
+                    <p id="resumoDisplay" class="text-2xl text-white font-light leading-relaxed text-center relative z-10 font-sans tracking-wide drop-shadow-md text-glow">...</p>
                 </div>
             </div>
 
@@ -276,12 +260,12 @@
             const unlockedCount = unlocked.length;
 
             const card = document.createElement('div');
-            card.className = `glass-panel p-6 rounded-2xl border border-white/5 hover:border-primary/50 cursor-pointer transition-all hover:-translate-y-2 shadow-lg group relative overflow-hidden`;
+            card.className = `glass-studio p-6 rounded-2xl cursor-pointer shadow-lg group relative overflow-hidden`;
             card.innerHTML = `
                 <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
                 <div class="flex justify-between items-start mb-4 relative z-10">
-                    <div class="neo-badge ${score > 70 ? 'neo-badge-success' : (score > 40 ? 'neo-badge-warning' : 'neo-badge-error')}">${score}</div>
+                    <div class="tag-studio px-2 py-0.5 rounded text-[10px] font-mono font-bold ${score > 70 ? 'text-green-300 border-green-500/30' : 'text-white'}">${score}</div>
                     <div class="text-xs font-mono opacity-50 text-white">${date}</div>
                 </div>
                 
@@ -477,14 +461,11 @@
         const unlockedList = data.unlocked_modules || [];
 
         document.getElementById('metaIdDisplay').innerText = data.id ? `#${data.id}` : 'NOVO';
-        // ANIMATE SCORE
+        // ANIMATE SCORE (No Gauge, Just Numbers & Pulse)
         const score = meta.ipm_score || data.ipm_score || 0;
         const scoreDisplay = document.getElementById('ipmDisplay');
-        const circle = document.getElementById('scoreCircle');
-        
         // Reset
         scoreDisplay.innerText = "0";
-        if(circle) circle.style.strokeDashoffset = 753; // Full circumference
 
         // Animate Text
         let start = 0;
@@ -507,13 +488,8 @@
         }, stepTime);
 
         // Animate Circle
-        setTimeout(() => {
-            if(circle) {
-                const circumference = 753;
-                const offset = circumference - (score / 100) * circumference;
-                circle.style.strokeDashoffset = offset;
-            }
-        }, 100);
+        // Circle animation removed for Blob
+        // ...
 
         document.getElementById('classificacaoDisplay').innerText = meta.classificacao || 'ANÁLISE';
         document.getElementById('resumoDisplay').innerText = meta.resumo_glitch || meta.resumo_poderoso || '...';
@@ -521,7 +497,7 @@
         const tagsBox = document.getElementById('tagsDisplay');
         tagsBox.innerHTML = '';
         (meta.tags_visuais || meta.tags_elite || []).forEach(tag => {
-            tagsBox.innerHTML += `<span class="neo-badge neo-badge-warning uppercase tracking-widest px-4 py-2 text-xs">${tag}</span>`;
+            tagsBox.innerHTML += `<span class="tag-studio uppercase tracking-widest px-4 py-2 text-xs rounded-full font-bold">${tag}</span>`;
         });
 
         const grid = document.getElementById('modulesGrid');
@@ -570,18 +546,17 @@
         const isBlur = !isUnlocked;
         
         const cardHtml = `
-            <div class="glass-panel h-full flex flex-col transform transition-all hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] overflow-hidden relative group rounded-3xl" id="card-${key}">
+            <div class="glass-studio h-full flex flex-col rounded-3xl group" id="card-${key}">
                 
-                <div class="px-6 py-5 border-b border-white/5 bg-white/5 flex justify-between items-center relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="px-6 py-5 border-b border-white/10 bg-white/5 flex justify-between items-center relative">
                     <h3 class="font-black text-md font-mono uppercase tracking-widest z-10 text-white flex items-center gap-2 truncate pr-2">
-                        <i class="fas fa-cube text-primary/60"></i>
+                        <i class="fas fa-cube text-white/50"></i>
                         ${data.titulo || key}
                     </h3>
                     
                     ${!isUnlocked ? 
-                        `<span class="neo-badge neo-badge-warning shrink-0"><i class="fas fa-bolt mr-1"></i> ${cost}</span>` : 
-                        `<span class="neo-badge neo-badge-success shrink-0"><i class="fas fa-check mr-1"></i></span>`
+                        `<span class="tag-studio text-xs"><i class="fas fa-bolt mr-1 text-yellow-400"></i> ${cost}</span>` : 
+                        `<span class="tag-studio text-xs !border-green-500/30 !text-green-300"><i class="fas fa-check mr-1"></i></span>`
                     }
                 </div>
                 
@@ -604,15 +579,15 @@
                             </div>
                         </div>
                         
-                        <h4 class="font-bold text-white text-lg mb-2 tracking-tight">DADOS ENCRIPTADOS</h4>
-                        <p class="text-white/40 text-xs mb-8 max-w-[220px] font-mono leading-relaxed">
+                        <h4 class="font-bold text-white text-lg mb-2 tracking-tight drop-shadow-lg">DADOS ENCRIPTADOS</h4>
+                        <p class="text-white/60 text-xs mb-8 max-w-[220px] font-mono leading-relaxed">
                             Acesso restrito à inteligência estratégica.
                         </p>
 
-                        <button onclick="unlockModule('${key}', ${cost})" class="btn-liquid w-full max-w-[180px] py-3 flex items-center justify-center gap-3 group/btn text-sm">
+                        <button onclick="unlockModule('${key}', ${cost})" class="btn-studio w-full max-w-[180px] py-3 flex items-center justify-center gap-3 group/btn text-sm rounded-full font-bold tracking-widest">
                             <span>DESBLOQUEAR</span>
                             <span class="w-px h-3 bg-white/20"></span>
-                            <span class="font-mono text-primary-content">${cost} W</span>
+                            <span class="font-mono">${cost} W</span>
                         </button>
                     </div>
                     ` : ''}

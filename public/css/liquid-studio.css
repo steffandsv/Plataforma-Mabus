@@ -1,0 +1,183 @@
+/* LIQUID GLASS STUDIO - ADVANCED CSS */
+
+:root {
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-highlight: rgba(255, 255, 255, 0.6);
+    --glass-shadow: rgba(0, 0, 0, 0.2);
+}
+
+/* 1. ANIMATED MESH GRADIENT BACKGROUND */
+/* We will apply this to the body or a fixed background layer */
+.liquid-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -10;
+    background: 
+        radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+        radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+    background-size: 200% 200%;
+    animation: gradient-move 15s ease infinite;
+}
+
+.liquid-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+}
+
+@keyframes gradient-move {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+
+/* 2. THE STUDIO GLASS PANEL (Replacing .glass-panel) */
+.glass-studio {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.5); /* Stronger top light */
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    
+    box-shadow: 
+        0 20px 50px rgba(0,0,0,0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1), /* Inner rim */
+        inset 0 0 20px rgba(255, 255, 255, 0.05); /* Inner glow */
+        
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Chromatic Aberration / Dispersion Effect on Hover */
+.glass-studio::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255,0,0,0.4), rgba(0,255,0,0.4), rgba(0,0,255,0.4));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.glass-studio:hover {
+    transform: translateY(-5px) scale(1.005);
+    box-shadow: 
+        0 30px 60px rgba(0,0,0,0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+        inset 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+.glass-studio:hover::before {
+    opacity: 1; /* Show rainbow edge on hover */
+}
+
+
+/* 3. LIQUID BLOB (IPM GAUGE) */
+.liquid-blob-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    filter: url('#goo'); /* Uses the SVG filter in the HTML */
+}
+
+.liquid-blob {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.1));
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    animation: morph 8s ease-in-out infinite;
+    backdrop-filter: blur(10px);
+    opacity: 0.1; /* Subtle ghost */
+    z-index: 0;
+}
+
+.liquid-blob-core {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 
+        0 0 50px rgba(var(--p), 0.3),
+        inset 0 0 30px rgba(var(--p), 0.2);
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+@keyframes morph {
+    0%, 100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(0deg); }
+    34% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; transform: rotate(120deg); }
+    67% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; transform: rotate(240deg); }
+}
+
+/* 4. LIQUID BUTTON */
+.btn-studio {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    color: white;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn-studio::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: 0.5s;
+}
+
+.btn-studio:hover::after {
+    left: 100%;
+}
+
+.btn-studio:hover {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+
+/* TAGS */
+.tag-studio {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+    backdrop-filter: blur(4px);
+    transition: all 0.3s;
+}
+.tag-studio:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.4);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
