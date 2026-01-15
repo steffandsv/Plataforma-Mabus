@@ -248,7 +248,7 @@ app.get('/admin/licitacoes/import', isAdmin, async (req, res) => {
 
 app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
     try {
-        const { dataInicial, dataFinal, maxPages } = req.body;
+        const { dataInicial, dataFinal, maxPages, codigoModalidadeContratacao } = req.body;
 
         if (!dataInicial || !dataFinal) {
             req.flash('error', 'Datas inicial e final são obrigatórias');
@@ -259,7 +259,8 @@ app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
         licitacoesImporter.importBatch({
             dataInicial,
             dataFinal,
-            maxPages: parseInt(maxPages) || 10
+            maxPages: parseInt(maxPages) || 10,
+            codigoModalidadeContratacao: parseInt(codigoModalidadeContratacao) || 8
         }).then(result => {
             console.log('[Licitações] Importação concluída:', result);
         }).catch(err => {

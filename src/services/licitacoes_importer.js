@@ -50,9 +50,10 @@ class LicitacoesImporter {
                 const result = await pncpClient.buscarLicitacoes({
                     dataInicial: this.formatDate(dataInicial),
                     dataFinal: this.formatDate(dataFinal),
+                    codigoModalidadeContratacao: params.codigoModalidadeContratacao || 8,
                     cnpjOrgao,
                     pagina: page,
-                    tamanhoPagina: 500
+                    tamanhoPagina: 100 // máximo suportado pela API
                 });
 
                 if (!result.success || !result.data || result.data.length === 0) {

@@ -104,14 +104,34 @@
 
                                     <div class="form-control mb-4">
                                         <label class="label">
+                                            <span class="label-text">Modalidade</span>
+                                        </label>
+                                        <select name="codigoModalidadeContratacao" class="select select-bordered"
+                                            required>
+                                            <option value="8" selected>Dispensa (mais comum)</option>
+                                            <option value="6">Pregão Eletrônico</option>
+                                            <option value="7">Pregão Presencial</option>
+                                            <option value="4">Concorrência Eletrônica</option>
+                                            <option value="5">Concorrência Presencial</option>
+                                            <option value="1">Leilão Eletrônico</option>
+                                            <option value="2">Diálogo Competitivo</option>
+                                            <option value="3">Concurso</option>
+                                        </select>
+                                        <label class="label">
+                                            <span class="label-text-alt">Escolha a modalidade das licitações para
+                                                importar</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-control mb-4">
+                                        <label class="label">
                                             <span class="label-text">Máximo de Páginas</span>
                                         </label>
                                         <input type="number" name="maxPages" value="10" min="1" max="100"
                                             class="input input-bordered">
                                         <label class="label">
-                                            <span class="label-text-alt">500 licitações por página. Use com moderação
-                                                para
-                                                não sobrecarregar a API PNCP.</span>
+                                            <span class="label-text-alt">100 licitações por página. Use com moderação
+                                                para não sobrecarregar a API PNCP.</span>
                                         </label>
                                     </div>
 

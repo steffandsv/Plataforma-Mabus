@@ -46,7 +46,7 @@ class PNCPClient {
             dataFinal: params.dataFinal,      // formato: YYYYMMDD
             codigoModalidadeContratacao: modalidade, // OBRIGATÓRIO!
             pagina: params.pagina || 1,
-            tamanhoPagina: Math.max(params.tamanhoPagina || 100, 10) // min 10, default 100
+            tamanhoPagina: Math.max(params.tamanhoPagina || 100, 10) // min 10, max 100
         };
 
         if (params.cnpjOrgao) {
