@@ -75,8 +75,16 @@
       }
     </script>
 </head>
-<body class="bg-cosmic-void min-h-screen text-starlight overflow-x-hidden selection:bg-neon-purple selection:text-white pb-16">
+<body class="bg-cosmic-void min-h-screen text-starlight overflow-x-hidden selection:bg-neon-purple selection:text-white">
+    
     <!-- GLOBAL BG ANIMATION -->
     <div class="fixed inset-0 z-[-1] pointer-events-none">
          <div class="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-neon-purple/5 to-transparent"></div>
     </div>
+
+    <!-- SIDEBAR (Desktop visible, Mobile hidden by default) -->
+    <%- include('sidebar') %>
+
+    <!-- MAIN CONTENT WRAPPER (Offset for sidebar on desktop, padding for fixed header) -->
+    <div class="md:ml-64 transition-all duration-300">
+        <main class="pt-24 min-h-screen">
