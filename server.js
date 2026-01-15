@@ -92,6 +92,7 @@ app.use(session({
 app.use(flash());
 
 // Make user available to all views
+app.use(async (req, res, next) => {
     res.locals.user = req.session.userId ? await getUserById(req.session.userId) : null;
     const errorFlash = req.flash('error');
     const successFlash = req.flash('success');
