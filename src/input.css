@@ -1,3 +1,84 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-black min-h-screen selection:bg-cyan-500 selection:text-white;
+    background-image: radial-gradient(
+        circle at 15% 50%,
+        rgba(76, 29, 149, 0.4),
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 85% 30%,
+        rgba(6, 182, 212, 0.15),
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 50% 80%,
+        rgba(236, 72, 153, 0.2),
+        transparent 50%
+      );
+    background-attachment: fixed;
+    font-family: "Inter", sans-serif; /* Ensuring a clean font */
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)];
+  }
+
+  .glass-heavy {
+    @apply bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)];
+  }
+
+  .glass-panel {
+    @apply bg-[#0a0a0a]/60 backdrop-blur-md border border-white/5 shadow-2xl;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@layer components {
+  .neo-badge {
+    @apply px-3 py-1 rounded-full text-xs font-bold border border-white/10 backdrop-blur-md shadow-lg transition-all duration-300;
+  }
+
+  .neo-badge-success {
+    @apply bg-green-500/20 text-green-300 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.2)];
+  }
+
+  .neo-badge-warning {
+    @apply bg-yellow-500/20 text-yellow-300 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)];
+  }
+
+  .neo-badge-error {
+    @apply bg-red-500/20 text-red-300 border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)];
+  }
+
+  /* Liquid Button */
+  .btn-liquid {
+    @apply relative overflow-hidden bg-white/10 border border-white/10 text-white font-bold rounded-full transition-all duration-300 hover:scale-105 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)];
+  }
+}
+
+/* Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
