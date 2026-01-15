@@ -234,7 +234,8 @@ app.get('/licitacoes', isAuthenticated, async (req, res) => {
             hasNext,
             filters,
             viewMode,
-            preferences: prefs
+            preferences: prefs,
+            savedMode: false
         });
     } catch (e) {
         console.error('[Licitações Route Error]:', e);

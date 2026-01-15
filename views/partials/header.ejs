@@ -1,40 +1,52 @@
-<header class="navbar fixed top-4 left-4 right-4 z-50 rounded-2xl border border-glass-border glass-panel h-16 shadow-lg shadow-purple-900/10 transition-all duration-300">
+<header
+    class="navbar fixed top-4 left-4 right-4 z-50 rounded-2xl border border-glass-border glass-panel h-16 shadow-lg shadow-purple-900/10 transition-all duration-300">
     <div class="flex-1">
-         <!-- Mobile Toggle -->
-         <button class="btn btn-square btn-ghost btn-sm md:hidden text-neon-blue" onclick="toggleSidebar()">
+        <!-- Mobile Toggle -->
+        <button class="btn btn-square btn-ghost btn-sm md:hidden text-neon-blue" onclick="toggleSidebar()">
             <i class="fas fa-bars"></i>
         </button>
-        
+
         <!-- Logo for Mobile -->
-        <span class="md:hidden ml-2 font-bold text-lg tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">MABUS</span>
+        <span
+            class="md:hidden ml-2 font-bold text-lg tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">MABUS</span>
     </div>
 
     <div class="flex-none gap-4">
-         <!-- Watts Capacitor -->
+        <!-- Watts Capacitor -->
         <div class="tooltip tooltip-bottom" data-tip="Reserva de Créditos">
-            <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 hover:border-neon-purple/50 transition-colors group">
+            <div
+                class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 hover:border-neon-purple/50 transition-colors group">
                 <i class="fas fa-bolt text-warning group-hover:animate-pulse"></i>
                 <div class="flex flex-col w-24 gap-1">
-                     <% const percentage = Math.min(100, (user.current_credits / 1000) * 100); %>
-                     <progress class="progress progress-warning w-full h-1.5" value="<%= percentage %>" max="100"></progress>
+                    <% const percentage=Math.min(100, (user.current_credits / 1000) * 100); %>
+                        <progress class="progress progress-warning w-full h-1.5" value="<%= percentage %>"
+                            max="100"></progress>
                 </div>
-                <span class="text-xs font-bold font-mono text-starlight"><%= user.current_credits %></span>
+                <span class="text-xs font-bold font-mono text-starlight">
+                    <%= user.current_credits %>
+                </span>
             </div>
         </div>
 
-        <button id="themeToggle" class="btn btn-circle btn-ghost btn-sm text-starlight/70 hover:text-neon-blue hover:bg-white/5" onclick="toggleTheme()" title="Alternar Tema">
+        <button id="themeToggle"
+            class="btn btn-circle btn-ghost btn-sm text-starlight/70 hover:text-neon-blue hover:bg-white/5"
+            onclick="toggleTheme()" title="Alternar Tema">
             <i class="fas fa-sun"></i>
         </button>
-        
+
         <!-- NOTIFICATION BELL -->
         <div class="dropdown dropdown-end">
-            <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm text-starlight/70 hover:text-neon-purple hover:bg-white/5" id="bellBtn">
+            <div tabindex="0" role="button"
+                class="btn btn-ghost btn-circle btn-sm text-starlight/70 hover:text-neon-purple hover:bg-white/5"
+                id="bellBtn">
                 <div class="indicator">
                     <i class="fas fa-bell"></i>
-                    <span class="badge badge-xs badge-error indicator-item hidden shadow-[0_0_10px_#ff0000]" id="bellBadge"></span>
+                    <span class="badge badge-xs badge-error indicator-item hidden shadow-[0_0_10px_#ff0000]"
+                        id="bellBadge"></span>
                 </div>
             </div>
-            <div tabindex="0" class="dropdown-content z-[999] card card-compact w-80 p-0 shadow-2xl glass-panel text-base-content mt-4 border border-glass-border">
+            <div tabindex="0"
+                class="dropdown-content z-[999] card card-compact w-80 p-0 shadow-2xl glass-panel text-base-content mt-4 border border-glass-border">
                 <div class="card-body p-0">
                     <div class="p-3 border-b border-white/5 flex justify-between items-center bg-white/5">
                         <h3 class="font-bold text-sm text-starlight">Notificações</h3>
@@ -49,14 +61,53 @@
 
         <div class="text-right hidden sm:block leading-tight">
             <div class="text-[10px] uppercase font-bold text-starlight/40 tracking-wider">Operador</div>
-            <div class="font-bold text-sm text-neon-blue drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]"><%= user.username %></div>
+            <div class="font-bold text-sm text-neon-blue drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]">
+                <%= user.username %>
+            </div>
         </div>
 
-         <div class="avatar placeholder offline ring-offset-base-100 ring-offset-2 hover:ring-2 hover:ring-neon-purple transition-all duration-300 rounded-full cursor-pointer">
-            <div class="bg-black/50 text-starlight rounded-full w-9 border border-white/10">
-                <span class="text-xs font-bold"><%= user.username.substring(0,2).toUpperCase() %></span>
+        <!-- User Dropdown Menu -->
+        <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button"
+                class="avatar placeholder offline ring-offset-base-100 ring-offset-2 hover:ring-2 hover:ring-neon-purple transition-all duration-300 rounded-full cursor-pointer">
+                <div class="bg-black/50 text-starlight rounded-full w-9 border border-white/10">
+                    <span class="text-xs font-bold">
+                        <%= user.username.substring(0,2).toUpperCase() %>
+                    </span>
+                </div>
             </div>
-         </div>
+            <ul tabindex="0"
+                class="dropdown-content z-[999] menu p-2 shadow-2xl glass-panel rounded-box w-52 mt-4 border border-glass-border">
+                <li class="menu-title">
+                    <span class="text-starlight/60 text-xs">Minha Conta</span>
+                </li>
+                <li>
+                    <a href="/profile/preferences" class="text-starlight hover:text-neon-purple">
+                        <i class="fas fa-cog"></i>
+                        Preferências de Feed
+                    </a>
+                </li>
+                <li>
+                    <a href="/profile" class="text-starlight hover:text-neon-blue">
+                        <i class="fas fa-user-circle"></i>
+                        Meu Perfil
+                    </a>
+                </li>
+                <li>
+                    <a href="/licitacoes/saved" class="text-starlight hover:text-neon-pink">
+                        <i class="fas fa-heart"></i>
+                        Licitações Salvas
+                    </a>
+                </li>
+                <div class="divider my-1"></div>
+                <li>
+                    <a href="/logout" class="text-error hover:bg-error/20">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
 </header>
 
@@ -69,22 +120,22 @@
         localStorage.setItem('theme', next);
 
         const icon = document.querySelector('#themeToggle i');
-        if(icon) icon.className = next === 'neuro' ? 'fas fa-moon' : 'fas fa-sun';
+        if (icon) icon.className = next === 'neuro' ? 'fas fa-moon' : 'fas fa-sun';
     }
 
     function toggleSidebar() {
-        const s = document.querySelector('aside'); 
+        const s = document.querySelector('aside');
         s.classList.toggle('-translate-x-full');
         s.classList.toggle('shadow-2xl');
     }
 
     // Init Theme
-    (function() {
+    (function () {
         const saved = localStorage.getItem('theme') || 'neuro';
         document.body.setAttribute('data-theme', saved);
         document.addEventListener('DOMContentLoaded', () => {
-             const icon = document.querySelector('#themeToggle i');
-             if(icon) icon.className = saved === 'neuro' ? 'fas fa-moon' : 'fas fa-sun';
+            const icon = document.querySelector('#themeToggle i');
+            if (icon) icon.className = saved === 'neuro' ? 'fas fa-moon' : 'fas fa-sun';
         });
     })();
 </script>
