@@ -25,14 +25,17 @@ async function fetchModels(provider, apiKey) {
 
     try {
         if (provider === PROVIDERS.QWEN) {
-            // DashScope doesn't have a simple public "list models" endpoint like OpenAI.
-            // We return the known supported list + any found if we can verify the key.
+            // DashScope Qwen 3 Models (January 2026)
+            // Using -latest variants ensures automatic updates to newest versions
             return [
-                { id: 'qwen-max', name: 'Qwen-Max (Trillion Params)', description: 'Most capable model for complex reasoning.' },
-                { id: 'qwen-plus', name: 'Qwen-Plus', description: 'Balanced performance and speed.' },
-                { id: 'qwen-turbo', name: 'Qwen-Turbo', description: 'Fastest, low latency.' },
-                { id: 'qwen-long', name: 'Qwen-Long', description: 'Specialized for massive context (documents).' },
-                { id: 'qwen-vl-max', name: 'Qwen-VL-Max', description: 'Vision + Language capability.' }
+                { id: 'qwen-max-latest', name: 'Qwen Max (Latest)', description: 'Latest flagship model - auto-updates to newest Qwen 3 Max version. Best for complex reasoning and large contexts.' },
+                { id: 'qwen3-max', name: 'Qwen 3 Max', description: 'Qwen 3 maximum capability model - stable version for complex reasoning tasks.' },
+                { id: 'qwen-plus-latest', name: 'Qwen Plus (Latest)', description: 'Latest balanced model - good performance/cost ratio, auto-updates.' },
+                { id: 'qwen-turbo-latest', name: 'Qwen Turbo (Latest)', description: 'Latest fast model - optimized for speed and low latency, auto-updates.' },
+                { id: 'qwen-max', name: 'Qwen Max (Generic)', description: 'Generic alias for flagship model - points to stable Qwen Max.' },
+                { id: 'qwen-plus', name: 'Qwen Plus (Generic)', description: 'Generic balanced model alias.' },
+                { id: 'qwen-turbo', name: 'Qwen Turbo (Generic)', description: 'Generic fast model alias.' },
+                { id: 'qwen-vl-max', name: 'Qwen-VL-Max', description: 'Vision + Language capability (multimodal).' }
             ];
         }
         else if (provider === PROVIDERS.DEEPSEEK) {

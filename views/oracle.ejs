@@ -341,8 +341,8 @@
             scoreDisplay.innerText = start;
         }, 20);
 
-        document.getElementById('classificacaoDisplay').innerText = meta.classificacao || 'ANALYSIS READY';
-        document.getElementById('resumoDisplay').innerText = meta.resumo_glitch || meta.resumo_poderoso || 'Intelligence report generated successfully.';
+        document.getElementById('classificacaoDisplay').innerText = meta.classificacao || 'ANÁLISE EM ANDAMENTO';
+        document.getElementById('resumoDisplay').innerText = meta.resumo_glitch || meta.resumo_poderoso || 'Gerando relatório de inteligência... O cruzamento de dados pode levar alguns minutos, analisaremos todo o histórico da prefeitura, dos itens, dos fornecedores... Você pode sair dessa página, notificaremos quando estiver pronto.';
         
         const tagsBox = document.getElementById('tagsDisplay');
         tagsBox.innerHTML = '';

@@ -19,43 +19,85 @@ async function processPDF(filePaths, onThought = null) {
             combinedText += `\n--- START OF FILE ${filePath} ---\n` + data.text + `\n--- END OF FILE ${filePath} ---\n`;
         }
 
-        // 2. Token Estimation & Model Selection (Token Economy)
+        // 2. Token Estimation & Intelligent Model Selection (Qwen 3 Optimized)
         const charCount = combinedText.length;
         const estimatedTokens = Math.ceil(charCount / 4);
 
-        // Force Qwen for this specific Oracle flow as per "Protocol V5.0" (Qwen 3 Upgrade)
-        // User requested "AT LEAST QWEN 3". 'qwen-max' points to the latest flagship (Qwen 3 Max).
-        let provider = PROVIDERS.QWEN;
-        let model = 'qwen-max'; // Flagship Model (Qwen 3 Max)
+        console.log(`[Oracle] Estimated Tokens: ~${estimatedTokens}`);
 
-        if (estimatedTokens > 28000) {
-            model = 'qwen-long'; // Specialized for massive contexts
-        }
+        // --- MULTI-TIER FALLBACK CONFIGURATION ---
+        // We'll attempt providers in this order until one succeeds
+        const fallbackChain = [];
 
-        // Fallback: Check if we have Qwen Key, if not try to use what's configured in DB/Env,
-        // but the prompt explicitly asked for this logic. We will try to stick to it if keys exist.
+        // TIER 1: Qwen 3 Models (Primary - User requested ALWAYS QWEN 3)
         let qwenKey = process.env.DASHSCOPE_API_KEY || process.env.QWEN_KEY || process.env.QWEN_API_KEY;
-
+        
         // Try getting Qwen Key from DB if not in Env
         if (!qwenKey) {
-             const dbOracleKey = await getSetting('oracle_api_key');
-             const dbOracleProvider = await getSetting('oracle_provider');
-             if (dbOracleProvider === 'qwen' && dbOracleKey) {
-                 qwenKey = dbOracleKey;
-             }
+            const dbOracleKey = await getSetting('oracle_api_key');
+            const dbOracleProvider = await getSetting('oracle_provider');
+            if (dbOracleProvider === 'qwen' && dbOracleKey) {
+                qwenKey = dbOracleKey;
+            }
         }
 
-        let apiKey = qwenKey;
+        if (qwenKey) {
+            // Token-based Qwen 3 model selection
+            let qwenModel;
+            if (estimatedTokens < 15000) {
+                qwenModel = 'qwen-turbo-latest'; // Fast & cost-effective for small docs
+            } else if (estimatedTokens < 100000) {
+                qwenModel = 'qwen-plus-latest'; // Balanced for medium docs
+            } else {
+                qwenModel = 'qwen-max-latest'; // Maximum capability for large docs
+            }
 
-        if (!qwenKey) {
-            // Fallback to existing logic if Qwen not configured
-            provider = await getSetting('oracle_provider') || PROVIDERS.DEEPSEEK;
-            model = await getSetting('oracle_model') || 'deepseek-reasoner';
-            apiKey = await getSetting('oracle_api_key') || process.env[`${provider.toUpperCase()}_API_KEY`];
-            console.warn("[Oracle] Qwen key missing. Falling back to configured provider:", provider, model);
+            fallbackChain.push(
+                { provider: PROVIDERS.QWEN, model: qwenModel, apiKey: qwenKey, tier: 1, name: `Qwen (${qwenModel})` },
+                // Fallback within Qwen if first model fails
+                { provider: PROVIDERS.QWEN, model: 'qwen3-max', apiKey: qwenKey, tier: 1, name: 'Qwen 3 Max (Stable)' },
+                { provider: PROVIDERS.QWEN, model: 'qwen-turbo-latest', apiKey: qwenKey, tier: 1, name: 'Qwen Turbo (Fast Fallback)' }
+            );
+            console.log(`[Oracle] Primary Model: ${qwenModel} (Tier 1 - Qwen 3)`);
         } else {
-            console.log(`[Oracle] Token Count: ~${estimatedTokens}. Selected Model: ${model}`);
+            console.warn('[Oracle] Qwen API key not configured. Skipping Qwen tier.');
         }
+
+        // TIER 2: DeepSeek (Secondary Fallback)
+        let deepseekKey = process.env.DEEPSEEK_API_KEY;
+        if (!deepseekKey) {
+            const dbKey = await getSetting('oracle_api_key');
+            const dbProvider = await getSetting('oracle_provider');
+            if (dbProvider === 'deepseek' && dbKey) deepseekKey = dbKey;
+        }
+
+        if (deepseekKey) {
+            fallbackChain.push(
+                { provider: PROVIDERS.DEEPSEEK, model: 'deepseek-reasoner', apiKey: deepseekKey, tier: 2, name: 'DeepSeek Reasoner' },
+                { provider: PROVIDERS.DEEPSEEK, model: 'deepseek-chat', apiKey: deepseekKey, tier: 2, name: 'DeepSeek Chat' }
+            );
+        }
+
+        // TIER 3: Gemini (Final Fallback)
+        let geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        if (!geminiKey) {
+            const dbKey = await getSetting('oracle_api_key');
+            const dbProvider = await getSetting('oracle_provider');
+            if (dbProvider === 'gemini' && dbKey) geminiKey = dbKey;
+        }
+
+        if (geminiKey) {
+            fallbackChain.push(
+                { provider: PROVIDERS.GEMINI, model: 'gemini-2.0-flash-exp', apiKey: geminiKey, tier: 3, name: 'Gemini 2.0 Flash' },
+                { provider: PROVIDERS.GEMINI, model: 'gemini-1.5-pro', apiKey: geminiKey, tier: 3, name: 'Gemini 1.5 Pro' }
+            );
+        }
+
+        if (fallbackChain.length === 0) {
+            throw new Error('Nenhuma chave de API configurada. Configure DASHSCOPE_API_KEY, DEEPSEEK_API_KEY ou GEMINI_API_KEY.');
+        }
+
+        console.log(`[Oracle] Fallback chain configured with ${fallbackChain.length} options across ${new Set(fallbackChain.map(f => f.tier)).size} tiers.`);
 
         // 3. Load System Prompt (God Mode)
         const promptPath = path.join(__dirname, '../../prompts/oracle_god_mode.txt');
@@ -67,50 +109,85 @@ async function processPDF(filePaths, onThought = null) {
             throw new Error("System Prompt missing.");
         }
 
-        // The prompt file contains the instruction.
-        // We will pass the combined text as the user message.
-        // We append the text to a specific marker if the prompt expects it,
-        // but the prompt says "Ao processar o texto do edital..." so we can just append it.
-
         const messages = [
             { role: "system", content: systemPrompt },
             { role: "user", content: `AQUI ESTÁ O TEXTO DO EDITAL:\n\n${combinedText}` }
         ];
 
-        // 4. Generate with Stream
-        // Thought Buffer to detect titles if model produces them (DeepSeek style),
-        // but Qwen might just output normal text. The prompt doesn't explicitly force **Title** for Qwen,
-        // but we can try to catch it if it happens.
-        // The prompt says "Sua linguagem... deve ser PERSUASIVA".
-        // It does NOT explicitly ask for "thoughts" in the output JSON, but the UI expects "Neural Pulse".
-        // We can simulate thoughts or use what the model gives if it supports reasoning (Qwen-Max/Plus usually don't output separate thought stream like DeepSeek R1).
-        // However, the `generateStream` for Qwen in `ai_manager` handles `reasoning_content`.
-
-        let thoughtBuffer = "";
+        // 4. Attempt Generation with Fallback Chain
         let finalResponse = "";
         let finalThoughts = "";
+        let usedConfig = null;
+        let lastError = null;
 
-        await new Promise((resolve, reject) => {
-            generateStream(
-                { provider, model, apiKey, messages },
-                {
-                    onThought: (chunk) => {
-                        thoughtBuffer += chunk;
-                        finalThoughts += chunk;
-                        // PRIVACY UPDATE: Do NOT send raw thoughts to frontend.
-                        // sending nothing or specific "pulse" if needed, but frontend will handle "fake" text.
-                        // if (onThought) onThought(chunk); 
-                    },
-                    onChunk: (chunk) => {
-                        finalResponse += chunk;
-                    },
-                    onDone: () => resolve(),
-                    onError: (err) => reject(err)
+        for (const config of fallbackChain) {
+            try {
+                console.log(`[Oracle] Tentando ${config.name} (Tier ${config.tier})...`);
+                
+                let thoughtBuffer = "";
+                let responseBuffer = "";
+
+                await new Promise((resolve, reject) => {
+                    generateStream(
+                        { 
+                            provider: config.provider, 
+                            model: config.model, 
+                            apiKey: config.apiKey, 
+                            messages 
+                        },
+                        {
+                            onThought: (chunk) => {
+                                thoughtBuffer += chunk;
+                                finalThoughts += chunk;
+                            },
+                            onChunk: (chunk) => {
+                                responseBuffer += chunk;
+                            },
+                            onDone: () => resolve(),
+                            onError: (err) => reject(err)
+                        }
+                    );
+                });
+
+                if (responseBuffer && responseBuffer.trim().length > 0) {
+                    finalResponse = responseBuffer;
+                    usedConfig = config;
+                    console.log(`[Oracle] ✓ Sucesso com ${config.name}!`);
+                    break; // Success! Exit the fallback loop
+                } else {
+                    throw new Error('Resposta vazia do modelo');
                 }
-            );
-        });
+
+            } catch (err) {
+                lastError = err;
+                const errorMsg = err.message || String(err);
+                console.warn(`[Oracle] ✗ Falha com ${config.name}: ${errorMsg}`);
+                
+                // Check if this is a fatal error that we shouldn't retry
+                if (errorMsg.includes('401') || errorMsg.includes('invalid_api_key') || errorMsg.includes('authentication')) {
+                    console.error(`[Oracle] Erro de Autenticação detectado. Pulando para próximo tier.`);
+                    // Skip remaining models in this tier
+                    const currentTier = config.tier;
+                    const nextTierIndex = fallbackChain.findIndex(c => c.tier > currentTier);
+                    if (nextTierIndex === -1) break; // No more tiers
+                    continue;
+                }
+                
+                // For other errors (404 model not found, rate limits, etc.), continue to next model
+                continue;
+            }
+        }
+
+        if (!finalResponse || !usedConfig) {
+            const errorDetails = lastError ? lastError.message : 'Erro desconhecido';
+            console.error('[Oracle] Todos os fallbacks falharam. Último erro:', errorDetails);
+            throw new Error(`Falha em todos os provedores de IA. Último erro: ${errorDetails}`);
+        }
+
+        console.log(`[Oracle] Análise concluída usando: ${usedConfig.name}`);
 
         if (!finalResponse) throw new Error("API falhou ou retornou vazio.");
+
 
         // 5. JSON Extraction
         let jsonResponse;
