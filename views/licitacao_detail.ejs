@@ -2,176 +2,120 @@
     <%- include('partials/header') %>
 
         <div class="container mx-auto px-4 py-8">
+            <!-- Header com Título e Ações -->
             <div class="mb-6">
-                <a href="/licitacoes" class="btn btn-ghost btn-sm">← Voltar para Licitações</a>
-            </div>
-
-            <!-- Cabeçalho -->
-            <div class="card bg-base-100 shadow-xl mb-6">
-                <div class="card-body">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <h1 class="card-title text-2xl mb-2">
-                                <%= licitacao.razao_social_orgao %>
-                            </h1>
-                            <div class="flex gap-2">
-                                <span class="badge badge-lg badge-secondary">
-                                    <%= licitacao.modalidade_licitacao %>
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-bold mb-2">
+                            <i class="fas fa-gavel text-primary"></i>
+                            <%= licitacao.razao_social_orgao || 'Órgão não informado' %>
+                        </h1>
+                        <div class="flex gap-2 flex-wrap mb-3">
+                            <span class="badge badge-lg badge-primary">
+                                <%= licitacao.modalidade_licitacao || 'N/D' %>
+                            </span>
+                            <% if (licitacao.situacao_compra) { %>
+                                <span class="badge badge-lg badge-outline">
+                                    <%= licitacao.situacao_compra %>
                                 </span>
-                                <% if (licitacao.situacao_compra) { %>
-                                    <span class="badge badge-lg badge-outline">
-                                        <%= licitacao.situacao_compra %>
-                                    </span>
-                                    <% } %>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <% if (licitacao.valor_estimado_total && licitacao.valor_estimado_total> 0) { %>
-                                <div class="text-sm text-gray-500">Valor Estimado</div>
-                                <div class="text-3xl font-bold text-success">
-                                    R$ <%= parseFloat(licitacao.valor_estimado_total).toLocaleString('pt-BR',
-                                        {minimumFractionDigits: 2}) %>
-                                </div>
                                 <% } %>
+                                    <% if (licitacao.srp) { %>
+                                        <span class="badge badge-lg badge-success">
+                                            <i class="fas fa-box-open"></i> SRP
+                                        </span>
+                                        <% } %>
+                                            <% if (licitacao.uf_sigla) { %>
+                                                <span class="badge badge-lg badge-ghost">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    <%= licitacao.uf_sigla %> - <%= licitacao.municipio_nome || 'N/D' %>
+                                                </span>
+                                                <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Botões de Ação -->
+                    <div class="flex gap-2 flex-wrap">
+                        <% if (licitacao.link_sistema_origem) { %>
+                            <a href="<%= licitacao.link_sistema_origem %>" target="_blank" rel="noopener noreferrer"
+                                class="btn btn-primary gap-2">
+                                <i class="fas fa-file-pdf"></i>
+                                Ver Edital
+                            </a>
+                            <% } %>
+
+                                <% if (licitacao.link_processo_eletronico) { %>
+                                    <a href="<%= licitacao.link_processo_eletronico %>" target="_blank"
+                                        rel="noopener noreferrer" class="btn btn-secondary gap-2">
+                                        <i class="fas fa-folder-open"></i>
+                                        Processo Eletrônico
+                                    </a>
+                                    <% } %>
+
+                                        <a href="/licitacoes" class="btn btn-ghost gap-2">
+                                            <i class="fas fa-arrow-left"></i>
+                                            Voltar
+                                        </a>
+                    </div>
+                </div>
+
+                <!-- Info Rápida -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="stat bg-base-200 rounded-lg shadow">
+                        <div class="stat-title">Valor Estimado</div>
+                        <div class="stat-value text-success text-2xl">
+                            <% if (licitacao.valor_estimado_total && licitacao.valor_estimado_total> 0) { %>
+                                R$ <%= parseFloat(licitacao.valor_estimado_total).toLocaleString('pt-BR',
+                                    {minimumFractionDigits: 2}) %>
+                                    <% } else { %>
+                                        Não informado
+                                        <% } %>
+                        </div>
+                    </div>
+
+                    <div class="stat bg-base-200 rounded-lg shadow">
+                        <div class="stat-title">Publicação PNCP</div>
+                        <div class="stat-value text-primary text-lg">
+                            <%= licitacao.data_publicacao_pncp ? new
+                                Date(licitacao.data_publicacao_pncp).toLocaleDateString('pt-BR') : 'N/D' %>
+                        </div>
+                        <div class="stat-desc">
+                            <%= licitacao.data_publicacao_pncp ? new
+                                Date(licitacao.data_publicacao_pncp).toLocaleTimeString('pt-BR', {hour: '2-digit' ,
+                                minute: '2-digit' }) : '' %>
+                        </div>
+                    </div>
+
+                    <div class="stat bg-base-200 rounded-lg shadow">
+                        <div class="stat-title">Abertura Propostas</div>
+                        <div class="stat-value text-info text-lg">
+                            <%= licitacao.data_abertura_proposta ? new
+                                Date(licitacao.data_abertura_proposta).toLocaleDateString('pt-BR') : 'N/D' %>
+                        </div>
+                    </div>
+
+                    <div class="stat bg-base-200 rounded-lg shadow">
+                        <div class="stat-title">Nº Processo</div>
+                        <div class="stat-value text-sm">
+                            <%= licitacao.processo || licitacao.numero_compra || 'N/D' %>
+                        </div>
+                        <div class="stat-desc text-xs">
+                            Ano: <%= licitacao.ano_compra || 'N/D' %>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Detalhes Tabs -->
-            <div role="tablist" class="tabs tabs-bordered mb-4">
+            <!-- Tabs de Detalhes -->
+            <div role="tablist" class="tabs tabs-bordered">
                 <input type="radio" name="tabs" role="tab" class="tab" aria-label="Informações" checked />
                 <div role="tabpanel" class="tab-content p-6 bg-base-100 rounded-b-lg">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Dados do Órgão -->
-                        <div>
-                            <h3 class="font-bold text-lg mb-3">🏢 Órgão Contratante</h3>
-                            <div class="space-y-2">
-                                <div>
-                                    <span class="text-sm text-gray-500">Razão Social:</span>
-                                    <p class="font-medium">
-                                        <%= licitacao.razao_social_orgão || 'N/D' %>
-                                    </p>
-                                </div>
-                                <% if (licitacao.cnpj_orgao) { %>
-                                    <div>
-                                        <span class="text-sm text-gray-500">CNPJ:</span>
-                                        <p class="font-medium">
-                                            <%= licitacao.cnpj_orgao %>
-                                        </p>
-                                    </div>
-                                    <% } %>
-                                        <% if (licitacao.poder || licitacao.esfera) { %>
-                                            <div class="flex gap-4">
-                                                <% if (licitacao.poder) { %>
-                                                    <span class="badge">
-                                                        <%= licitacao.poder %>
-                                                    </span>
-                                                    <% } %>
-                                                        <% if (licitacao.esfera) { %>
-                                                            <span class="badge">
-                                                                <%= licitacao.esfera %>
-                                                            </span>
-                                                            <% } %>
-                                            </div>
-                                            <% } %>
-                            </div>
-                        </div>
-
-                        <!-- Dados da Licitação -->
-                        <div>
-                            <h3 class="font-bold text-lg mb-3">📋 Informações da Licitação</h3>
-                            <div class="space-y-2">
-                                <div>
-                                    <span class="text-sm text-gray-500">Número Sequencial PNCP:</span>
-                                    <p class="font-mono">
-                                        <%= licitacao.numero_sequencial_pncp %>
-                                    </p>
-                                </div>
-                                <% if (licitacao.numero_controle_pncp) { %>
-                                    <div>
-                                        <span class="text-sm text-gray-500">Número de Controle:</span>
-                                        <p class="font-mono">
-                                            <%= licitacao.numero_controle_pncp %>
-                                        </p>
-                                    </div>
-                                    <% } %>
-                                        <% if (licitacao.ano_compra) { %>
-                                            <div>
-                                                <span class="text-sm text-gray-500">Ano:</span>
-                                                <p>
-                                                    <%= licitacao.ano_compra %>
-                                                </p>
-                                            </div>
-                                            <% } %>
-                            </div>
-                        </div>
-
-                        <!-- Datas -->
-                        <div>
-                            <h3 class="font-bold text-lg mb-3">📅 Cronograma</h3>
-                            <div class="space-y-2">
-                                <% if (licitacao.data_publicacao_pncp) { %>
-                                    <div>
-                                        <span class="text-sm text-gray-500">Publicação:</span>
-                                        <p>
-                                            <%= new Date(licitacao.data_publicacao_pncp).toLocaleString('pt-BR') %>
-                                        </p>
-                                    </div>
-                                    <% } %>
-                                        <% if (licitacao.data_abertura_proposta) { %>
-                                            <div>
-                                                <span class="text-sm text-gray-500">Abertura de Propostas:</span>
-                                                <p>
-                                                    <%= new
-                                                        Date(licitacao.data_abertura_proposta).toLocaleString('pt-BR')
-                                                        %>
-                                                </p>
-                                            </div>
-                                            <% } %>
-                                                <% if (licitacao.data_encerramento_proposta) { %>
-                                                    <div>
-                                                        <span class="text-sm text-gray-500">Encerramento:</span>
-                                                        <p>
-                                                            <%= new
-                                                                Date(licitacao.data_encerramento_proposta).toLocaleString('pt-BR')
-                                                                %>
-                                                        </p>
-                                                    </div>
-                                                    <% } %>
-                            </div>
-                        </div>
-
-                        <!-- Valores -->
-                        <div>
-                            <h3 class="font-bold text-lg mb-3">💰 Valores</h3>
-                            <div class="space-y-2">
-                                <% if (licitacao.valor_estimado_total) { %>
-                                    <div>
-                                        <span class="text-sm text-gray-500">Total Estimado:</span>
-                                        <p class="text-lg font-bold text-success">
-                                            R$ <%= parseFloat(licitacao.valor_estimado_total).toLocaleString('pt-BR',
-                                                {minimumFractionDigits: 2}) %>
-                                        </p>
-                                    </div>
-                                    <% } %>
-                                        <% if (licitacao.valor_total_homologado) { %>
-                                            <div>
-                                                <span class="text-sm text-gray-500">Total Homologado:</span>
-                                                <p class="text-lg font-bold text-primary">
-                                                    R$ <%=
-                                                        parseFloat(licitacao.valor_total_homologado).toLocaleString('pt-BR',
-                                                        {minimumFractionDigits: 2}) %>
-                                                </p>
-                                            </div>
-                                            <% } %>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Objeto da Compra -->
-                    <div class="mt-6">
-                        <h3 class="font-bold text-lg mb-2">🎯 Objeto da Compra</h3>
+                    <div class="mb-6">
+                        <h3 class="font-bold text-lg mb-2 flex items-center gap-2">
+                            <i class="fas fa-file-alt text-primary"></i>
+                            Objeto da Compra
+                        </h3>
                         <div class="bg-base-200 p-4 rounded-lg">
                             <p class="whitespace-pre-wrap">
                                 <%= licitacao.objeto_compra || 'Não informado' %>
@@ -180,8 +124,11 @@
                     </div>
 
                     <% if (licitacao.informacao_complementar) { %>
-                        <div class="mt-4">
-                            <h3 class="font-bold text-lg mb-2">ℹ️ Informações Complementares</h3>
+                        <div class="mb-6">
+                            <h3 class="font-bold text-lg mb-2 flex items-center gap-2">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Informações Complementares
+                            </h3>
                             <div class="bg-base-200 p-4 rounded-lg">
                                 <p class="whitespace-pre-wrap">
                                     <%= licitacao.informacao_complementar %>
@@ -189,12 +136,167 @@
                             </div>
                         </div>
                         <% } %>
+
+                            <!-- Grid de informações detalhadas -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                <!-- Órgão -->
+                                <div class="card bg-base-200">
+                                    <div class="card-body">
+                                        <h3 class="card-title text-md">🏢 Órgão Contratante</h3>
+                                        <div class="space-y-2 text-sm">
+                                            <div><strong>CNPJ:</strong>
+                                                <%= licitacao.cnpj_orgao || 'N/D' %>
+                                            </div>
+                                            <div><strong>Poder:</strong>
+                                                <%= licitacao.poder || 'N/D' %>
+                                            </div>
+                                            <div><strong>Esfera:</strong>
+                                                <%= licitacao.esfera || 'N/D' %>
+                                            </div>
+                                            <% if (licitacao.nome_unidade) { %>
+                                                <div><strong>Unidade:</strong>
+                                                    <%= licitacao.nome_unidade %>
+                                                </div>
+                                                <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Localização -->
+                                <div class="card bg-base-200">
+                                    <div class="card-body">
+                                        <h3 class="card-title text-md">📍 Localização</h3>
+                                        <div class="space-y-2 text-sm">
+                                            <div><strong>UF:</strong>
+                                                <%= licitacao.uf_nome || 'N/D' %> (<%= licitacao.uf_sigla || 'N/D' %>)
+                                            </div>
+                                            <div><strong>Município:</strong>
+                                                <%= licitacao.municipio_nome || 'N/D' %>
+                                            </div>
+                                            <% if (licitacao.codigo_ibge) { %>
+                                                <div><strong>Código IBGE:</strong>
+                                                    <%= licitacao.codigo_ibge %>
+                                                </div>
+                                                <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Amparo Legal -->
+                                <% if (licitacao.amparo_legal_nome) { %>
+                                    <div class="card bg-base-200">
+                                        <div class="card-body">
+                                            <h3 class="card-title text-md">⚖️ Amparo Legal</h3>
+                                            <div class="space-y-2 text-sm">
+                                                <div><strong>
+                                                        <%= licitacao.amparo_legal_nome %>
+                                                    </strong></div>
+                                                <% if (licitacao.amparo_legal_descricao) { %>
+                                                    <div class="text-xs opacity-70">
+                                                        <%= licitacao.amparo_legal_descricao %>
+                                                    </div>
+                                                    <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <!-- Modo de Disputa e Tipo de Instrumento -->
+                                        <div class="card bg-base-200">
+                                            <div class="card-body">
+                                                <h3 class="card-title text-md">⚙️ Detalhes Contratuais</h3>
+                                                <div class="space-y-2 text-sm">
+                                                    <% if (licitacao.modo_disputa_nome) { %>
+                                                        <div><strong>Modo de Disputa:</strong>
+                                                            <%= licitacao.modo_disputa_nome %>
+                                                        </div>
+                                                        <% } %>
+                                                            <% if (licitacao.tipo_instrumento_nome) { %>
+                                                                <div><strong>Instrumento:</strong>
+                                                                    <%= licitacao.tipo_instrumento_nome %>
+                                                                </div>
+                                                                <% } %>
+                                                                    <% if (licitacao.usuario_nome) { %>
+                                                                        <div><strong>Publicado por:</strong>
+                                                                            <%= licitacao.usuario_nome %>
+                                                                        </div>
+                                                                        <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Datas Completas -->
+                                        <div class="card bg-base-200">
+                                            <div class="card-body">
+                                                <h3 class="card-title text-md">📅 Cronograma Completo</h3>
+                                                <div class="space-y-2 text-sm">
+                                                    <% if (licitacao.data_inclusao) { %>
+                                                        <div><strong>Inclusão:</strong>
+                                                            <%= new
+                                                                Date(licitacao.data_inclusao).toLocaleString('pt-BR') %>
+                                                        </div>
+                                                        <% } %>
+                                                            <% if (licitacao.data_abertura_proposta) { %>
+                                                                <div><strong>Abertura:</strong>
+                                                                    <%= new
+                                                                        Date(licitacao.data_abertura_proposta).toLocaleString('pt-BR')
+                                                                        %>
+                                                                </div>
+                                                                <% } %>
+                                                                    <% if (licitacao.data_encerramento_proposta) { %>
+                                                                        <div><strong>Encerramento:</strong>
+                                                                            <%= new
+                                                                                Date(licitacao.data_encerramento_proposta).toLocaleString('pt-BR')
+                                                                                %>
+                                                                        </div>
+                                                                        <% } %>
+                                                                            <% if (licitacao.data_atualizacao) { %>
+                                                                                <div class="text-xs opacity-70">
+                                                                                    <strong>Última atualização:</strong>
+                                                                                    <%= new
+                                                                                        Date(licitacao.data_atualizacao).toLocaleString('pt-BR')
+                                                                                        %>
+                                                                                </div>
+                                                                                <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Identificadores -->
+                                        <div class="card bg-base-200">
+                                            <div class="card-body">
+                                                <h3 class="card-title text-md">🔢 Identificadores</h3>
+                                                <div class="space-y-2 text-sm">
+                                                    <div class="font-mono text-xs"><strong>PNCP:</strong>
+                                                        <%= licitacao.numero_sequencial_pncp %>
+                                                    </div>
+                                                    <% if (licitacao.numero_compra) { %>
+                                                        <div><strong>Número:</strong>
+                                                            <%= licitacao.numero_compra %>
+                                                        </div>
+                                                        <% } %>
+                                                            <% if (licitacao.processo) { %>
+                                                                <div><strong>Processo:</strong>
+                                                                    <%= licitacao.processo %>
+                                                                </div>
+                                                                <% } %>
+                                                                    <% if (licitacao.sequencial_compra) { %>
+                                                                        <div><strong>Sequencial:</strong>
+                                                                            <%= licitacao.sequencial_compra %>
+                                                                        </div>
+                                                                        <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+                            </div>
                 </div>
 
                 <input type="radio" name="tabs" role="tab" class="tab" aria-label="Itens (<%= itens.length %>)" />
                 <div role="tabpanel" class="tab-content p-6 bg-base-100 rounded-b-lg">
                     <% if (itens.length===0) { %>
                         <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
                             <span>Não há itens detalhados disponíveis para esta licitação.</span>
                         </div>
                         <% } else { %>
@@ -204,6 +306,7 @@
                                         <tr>
                                             <th>#</th>
                                             <th>Descrição</th>
+                                            <th>Tipo</th>
                                             <th>Qtd</th>
                                             <th>Unidade</th>
                                             <th>Valor Unit.</th>
@@ -218,6 +321,13 @@
                                                 </td>
                                                 <td>
                                                     <%= item.descricao_item %>
+                                                </td>
+                                                <td>
+                                                    <% if (item.material_ou_servico_nome) { %>
+                                                        <span class="badge badge-sm">
+                                                            <%= item.material_ou_servico_nome %>
+                                                        </span>
+                                                        <% } %>
                                                 </td>
                                                 <td>
                                                     <%= item.quantidade %>
@@ -246,6 +356,13 @@
                                             </tr>
                                             <% }) %>
                                     </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="7" class="text-right">
+                                                Total de <%= itens.length %> item(ns)
+                                            </th>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                             <% } %>
