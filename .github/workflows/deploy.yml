@@ -32,17 +32,18 @@ jobs:
               git clean -fd
             fi
             
-            # --- CORREÇÃO DO ERRO "IS A DIRECTORY" ---
-            # Remove se for diretório (criado errado pelo Docker) e cria arquivo vazio
+            # --- CORREÇÃO DE ARQUIVOS ---
             if [ -d "cookies.json" ]; then rm -rf cookies.json; fi
             if [ ! -f "cookies.json" ]; then touch cookies.json; fi
             
             if [ -d "proxies.txt" ]; then rm -rf proxies.txt; fi
             if [ ! -f "proxies.txt" ]; then touch proxies.txt; fi
             
-            # --- CRIAÇÃO DO .ENV ---
-            echo "DB_HOST=${{ secrets.DB_HOST }}" > .env
-            echo "QWEN_API_KEY=${{ secrets.QWEN_API_KEY }}" > .env
+            # --- CRIAÇÃO DO .ENV (AQUI ESTAVA O ERRO) ---
+            # Forçamos o host correto do Docker, ignorando a Secret que está como localhost
+            echo "DB_HOST=mabus-postgres" > .env
+            
+            echo "QWEN_API_KEY=${{ secrets.QWEN_API_KEY }}" >> .env
             echo "DB_DB=${{ secrets.DB_DB }}" >> .env
             echo "DB_USER=${{ secrets.DB_USER }}" >> .env
             echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
