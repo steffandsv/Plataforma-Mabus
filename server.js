@@ -57,6 +57,9 @@ const {
     unsaveUserLicitacao,
     getUserSavedLicitacoes,
     isLicitacaoSaved,
+    dislikeUserLicitacao,
+    undislikeUserLicitacao,
+    isLicitacaoDisliked,
     // User CNPJ Data
     createUserCNPJData,
     getUserCNPJData,
@@ -257,7 +260,9 @@ app.get('/licitacoes/:id', isAuthenticated, async (req, res) => {
         if (!licitacao) return res.status(404).send('Licitação não encontrada');
 
         const itens = await getLicitacaoItens(licitacao.id);
-        const arquivos = await getLicitacaoArquivos(licitacao.id); // Added this line
+        const arquivos = await getLicitacaoArquivos(licitacao.id);
+        const isSaved = await isLicitacaoSaved(req.session.userId, licitacao.id);
+        const isDisliked = await isLicitacaoDisliked(req.session.userId, licitacao.id);
 
         // Parse raw_data_json if needed
         if (licitacao.raw_data_json && typeof licitacao.raw_data_json === 'string') {
@@ -266,7 +271,7 @@ app.get('/licitacoes/:id', isAuthenticated, async (req, res) => {
             licitacao.raw_data = licitacao.raw_data_json;
         }
 
-        res.render('licitacao_detail', { licitacao, itens, arquivos }); // Modified this line
+        res.render('licitacao_detail', { licitacao, itens, arquivos, isSaved, isDisliked });
     } catch (e) {
         console.error('[Licitação Detail Error]:', e);
         res.status(500).send(e.message);
@@ -418,6 +423,32 @@ app.delete('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
         res.json({ success: true, message: 'Removida dos salvos' });
     } catch (e) {
         console.error('[Unsave Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Dislike licitação
+app.post('/api/licitacoes/:id/dislike', isAuthenticated, async (req, res) => {
+    try {
+        const disliked = await dislikeUserLicitacao(req.session.userId, req.params.id);
+        if (disliked) {
+            res.json({ success: true, message: 'Marcado como sem interesse' });
+        } else {
+            res.json({ success: false, message: 'Já estava marcado' });
+        }
+    } catch (e) {
+        console.error('[Dislike Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Remove dislike
+app.delete('/api/licitacoes/:id/dislike', isAuthenticated, async (req, res) => {
+    try {
+        await undislikeUserLicitacao(req.session.userId, req.params.id);
+        res.json({ success: true, message: 'Interesse restaurado' });
+    } catch (e) {
+        console.error('[Undislike Licitacao Error]:', e);
         res.status(500).json({ error: e.message });
     }
 });

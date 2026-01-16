@@ -377,6 +377,20 @@ async function initDB() {
             )
         `);
 
+        // --- USER DISLIKED LICITACOES TABLE (interest control) ---
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_disliked_licitacoes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                licitacao_id INT NOT NULL,
+                disliked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_dislike (user_id, licitacao_id)
+            )
+        `);
+
         // --- USER CNPJ DATA TABLE (company information for personalization) ---
         await pool.query(`
             CREATE TABLE IF NOT EXISTS user_cnpj_data (
@@ -1571,6 +1585,47 @@ async function isLicitacaoSaved(userId, licitacaoId) {
     return rows.length > 0;
 }
 
+// --- USER DISLIKED LICITACOES FUNCTIONS ---
+
+async function dislikeUserLicitacao(userId, licitacaoId) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    try {
+        await p.query(
+            'INSERT INTO user_disliked_licitacoes (user_id, licitacao_id) VALUES (?, ?)',
+            [userId, licitacaoId]
+        );
+        return true;
+    } catch (e) {
+        // Ignore duplicate key errors
+        if (e.code === 'ER_DUP_ENTRY') return false;
+        throw e;
+    }
+}
+
+async function undislikeUserLicitacao(userId, licitacaoId) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    await p.query(
+        'DELETE FROM user_disliked_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+        [userId, licitacaoId]
+    );
+}
+
+async function isLicitacaoDisliked(userId, licitacaoId) {
+    const p = await getPool();
+    if (!p) return false;
+
+    const [rows] = await p.query(
+        'SELECT id FROM user_disliked_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+        [userId, licitacaoId]
+    );
+
+    return rows.length > 0;
+}
+
 /**
  * Search Licitacoes with Multi-Select Filters (for Buscador module)
  * @param {Object} filters - { keywords: [], modalidades: [], estados: [], esferas: [] }
@@ -1842,6 +1897,9 @@ module.exports = {
     unsaveUserLicitacao,
     getUserSavedLicitacoes,
     isLicitacaoSaved,
+    dislikeUserLicitacao,
+    undislikeUserLicitacao,
+    isLicitacaoDisliked,
     // User CNPJ Data
     createUserCNPJData,
     getUserCNPJData,
