@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function initNotifications() {
     const bellBtn = document.getElementById('bellBtn');
     const badge = document.getElementById('bellBadge');
-    const dropdown = document.getElementById('notificationDropdown');
     const list = document.getElementById('notificationList');
+    const markAllReadBtn = document.querySelector('.dropdown-content .btn-ghost');
 
     if (!bellBtn) return; // Not logged in
 
@@ -14,21 +14,36 @@ function initNotifications() {
     fetchNotifications();
     setInterval(fetchNotifications, 30000); // Every 30s
 
-    // 2. Toggle Dropdown
-    bellBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('hidden');
-        if (!dropdown.classList.contains('hidden')) {
+    // 2. Mark All as Read button
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const notes = window.unreadNotifications || [];
+            if (notes.length === 0) return;
+            
+            // Mark all as read
+            for (const n of notes) {
+                await fetch(`/api/notifications/read/${n.id}`, { method: 'POST' });
+            }
+            
+            // Refresh
+            await fetchNotifications();
             renderNotifications();
-        }
-    });
+        });
+    }
 
-    // Close on click outside
-    document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
+    // 3. Render when dropdown opens
+    // DaisyUI dropdown works with :focus, so we watch for focus/blur
+    const dropdownContent = bellBtn.closest('.dropdown');
+    if (dropdownContent) {
+        // Watch for when dropdown is opened
+        bellBtn.addEventListener('click', () => {
+            // Small delay to ensure dropdown is visible
+            setTimeout(() => {
+                renderNotifications();
+            }, 100);
+        });
+    }
 
     async function fetchNotifications() {
         try {
@@ -67,18 +82,29 @@ function initNotifications() {
             item.innerHTML = `
                 <div class="font-bold text-sm text-primary mb-1">${n.title}</div>
                 <div class="text-xs opacity-70 mb-2 line-clamp-2">${n.message}</div>
-                <div class="text-[10px] uppercase font-mono opacity-50 text-right">${new Date(n.created_at).toLocaleTimeString()}</div>
+                <div class="text-[10px] uppercase font-mono opacity-50 text-right">${new Date(n.created_at).toLocaleTimeString('pt-BR')}</div>
             `;
             item.onclick = async () => {
                 // Mark read
                 await fetch(`/api/notifications/read/${n.id}`, { method: 'POST' });
-                // Navigate
-                if (n.link) window.location.href = n.link;
-                else fetchNotifications(); // Refresh if no link
+                
+                // Update badge immediately
+                await fetchNotifications();
+                
+                // Navigate if link exists
+                if (n.link) {
+                    window.location.href = n.link;
+                } else {
+                    // Just refresh the list
+                    renderNotifications();
+                }
             };
             list.appendChild(item);
         });
     }
+
+    // Expose fetchNotifications globally for other scripts
+    window.refreshNotifications = fetchNotifications;
 }
 
 // Global function to request permission (called by Oracle)
