@@ -1,4 +1,4 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
 let pool = null;
@@ -8,36 +8,49 @@ async function initDB() {
 
     try {
         const config = {
-            host: process.env.DB_HOST || 'srv466.hstgr.io',
-            user: process.env.DB_USER || 'u225637494_fiomb',
-            password: process.env.DB_PASS || '20SKDMasx',
-            database: process.env.DB_DB || 'u225637494_fiomb',
-            waitForConnections: true,
-            connectionLimit: 10,
-            queueLimit: 0,
-            ssl: { rejectUnauthorized: false } // Often needed for external hosting
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER || 'mabus_admin',
+            password: process.env.DB_PASS || 'Mabus_Secure_DB_2026_XyZ!',
+            database: process.env.DB_DB || 'plataforma_mabus',
+            port: process.env.DB_PORT || 5432,
+            max: 10,
+            idleTimeoutMillis: 30000,
         };
 
-        pool = mysql.createPool(config);
+        pool = new Pool(config);
 
         // Verify connection
-        const connection = await pool.getConnection();
-        console.log('[Database] ✅ Connected to MariaDB/MySQL!');
-        connection.release();
+        const client = await pool.connect();
+        console.log('[Database] ✅ Connected to PostgreSQL!');
+        client.release();
+
+        // Helper for function execution
+        const query = async (text, params) => pool.query(text, params);
+
+        // --- TRIGGER FOR UPDATED_AT ---
+        await query(`
+            CREATE OR REPLACE FUNCTION update_updated_at_column()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = NOW();
+                RETURN NEW;
+            END;
+            $$ language 'plpgsql';
+        `);
 
         // --- TASKS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS tasks (
                 id VARCHAR(36) PRIMARY KEY,
                 name VARCHAR(255),
                 status VARCHAR(50),
                 cep VARCHAR(20),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                finished_at DATETIME,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                finished_at TIMESTAMP,
                 input_file VARCHAR(255),
                 output_file VARCHAR(255),
                 log_file VARCHAR(255),
-                tags JSON,
+                tags JSONB,
                 position INT DEFAULT 0,
                 external_link TEXT,
                 module_name VARCHAR(50),
@@ -48,36 +61,37 @@ async function initDB() {
         `);
 
         // --- USERS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 username VARCHAR(50) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
-                role ENUM('user', 'moderator', 'admin') DEFAULT 'user',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                role VARCHAR(20) DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 full_name VARCHAR(255),
                 cpf VARCHAR(20),
                 cnpj VARCHAR(20),
-                current_credits INT DEFAULT 0
+                current_credits INT DEFAULT 0,
+                CONSTRAINT check_role CHECK (role IN ('user', 'moderator', 'admin'))
             )
         `);
 
         // --- GROUPS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS groups (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 description TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // --- USER_GROUPS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS user_groups (
                 user_id INT NOT NULL,
                 group_id INT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (user_id, group_id),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
@@ -85,22 +99,22 @@ async function initDB() {
         `);
 
         // --- CREDITS LEDGER TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS credits_ledger (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL,
                 amount INT NOT NULL,
                 reason VARCHAR(255),
                 task_id VARCHAR(36),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
 
         // --- TASK ITEMS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS task_items (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 task_id VARCHAR(36) NOT NULL,
                 original_id VARCHAR(50),
                 description TEXT,
@@ -108,22 +122,22 @@ async function initDB() {
                 quantity INT,
                 status VARCHAR(50) DEFAULT 'pending',
                 is_unlocked BOOLEAN DEFAULT FALSE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
             )
         `);
 
         // --- ITEM CANDIDATES TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS item_candidates (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 task_item_id INT NOT NULL,
                 title VARCHAR(255),
                 price DECIMAL(10, 2),
                 link TEXT,
                 image_url TEXT,
                 store VARCHAR(100),
-                specs JSON,
+                specs JSONB,
                 risk_score VARCHAR(50),
                 ai_reasoning TEXT,
                 is_selected BOOLEAN DEFAULT FALSE,
@@ -131,80 +145,92 @@ async function initDB() {
                 manufacturer_part_number VARCHAR(100),
                 enrichment_source VARCHAR(50),
                 seller_reputation VARCHAR(50),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (task_item_id) REFERENCES task_items(id) ON DELETE CASCADE
             )
         `);
 
         // --- TASK LOGS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS task_logs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 task_id VARCHAR(36) NOT NULL,
                 message TEXT,
                 level VARCHAR(20) DEFAULT 'info',
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
             )
         `);
 
         // --- TASK METADATA TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS task_metadata (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 task_id VARCHAR(36) NOT NULL,
-                data JSON,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                data JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
             )
         `);
 
         // --- OPPORTUNITIES (ORACLE/RADAR) TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS opportunities (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT, -- Null for Admin/Radar, Set for User History
+                id SERIAL PRIMARY KEY,
+                user_id INT,
                 title VARCHAR(255),
                 municipality VARCHAR(255),
-                metadata_json JSON, -- The Public Teaser
-                locked_content_json JSON, -- The Private Analysis
-                items_json JSON, -- Extracted Items for Sniper
+                metadata_json JSONB,
+                locked_content_json JSONB,
+                items_json JSONB,
                 ipm_score INT DEFAULT 0,
-                status VARCHAR(50) DEFAULT 'available', -- available, unlocked, archived
-                unlocked_modules JSON, -- List of bought module keys
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status VARCHAR(50) DEFAULT 'available',
+                unlocked_modules JSONB DEFAULT '[]'::jsonb,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
 
         // --- SETTINGS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS settings (
                 setting_key VARCHAR(100) PRIMARY KEY,
                 setting_value TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+        // Trigger for settings
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_settings_updated_at') THEN
+                    CREATE TRIGGER update_settings_updated_at
+                    BEFORE UPDATE ON settings
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+                END IF;
+            END $$;
         `);
 
         // --- NOTIFICATIONS TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS notifications (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL,
                 title VARCHAR(255),
                 message TEXT,
                 link VARCHAR(255),
                 is_read BOOLEAN DEFAULT FALSE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
 
         // --- LICITACOES TABLES (PNCP MODULE) ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS licitacoes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 
                 -- Identificadores PNCP
                 numero_sequencial_pncp VARCHAR(100) NOT NULL UNIQUE,
@@ -230,28 +256,73 @@ async function initDB() {
                 valor_total_homologado DECIMAL(15, 2),
                 
                 -- Datas
-                data_publicacao_pncp DATETIME,
-                data_abertura_proposta DATETIME,
-                data_encerramento_proposta DATETIME,
+                data_publicacao_pncp TIMESTAMP,
+                data_abertura_proposta TIMESTAMP,
+                data_encerramento_proposta TIMESTAMP,
                 
                 -- Dados completos em JSON (Event Sourcing)
-                raw_data_json JSON,
+                raw_data_json JSONB,
                 
                 -- Controle interno
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
-                INDEX idx_cnpj (cnpj_orgao),
-                INDEX idx_data_pub (data_publicacao_pncp),
-                INDEX idx_situacao (situacao_compra),
-                INDEX idx_modalidade (modalidade_licitacao),
-                FULLTEXT INDEX ft_objeto (objeto_compra, informacao_complementar)
+                -- Expanded Fields
+                link_sistema_origem TEXT,
+                link_processo_eletronico TEXT,
+                sequencial_compra INT,
+                data_inclusao TIMESTAMP,
+                data_atualizacao TIMESTAMP,
+                data_atualizacao_global TIMESTAMP,
+                modo_disputa_id INT,
+                modo_disputa_nome VARCHAR(100),
+                tipo_instrumento_codigo INT,
+                tipo_instrumento_nome VARCHAR(200),
+                srp BOOLEAN DEFAULT FALSE,
+                usuario_nome VARCHAR(255),
+                uf_sigla CHAR(2),
+                uf_nome VARCHAR(100),
+                municipio_nome VARCHAR(200),
+                codigo_ibge VARCHAR(20),
+                codigo_unidade VARCHAR(50),
+                nome_unidade VARCHAR(255),
+                amparo_legal_codigo INT,
+                amparo_legal_nome TEXT,
+                amparo_legal_descricao TEXT,
+                metadata_json JSONB,
+                numero_compra VARCHAR(100),
+                processo VARCHAR(255)
             )
         `);
+        // Trigger for licitacoes
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_licitacoes_updated_at') THEN
+                    CREATE TRIGGER update_licitacoes_updated_at
+                    BEFORE UPDATE ON licitacoes
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+                END IF;
+            END $$;
+        `);
 
-        await pool.query(`
+        // Indexes
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_cnpj ON licitacoes (cnpj_orgao)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_data_pub ON licitacoes (data_publicacao_pncp)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_situacao ON licitacoes (situacao_compra)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_modalidade ON licitacoes (modalidade_licitacao)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_uf_sigla ON licitacoes (uf_sigla)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_municipio ON licitacoes (municipio_nome)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_srp ON licitacoes (srp)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_amparo_legal ON licitacoes (amparo_legal_codigo)`);
+        // Full Text Index using GIN
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_fulltext ON licitacoes USING GIN (to_tsvector('portuguese', COALESCE(objeto_compra, '') || ' ' || COALESCE(informacao_complementar, '')))`);
+
+
+        await query(`
             CREATE TABLE IF NOT EXISTS licitacoes_itens (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 licitacao_id INT NOT NULL,
                 
                 numero_item INT,
@@ -266,17 +337,19 @@ async function initDB() {
                 descricao_catmat VARCHAR(500),
                 
                 situacao_item VARCHAR(100),
+                material_ou_servico CHAR(1),
+                material_ou_servico_nome VARCHAR(50),
                 
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
-                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
-                INDEX idx_licitacao (licitacao_id)
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE
             )
         `);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_itens_licitacao ON licitacoes_itens (licitacao_id)`);
 
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS licitacoes_sync_control (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 
                 sync_type VARCHAR(50),
                 status VARCHAR(50),
@@ -298,17 +371,29 @@ async function initDB() {
                 
                 error_message TEXT,
                 
-                started_at DATETIME,
-                finished_at DATETIME,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                started_at TIMESTAMP,
+                finished_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+        // Trigger for sync_control
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_sync_control_updated_at') THEN
+                    CREATE TRIGGER update_sync_control_updated_at
+                    BEFORE UPDATE ON licitacoes_sync_control
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+                END IF;
+            END $$;
         `);
 
         // --- LICITACOES ARQUIVOS TABLE (PDFs e anexos) ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS licitacoes_arquivos (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 licitacao_id INT NOT NULL,
                 sequencial_documento INT,
                 titulo VARCHAR(500),
@@ -316,85 +401,97 @@ async function initDB() {
                 tipo_documento_nome VARCHAR(200),
                 tipo_documento_descricao TEXT,
                 url TEXT NOT NULL,
-                data_publicacao DATETIME,
+                data_publicacao TIMESTAMP,
                 status_ativo BOOLEAN DEFAULT TRUE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
-                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
-                INDEX idx_licitacao (licitacao_id),
-                INDEX idx_tipo (tipo_documento_id)
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE
             )
         `);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_arquivos_licitacao ON licitacoes_arquivos (licitacao_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_arquivos_tipo ON licitacoes_arquivos (tipo_documento_id)`);
 
         // --- USER LICITACOES PREFERENCES TABLE ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS user_licitacoes_preferences (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL,
                 
                 -- Palavras-chave (JSON array)
-                keywords JSON,
+                keywords JSONB,
                 
                 -- Localizações preferenciais
-                preferred_ufs JSON,
-                preferred_municipios JSON,
+                preferred_ufs JSONB,
+                preferred_municipios JSONB,
                 
                 -- Modalidades preferidas
-                preferred_modalidades JSON,
+                preferred_modalidades JSONB,
                 
                 -- Faixas de valor
                 min_value DECIMAL(15, 2),
                 max_value DECIMAL(15, 2),
                 
                 -- Categorias (órgãos, esfera, poder)
-                preferred_esferas JSON,
-                preferred_poderes JSON,
+                preferred_esferas JSONB,
+                preferred_poderes JSONB,
                 
                 -- Configurações de visualização
                 default_view_mode VARCHAR(20) DEFAULT 'story',
                 cards_per_row INT DEFAULT 3,
                 
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                UNIQUE KEY unique_user (user_id)
+                CONSTRAINT unique_user_prefs UNIQUE (user_id)
             )
+        `);
+        // Trigger for preferences
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_prefs_updated_at') THEN
+                    CREATE TRIGGER update_user_prefs_updated_at
+                    BEFORE UPDATE ON user_licitacoes_preferences
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+                END IF;
+            END $$;
         `);
 
         // --- USER SAVED LICITACOES TABLE (for favorites) ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS user_saved_licitacoes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL,
                 licitacao_id INT NOT NULL,
-                saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 notes TEXT,
                 
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
-                UNIQUE KEY unique_save (user_id, licitacao_id)
+                CONSTRAINT unique_save UNIQUE (user_id, licitacao_id)
             )
         `);
 
         // --- USER DISLIKED LICITACOES TABLE (interest control) ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS user_disliked_licitacoes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL,
                 licitacao_id INT NOT NULL,
-                disliked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                disliked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE,
-                UNIQUE KEY unique_dislike (user_id, licitacao_id)
+                CONSTRAINT unique_dislike UNIQUE (user_id, licitacao_id)
             )
         `);
 
         // --- USER CNPJ DATA TABLE (company information for personalization) ---
-        await pool.query(`
+        await query(`
             CREATE TABLE IF NOT EXISTS user_cnpj_data (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL UNIQUE,
                 
                 -- Identificação
@@ -408,10 +505,10 @@ async function initDB() {
                 matriz_filial VARCHAR(20),
                 data_abertura VARCHAR(20),
                 
-                -- CNAEs (para matching com licitações)
+                -- CNAEs
                 cnae_principal VARCHAR(20),
                 cnae_principal_descricao TEXT,
-                cnaes_secundarios JSON,
+                cnaes_secundarios JSONB,
                 
                 -- Endereço
                 logradouro VARCHAR(500),
@@ -423,7 +520,7 @@ async function initDB() {
                 uf VARCHAR(2),
                 
                 -- Contatos
-                telefones JSON,
+                telefones JSONB,
                 email VARCHAR(200),
                 
                 -- Informações Empresariais
@@ -435,86 +532,47 @@ async function initDB() {
                 optante_simples BOOLEAN DEFAULT FALSE,
                 optante_mei BOOLEAN DEFAULT FALSE,
                 
-                -- Sócios (JSON para flexibilidade)
-                socios JSON,
+                -- Sócios
+                socios JSONB,
                 
-                -- Raw Data (backup completo da API)
-                raw_data JSON,
+                -- Raw Data
+                raw_data JSONB,
                 
                 -- Controle
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                INDEX idx_cnpj (cnpj),
-                INDEX idx_cnae_principal (cnae_principal)
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        // Trigger for CNPJ data
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_cnpj_updated_at') THEN
+                    CREATE TRIGGER update_user_cnpj_updated_at
+                    BEFORE UPDATE ON user_cnpj_data
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+                END IF;
+            END $$;
+        `);
+        await query(`CREATE INDEX IF NOT EXISTS idx_user_cnpj_cnpj ON user_cnpj_data (cnpj)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_user_cnpj_cnae ON user_cnpj_data (cnae_principal)`);
 
         console.log('[Database] ✅ Tables created/verified');
 
         // Check for default admin
-        const [users] = await pool.query("SELECT * FROM users WHERE username = 'admin'");
+        const { rows: users } = await pool.query("SELECT * FROM users WHERE username = $1", ['admin']);
         if (users.length === 0) {
             const hash = await bcrypt.hash('admin', 10);
-            await pool.query("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", ['admin', hash, 'admin']);
+            await pool.query("INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)", ['admin', hash, 'admin']);
             console.log('[Database] Default admin user created (admin/admin)');
-        }
-
-        // Migrations (Safe to run multiple times)
-        // Note: Using loop with individual try-catch to ensure one failure doesn't stop others
-        const migrations = [
-            "ALTER TABLE tasks ADD COLUMN external_link TEXT",
-            "ALTER TABLE tasks ADD COLUMN tags JSON",
-            "ALTER TABLE tasks ADD COLUMN position INT DEFAULT 0",
-            "ALTER TABLE tasks ADD COLUMN module_name VARCHAR(50)",
-            "ALTER TABLE tasks ADD COLUMN group_id INT",
-            "ALTER TABLE tasks ADD COLUMN user_id INT",
-            "ALTER TABLE tasks ADD COLUMN cost_estimate INT DEFAULT 0",
-            "ALTER TABLE users ADD COLUMN full_name VARCHAR(255)",
-            "ALTER TABLE users ADD COLUMN cpf VARCHAR(20)",
-            "ALTER TABLE users ADD COLUMN cnpj VARCHAR(20)",
-            "ALTER TABLE users ADD COLUMN current_credits INT DEFAULT 0",
-            "ALTER TABLE task_items ADD COLUMN is_unlocked BOOLEAN DEFAULT FALSE",
-            "ALTER TABLE opportunities ADD COLUMN unlocked_modules JSON DEFAULT ('[]')",
-
-            // Licitacoes module - Expansão completa do schema
-            "ALTER TABLE licitacoes ADD COLUMN sequencial_compra INT",
-            "ALTER TABLE licitacoes ADD COLUMN numero_compra VARCHAR(100)",
-            "ALTER TABLE licitacoes ADD COLUMN processo VARCHAR(255)",
-            "ALTER TABLE licitacoes ADD COLUMN link_sistema_origem TEXT",
-            "ALTER TABLE licitacoes ADD COLUMN link_processo_eletronico TEXT",
-            "ALTER TABLE licitacoes ADD COLUMN data_inclusao DATETIME",
-            "ALTER TABLE licitacoes ADD COLUMN data_atualizacao DATETIME",
-            "ALTER TABLE licitacoes ADD COLUMN data_atualizacao_global DATETIME",
-            "ALTER TABLE licitacoes ADD COLUMN modo_disputa_id INT",
-            "ALTER TABLE licitacoes ADD COLUMN modo_disputa_nome VARCHAR(100)",
-            "ALTER TABLE licitacoes ADD COLUMN tipo_instrumento_codigo INT",
-            "ALTER TABLE licitacoes ADD COLUMN tipo_instrumento_nome VARCHAR(200)",
-            "ALTER TABLE licitacoes ADD COLUMN srp BOOLEAN DEFAULT FALSE",
-            "ALTER TABLE licitacoes ADD COLUMN usuario_nome VARCHAR(255)",
-            "ALTER TABLE licitacoes ADD COLUMN uf_sigla CHAR(2)",
-            "ALTER TABLE licitacoes ADD COLUMN uf_nome VARCHAR(100)",
-            "ALTER TABLE licitacoes ADD COLUMN municipio_nome VARCHAR(200)",
-            "ALTER TABLE licitacoes ADD COLUMN codigo_ibge VARCHAR(20)",
-            "ALTER TABLE licitacoes ADD COLUMN codigo_unidade VARCHAR(50)",
-            "ALTER TABLE licitacoes ADD COLUMN nome_unidade VARCHAR(255)",
-            "ALTER TABLE licitacoes ADD COLUMN amparo_legal_codigo INT",
-            "ALTER TABLE licitacoes ADD COLUMN amparo_legal_nome TEXT",
-            "ALTER TABLE licitacoes ADD COLUMN amparo_legal_descricao TEXT",
-            "ALTER TABLE licitacoes ADD COLUMN metadata_json JSON",
-            "ALTER TABLE licitacoes_itens ADD COLUMN material_ou_servico CHAR(1)",
-            "ALTER TABLE licitacoes_itens ADD COLUMN material_ou_servico_nome VARCHAR(50)"
-        ];
-
-        for (const sql of migrations) {
-            try { await pool.query(sql); } catch (e) {
-                // Ignore "duplicate column" errors
-            }
         }
 
     } catch (e) {
         console.error('[Database] ❌ Connection/Init failed:', e.message);
+        console.error(e.stack);
     }
 }
 
@@ -527,14 +585,14 @@ async function getPool() {
 async function getUserByUsername(username) {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query("SELECT * FROM users WHERE username = ?", [username]);
+    const { rows } = await p.query("SELECT * FROM users WHERE username = $1", [username]);
     return rows[0];
 }
 
 async function getUserById(id) {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query("SELECT * FROM users WHERE id = ?", [id]);
+    const { rows } = await p.query("SELECT * FROM users WHERE id = $1", [id]);
     return rows[0];
 }
 
@@ -544,7 +602,7 @@ async function createUser(userData) {
     const { username, password, role, full_name, cpf, cnpj } = userData;
     const hash = await bcrypt.hash(password, 10);
     await p.query(
-        "INSERT INTO users (username, password_hash, role, full_name, cpf, cnpj, current_credits) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (username, password_hash, role, full_name, cpf, cnpj, current_credits) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         [username, hash, role || 'user', full_name, cpf, cnpj, 500]
     );
 }
@@ -552,20 +610,20 @@ async function createUser(userData) {
 async function getAllUsers() {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query("SELECT id, username, role, created_at, full_name, current_credits FROM users");
+    const { rows } = await p.query("SELECT id, username, role, created_at, full_name, current_credits FROM users");
     return rows;
 }
 
 async function deleteUser(id) {
     const p = await getPool();
     if (!p) return;
-    await p.query("DELETE FROM users WHERE id = ?", [id]);
+    await p.query("DELETE FROM users WHERE id = $1", [id]);
 }
 
 async function updateUserRole(id, role) {
     const p = await getPool();
     if (!p) return;
-    await p.query("UPDATE users SET role = ? WHERE id = ?", [role, id]);
+    await p.query("UPDATE users SET role = $1 WHERE id = $2", [role, id]);
 }
 
 
@@ -574,24 +632,24 @@ async function updateUserRole(id, role) {
 async function createGroup(name, description) {
     const p = await getPool();
     if (!p) return;
-    await p.query("INSERT INTO groups (name, description) VALUES (?, ?)", [name, description]);
+    await p.query("INSERT INTO groups (name, description) VALUES ($1, $2)", [name, description]);
 }
 
 async function getAllGroups() {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query("SELECT * FROM groups ORDER BY name ASC");
+    const { rows } = await p.query("SELECT * FROM groups ORDER BY name ASC");
     return rows;
 }
 
 async function getUserGroups(userId) {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query(`
+    const { rows } = await p.query(`
         SELECT g.*
         FROM groups g
         JOIN user_groups ug ON g.id = ug.group_id
-        WHERE ug.user_id = ?
+        WHERE ug.user_id = $1
     `, [userId]);
     return rows;
 }
@@ -600,7 +658,7 @@ async function addUserToGroup(userId, groupId) {
     const p = await getPool();
     if (!p) return;
     try {
-        await p.query("INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)", [userId, groupId]);
+        await p.query("INSERT INTO user_groups (user_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", [userId, groupId]);
     } catch (e) {
         // Ignore duplicates
     }
@@ -609,42 +667,42 @@ async function addUserToGroup(userId, groupId) {
 async function removeUserFromGroup(userId, groupId) {
     const p = await getPool();
     if (!p) return;
-    await p.query("DELETE FROM user_groups WHERE user_id = ? AND group_id = ?", [userId, groupId]);
+    await p.query("DELETE FROM user_groups WHERE user_id = $1 AND group_id = $2", [userId, groupId]);
 }
 
 async function addCredits(userId, amount, reason, taskId = null) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
 
-    const connection = await p.getConnection();
+    const client = await p.connect();
     try {
-        await connection.beginTransaction();
+        await client.query('BEGIN');
 
         // 1. Insert Ledger
-        await connection.query(
-            "INSERT INTO credits_ledger (user_id, amount, reason, task_id) VALUES (?, ?, ?, ?)",
+        await client.query(
+            "INSERT INTO credits_ledger (user_id, amount, reason, task_id) VALUES ($1, $2, $3, $4)",
             [userId, amount, reason, taskId]
         );
 
         // 2. Update User Balance
-        await connection.query(
-            "UPDATE users SET current_credits = current_credits + ? WHERE id = ?",
+        await client.query(
+            "UPDATE users SET current_credits = current_credits + $1 WHERE id = $2",
             [amount, userId]
         );
 
-        await connection.commit();
+        await client.query('COMMIT');
     } catch (e) {
-        await connection.rollback();
+        await client.query('ROLLBACK');
         throw e;
     } finally {
-        connection.release();
+        client.release();
     }
 }
 
 async function getUserCredits(userId) {
     const p = await getPool();
     if (!p) return 0;
-    const [rows] = await p.query("SELECT current_credits FROM users WHERE id = ?", [userId]);
+    const { rows } = await p.query("SELECT current_credits FROM users WHERE id = $1", [userId]);
     return rows[0] ? rows[0].current_credits : 0;
 }
 
@@ -654,10 +712,10 @@ async function createTask(task) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
 
-    const [rows] = await p.query("SELECT MAX(position) as maxPos FROM tasks");
-    const nextPos = (rows[0].maxPos || 0) + 1;
+    const { rows } = await p.query("SELECT MAX(position) as maxpos FROM tasks");
+    const nextPos = (rows[0].maxpos || 0) + 1;
 
-    const sql = `INSERT INTO tasks (id, name, status, cep, input_file, log_file, position, tags, external_link, module_name, group_id, user_id, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO tasks (id, name, status, cep, input_file, log_file, position, tags, external_link, module_name, group_id, user_id, cost_estimate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`;
     await p.query(sql, [
         task.id,
         task.name,
@@ -666,7 +724,7 @@ async function createTask(task) {
         task.input_file,
         task.log_file,
         nextPos,
-        '[]',
+        JSON.stringify([]), // tags
         task.external_link || null,
         task.module_name || 'gemini_meli',
         task.group_id || null,
@@ -680,14 +738,14 @@ async function updateTaskStatus(id, status, outputFile = null) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
 
-    let sql = `UPDATE tasks SET status = ? WHERE id = ?`;
+    let sql = `UPDATE tasks SET status = $1 WHERE id = $2`;
     let params = [status, id];
 
     if (status === 'completed' || status === 'failed') {
-        sql = `UPDATE tasks SET status = ?, finished_at = NOW(), output_file = ? WHERE id = ?`;
+        sql = `UPDATE tasks SET status = $1, finished_at = NOW(), output_file = $2 WHERE id = $3`;
         params = [status, outputFile, id];
     } else if (status === 'aborted') {
-        sql = `UPDATE tasks SET status = ?, finished_at = NOW() WHERE id = ?`;
+        sql = `UPDATE tasks SET status = $1, finished_at = NOW() WHERE id = $2`;
         params = [status, id];
     }
 
@@ -708,8 +766,8 @@ async function getTasksForUser(user, showArchived = false, limit = 100, offset =
 
     if (user.role === 'admin') {
         // Admin sees all
-        const sql = `SELECT * FROM tasks WHERE ${statusSql} ORDER BY position ASC, created_at DESC LIMIT ? OFFSET ?`;
-        const [rows] = await p.query(sql, [limit, offset]);
+        const sql = `SELECT * FROM tasks WHERE ${statusSql} ORDER BY position ASC, created_at DESC LIMIT $1 OFFSET $2`;
+        const { rows } = await p.query(sql, [limit, offset]);
         return rows;
     } else {
         // User sees tasks from their groups OR their own tasks
@@ -717,14 +775,26 @@ async function getTasksForUser(user, showArchived = false, limit = 100, offset =
         const userGroups = await getUserGroups(user.id);
         const groupIds = userGroups.map(g => g.id);
 
-        let whereClause = `(${statusSql}) AND (user_id = ?`;
+        // Build dynamic query with variable handling for array
+        let whereClause = `(${statusSql}) AND (user_id = $1`;
+        const queryParams = [user.id];
+
         if (groupIds.length > 0) {
-            whereClause += ` OR group_id IN (${groupIds.join(',')})`; // Safe int join
+            // For array IN clause in Postgres we can use = ANY($2::int[])
+            whereClause += ` OR group_id = ANY($2::int[])`;
+            queryParams.push(groupIds);
+        } else {
+            queryParams.push([]); // Dummy empty array to keep numbering consistent if logic changes
         }
         whereClause += `)`;
 
-        const sql = `SELECT * FROM tasks WHERE ${whereClause} ORDER BY position ASC, created_at DESC LIMIT ? OFFSET ?`;
-        const [rows] = await p.query(sql, [user.id, limit, offset]);
+        // Add limit/offset params
+        queryParams.push(limit);
+        queryParams.push(offset);
+        // Correct param indexes: user.id=$1, groupIds=$2, limit=$3, offset=$4
+
+        const sql = `SELECT * FROM tasks WHERE ${whereClause} ORDER BY position ASC, created_at DESC LIMIT $3 OFFSET $4`;
+        const { rows } = await p.query(sql, queryParams);
         return rows;
     }
 }
@@ -739,7 +809,7 @@ async function getTasks(showArchived = false) {
         sql = "SELECT * FROM tasks WHERE status = 'archived' ORDER BY finished_at DESC";
     }
 
-    const [rows] = await p.query(sql);
+    const { rows } = await p.query(sql);
     return rows;
 }
 
@@ -747,35 +817,35 @@ async function getTaskById(id) {
     const p = await getPool();
     if (!p) return null;
 
-    const [rows] = await p.query("SELECT * FROM tasks WHERE id = ?", [id]);
+    const { rows } = await p.query("SELECT * FROM tasks WHERE id = $1", [id]);
     return rows[0];
 }
 
 async function updateTaskPosition(id, position) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
-    await p.query("UPDATE tasks SET position = ? WHERE id = ?", [position, id]);
+    await p.query("UPDATE tasks SET position = $1 WHERE id = $2", [position, id]);
 }
 
 async function updateTaskTags(id, tags) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
     const tagsStr = typeof tags === 'string' ? tags : JSON.stringify(tags);
-    await p.query("UPDATE tasks SET tags = ? WHERE id = ?", [tagsStr, id]);
+    await p.query("UPDATE tasks SET tags = $1 WHERE id = $2", [tagsStr, id]);
 }
 
 async function getNextPendingTask() {
     const p = await getPool();
     if (!p) return null;
 
-    const [rows] = await p.query("SELECT * FROM tasks WHERE status = 'pending' ORDER BY position ASC LIMIT 1");
+    const { rows } = await p.query("SELECT * FROM tasks WHERE status = 'pending' ORDER BY position ASC LIMIT 1");
     return rows[0];
 }
 
 async function forceStartTask(id) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
-    await p.query("UPDATE tasks SET status = 'pending', position = -1 WHERE id = ?", [id]);
+    await p.query("UPDATE tasks SET status = 'pending', position = -1 WHERE id = $1", [id]);
 }
 
 // --- NEW DB PERSISTENCE FUNCTIONS ---
@@ -784,30 +854,38 @@ async function createTaskItems(taskId, items) {
     const p = await getPool();
     if (!p) return;
     // items: array of { id, description, valor_venda, quantidade }
-    const values = items.map(i => [
-        taskId,
-        i.ID || i.id,
-        i.Descricao || i.description || i.Description,
-        i.valor_venda,
-        i.quantidade
-    ]);
 
-    if (values.length === 0) return;
+    if (items.length === 0) return;
 
-    const sql = `INSERT INTO task_items (task_id, original_id, description, max_price, quantity) VALUES ?`;
-    await p.query(sql, [values]);
+    // Helper to generate ($1, $2, $3, $4, $5), ($6...) strings
+    const expand = (rowCount, colCount, startAt = 1) =>
+        Array.from({ length: rowCount }, (_, i) =>
+            `(${Array.from({ length: colCount }, (_, j) => `$${i * colCount + j + startAt}`).join(', ')})`
+        ).join(', ');
+
+    const flatValues = [];
+    items.forEach(i => {
+        flatValues.push(taskId);
+        flatValues.push(i.ID || i.id);
+        flatValues.push(i.Descricao || i.description || i.Description);
+        flatValues.push(i.valor_venda);
+        flatValues.push(i.quantidade);
+    });
+
+    const sql = `INSERT INTO task_items (task_id, original_id, description, max_price, quantity) VALUES ${expand(items.length, 5)}`;
+    await p.query(sql, flatValues);
 }
 
 async function getTaskItem(taskId, originalId) {
     const p = await getPool();
-    const [rows] = await p.query("SELECT * FROM task_items WHERE task_id = ? AND original_id = ?", [taskId, originalId]);
+    const { rows } = await p.query("SELECT * FROM task_items WHERE task_id = $1 AND original_id = $2", [taskId, originalId]);
     return rows[0];
 }
 
 async function getTaskItems(taskId) {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query("SELECT * FROM task_items WHERE task_id = ? ORDER BY id ASC", [taskId]);
+    const { rows } = await p.query("SELECT * FROM task_items WHERE task_id = $1 ORDER BY id ASC", [taskId]);
     return rows;
 }
 
@@ -816,35 +894,44 @@ async function saveCandidates(taskItemId, candidates, selectedIndex) {
     if (!p || !taskItemId) return;
     if (!candidates || candidates.length === 0) return;
 
-    const values = candidates.map((c, index) => [
-        taskItemId,
-        c.title || c.name || 'N/A',
-        c.totalPrice || c.price || 0,
-        c.link,
-        c.image || c.thumbnail || null,
-        c.store || 'N/A',
-        JSON.stringify(c.specs || {}),
-        c.risk_score || '-',
-        c.aiReasoning || c.reasoning || '-',
-        index === selectedIndex, // is_selected
-        c.gtin || null,
-        c.mpn || null,
-        c.enrichment_source || null,
-        c.seller_reputation || null
-    ]);
+    const expand = (rowCount, colCount, startAt = 1) =>
+        Array.from({ length: rowCount }, (_, i) =>
+            `(${Array.from({ length: colCount }, (_, j) => `$${i * colCount + j + startAt}`).join(', ')})`
+        ).join(', ');
 
-    const sql = `INSERT INTO item_candidates (task_item_id, title, price, link, image_url, store, specs, risk_score, ai_reasoning, is_selected, gtin, manufacturer_part_number, enrichment_source, seller_reputation) VALUES ?`;
-    await p.query(sql, [values]);
+    const flatValues = [];
+    candidates.forEach((c, index) => {
+        flatValues.push(taskItemId);
+        flatValues.push(c.title || c.name || 'N/A');
+        flatValues.push(c.totalPrice || c.price || 0);
+        flatValues.push(c.link);
+        flatValues.push(c.image || c.thumbnail || null);
+        flatValues.push(c.store || 'N/A');
+        flatValues.push(JSON.stringify(c.specs || {}));
+        flatValues.push(c.risk_score || '-');
+        flatValues.push(c.aiReasoning || c.reasoning || '-');
+        flatValues.push(index === selectedIndex); // is_selected
+        flatValues.push(c.gtin || null);
+        flatValues.push(c.mpn || null);
+        flatValues.push(c.enrichment_source || null);
+        flatValues.push(c.seller_reputation || null);
+    });
+
+    const sql = `INSERT INTO item_candidates 
+        (task_item_id, title, price, link, image_url, store, specs, risk_score, ai_reasoning, is_selected, gtin, manufacturer_part_number, enrichment_source, seller_reputation) 
+        VALUES ${expand(candidates.length, 14)}`;
+
+    await p.query(sql, flatValues);
 
     // Update item status
-    await p.query("UPDATE task_items SET status = 'done' WHERE id = ?", [taskItemId]);
+    await p.query("UPDATE task_items SET status = 'done' WHERE id = $1", [taskItemId]);
 }
 
 async function logTaskMessage(taskId, message, level = 'info') {
     const p = await getPool();
     if (!p) return;
     try {
-        await p.query("INSERT INTO task_logs (task_id, message, level) VALUES (?, ?, ?)", [taskId, message, level]);
+        await p.query("INSERT INTO task_logs (task_id, message, level) VALUES ($1, $2, $3)", [taskId, message, level]);
     } catch (e) {
         console.error("Failed to log to DB:", e);
     }
@@ -853,7 +940,7 @@ async function logTaskMessage(taskId, message, level = 'info') {
 async function getTaskLogs(taskId) {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query("SELECT * FROM task_logs WHERE task_id = ? ORDER BY timestamp ASC", [taskId]);
+    const { rows } = await p.query("SELECT * FROM task_logs WHERE task_id = $1 ORDER BY timestamp ASC", [taskId]);
     return rows;
 }
 
@@ -862,7 +949,7 @@ async function createTaskMetadata(taskId, data) {
     const p = await getPool();
     if (!p) return;
     try {
-        await p.query("INSERT INTO task_metadata (task_id, data) VALUES (?, ?)", [taskId, JSON.stringify(data)]);
+        await p.query("INSERT INTO task_metadata (task_id, data) VALUES ($1, $2)", [taskId, JSON.stringify(data)]);
     } catch (e) {
         console.error("Failed to save metadata:", e);
     }
@@ -873,12 +960,12 @@ async function getTaskFullResults(taskId) {
     if (!p) return [];
 
     // Get Items
-    const [items] = await p.query("SELECT * FROM task_items WHERE task_id = ?", [taskId]);
+    const { rows: items } = await p.query("SELECT * FROM task_items WHERE task_id = $1", [taskId]);
 
     // For each item, get candidates
     const results = [];
     for (const item of items) {
-        const [candidates] = await p.query("SELECT * FROM item_candidates WHERE task_item_id = ?", [item.id]);
+        const { rows: candidates } = await p.query("SELECT * FROM item_candidates WHERE task_item_id = $1", [item.id]);
 
         const offers = candidates.map(c => ({
             title: c.title,
@@ -914,20 +1001,20 @@ async function getTaskFullResults(taskId) {
 async function getTaskMetadata(taskId) {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query("SELECT * FROM task_metadata WHERE task_id = ?", [taskId]);
+    const { rows } = await p.query("SELECT * FROM task_metadata WHERE task_id = $1", [taskId]);
     return rows[0];
 }
 
 async function updateTaskItemLockStatus(itemId, isUnlocked) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
-    await p.query("UPDATE task_items SET is_unlocked = ? WHERE id = ?", [isUnlocked, itemId]);
+    await p.query("UPDATE task_items SET is_unlocked = $1 WHERE id = $2", [isUnlocked, itemId]);
 }
 
 async function unlockAllTaskItems(taskId) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
-    await p.query("UPDATE task_items SET is_unlocked = TRUE WHERE task_id = ?", [taskId]);
+    await p.query("UPDATE task_items SET is_unlocked = TRUE WHERE task_id = $1", [taskId]);
 }
 
 // --- OPPORTUNITIES (RADAR/ORACLE) FUNCTIONS ---
@@ -939,9 +1026,9 @@ async function createOpportunity(userId, data) {
     // data expects: { title, municipality, metadata, locked_content, items, ipm_score }
     const sql = `INSERT INTO opportunities
         (user_id, title, municipality, metadata_json, locked_content_json, items_json, ipm_score, unlocked_modules)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`;
 
-    const [result] = await p.query(sql, [
+    const { rows } = await p.query(sql, [
         userId || null, // If null, it's global/radar
         data.title,
         data.municipality,
@@ -951,36 +1038,37 @@ async function createOpportunity(userId, data) {
         data.ipm_score || 0,
         JSON.stringify([]) // unlocked_modules starts empty
     ]);
-    return result.insertId;
+    return rows[0].id;
 }
 
 async function getRadarOpportunities() {
     const p = await getPool();
     if (!p) return [];
     // Where user_id is NULL (Admin/System generated)
-    const [rows] = await p.query("SELECT * FROM opportunities WHERE user_id IS NULL ORDER BY created_at DESC");
+    const { rows } = await p.query("SELECT * FROM opportunities WHERE user_id IS NULL ORDER BY created_at DESC");
     return rows;
 }
 
 async function getUserOpportunities(userId) {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query("SELECT * FROM opportunities WHERE user_id = ? ORDER BY created_at DESC", [userId]);
+    const { rows } = await p.query("SELECT * FROM opportunities WHERE user_id = $1 ORDER BY created_at DESC", [userId]);
     return rows;
 }
 
 async function getOpportunityById(id) {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query("SELECT * FROM opportunities WHERE id = ?", [id]);
+    const { rows } = await p.query("SELECT * FROM opportunities WHERE id = $1", [id]);
     return rows[0];
 }
+
 
 // --- SETTINGS FUNCTIONS ---
 async function getSetting(key) {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query("SELECT setting_value FROM settings WHERE setting_key = ?", [key]);
+    const { rows } = await p.query("SELECT setting_value FROM settings WHERE setting_key = $1", [key]);
     return rows[0] ? rows[0].setting_value : null;
 }
 
@@ -992,15 +1080,12 @@ async function unlockOpportunityModule(opportunityId, moduleKey) {
     const opp = await getOpportunityById(opportunityId);
     if (!opp) throw new Error("Analysis not found");
 
-    let current = typeof opp.unlocked_modules === 'string'
-        ? JSON.parse(opp.unlocked_modules || '[]')
-        : (opp.unlocked_modules || []);
-
+    let current = opp.unlocked_modules; // Already JSONB in Postgres
     if (!Array.isArray(current)) current = [];
 
     if (!current.includes(moduleKey)) {
         current.push(moduleKey);
-        await p.query("UPDATE opportunities SET unlocked_modules = ? WHERE id = ?", [JSON.stringify(current), opportunityId]);
+        await p.query("UPDATE opportunities SET unlocked_modules = $1 WHERE id = $2", [JSON.stringify(current), opportunityId]);
     }
 }
 
@@ -1009,29 +1094,29 @@ async function setSetting(key, value) {
     if (!p) return;
     await p.query(`
         INSERT INTO settings (setting_key, setting_value)
-        VALUES (?, ?)
-        ON DUPLICATE KEY UPDATE setting_value = ?
-    `, [key, value, value]);
+        VALUES ($1, $2)
+        ON CONFLICT (setting_key) DO UPDATE SET setting_value = $2
+    `, [key, value]);
 }
 
 // --- NOTIFICATION FUNCTIONS ---
 async function createNotification(userId, title, message, link) {
     const p = await getPool();
     if (!p) return;
-    await p.query("INSERT INTO notifications (user_id, title, message, link) VALUES (?, ?, ?, ?)", [userId, title, message, link]);
+    await p.query("INSERT INTO notifications (user_id, title, message, link) VALUES ($1, $2, $3, $4)", [userId, title, message, link]);
 }
 
 async function getUnreadNotifications(userId) {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query("SELECT * FROM notifications WHERE user_id = ? AND is_read = FALSE ORDER BY created_at DESC", [userId]);
+    const { rows } = await p.query("SELECT * FROM notifications WHERE user_id = $1 AND is_read = FALSE ORDER BY created_at DESC", [userId]);
     return rows;
 }
 
 async function markNotificationAsRead(id) {
     const p = await getPool();
     if (!p) return;
-    await p.query("UPDATE notifications SET is_read = TRUE WHERE id = ?", [id]);
+    await p.query("UPDATE notifications SET is_read = TRUE WHERE id = $1", [id]);
 }
 
 // --- LICITACOES FUNCTIONS ---
@@ -1054,9 +1139,9 @@ async function createLicitacao(data) {
         uf_sigla, uf_nome, municipio_nome, codigo_ibge, codigo_unidade, nome_unidade,
         amparo_legal_codigo, amparo_legal_nome, amparo_legal_descricao,
         raw_data_json, metadata_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43) RETURNING id`;
 
-    const [result] = await p.query(sql, [
+    const { rows } = await p.query(sql, [
         data.numeroSequencial,
         data.numeroControle,
         data.anoCompra,
@@ -1087,7 +1172,7 @@ async function createLicitacao(data) {
         data.dataAtualizacaoGlobal,
         data.linkSistemaOrigem,
         data.linkProcessoEletronico,
-        data.srp ? 1 : 0,
+        data.srp, // Boolean adapts correctly
         data.usuarioNome,
         data.ufSigla,
         data.ufNome,
@@ -1102,7 +1187,7 @@ async function createLicitacao(data) {
         JSON.stringify(data.metadata || {})
     ]);
 
-    return result.insertId;
+    return rows[0].id;
 }
 
 async function getLicitacoes(filters = {}, limit = 50, offset = 0) {
@@ -1111,33 +1196,35 @@ async function getLicitacoes(filters = {}, limit = 50, offset = 0) {
 
     let sql = 'SELECT * FROM licitacoes WHERE 1=1';
     const params = [];
+    let paramIndex = 1;
 
     if (filters.cnpj_orgao) {
-        sql += ' AND cnpj_orgao = ?';
+        sql += ` AND cnpj_orgao = $${paramIndex++}`;
         params.push(filters.cnpj_orgao);
     }
 
     if (filters.modalidade) {
-        sql += ' AND modalidade_licitacao = ?';
+        sql += ` AND modalidade_licitacao = $${paramIndex++}`;
         params.push(filters.modalidade);
     }
 
     if (filters.search) {
-        sql += ' AND MATCH(objeto_compra, informacao_complementar) AGAINST(? IN NATURAL LANGUAGE MODE)';
+        // Use Postgres Full Text Search (websearch_to_tsquery is great for user input)
+        sql += ` AND to_tsvector('portuguese', COALESCE(objeto_compra, '') || ' ' || COALESCE(informacao_complementar, '')) @@ websearch_to_tsquery('portuguese', $${paramIndex++})`;
         params.push(filters.search);
     }
 
-    sql += ' ORDER BY data_publicacao_pncp DESC LIMIT ? OFFSET ?';
+    sql += ` ORDER BY data_publicacao_pncp DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);
 
-    const [rows] = await p.query(sql, params);
+    const { rows } = await p.query(sql, params);
     return rows;
 }
 
 async function getLicitacaoById(id) {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query('SELECT * FROM licitacoes WHERE id = ?', [id]);
+    const { rows } = await p.query('SELECT * FROM licitacoes WHERE id = $1', [id]);
     return rows[0];
 }
 
@@ -1149,9 +1236,9 @@ async function createLicitacaoArquivo(licitacaoId, data) {
         licitacao_id, sequencial_documento, titulo, 
         tipo_documento_id, tipo_documento_nome, tipo_documento_descricao,
         url, data_publicacao, status_ativo
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`;
 
-    const [result] = await p.query(sql, [
+    const { rows } = await p.query(sql, [
         licitacaoId,
         data.sequencialDocumento,
         data.titulo,
@@ -1160,18 +1247,18 @@ async function createLicitacaoArquivo(licitacaoId, data) {
         data.tipoDocumentoDescricao,
         data.url,
         data.dataPublicacao,
-        data.statusAtivo ? 1 : 0
+        data.statusAtivo
     ]);
 
-    return result.insertId;
+    return rows[0].id;
 }
 
 async function getLicitacaoArquivos(licitacaoId) {
     const p = await getPool();
     if (!p) return [];
 
-    const [rows] = await p.query(
-        'SELECT * FROM licitacoes_arquivos WHERE licitacao_id = ? AND status_ativo = TRUE ORDER BY sequencial_documento',
+    const { rows } = await p.query(
+        'SELECT * FROM licitacoes_arquivos WHERE licitacao_id = $1 AND status_ativo = TRUE ORDER BY sequencial_documento',
         [licitacaoId]
     );
     return rows;
@@ -1180,8 +1267,8 @@ async function getLicitacaoArquivos(licitacaoId) {
 async function getLicitacaoItens(licitacaoId) {
     const p = await getPool();
     if (!p) return [];
-    const [rows] = await p.query(
-        'SELECT * FROM licitacoes_itens WHERE licitacao_id = ? ORDER BY numero_item ASC',
+    const { rows } = await p.query(
+        'SELECT * FROM licitacoes_itens WHERE licitacao_id = $1 ORDER BY numero_item ASC',
         [licitacaoId]
     );
     return rows;
@@ -1195,9 +1282,9 @@ async function createLicitacaoItem(licitacaoId, itemData) {
         licitacao_id, numero_item, descricao_item, quantidade,
         unidade_medida, valor_unitario_estimado, valor_total_estimado,
         codigo_catmat, descricao_catmat, situacao_item
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
 
-    const [result] = await p.query(sql, [
+    const { rows } = await p.query(sql, [
         licitacaoId,
         itemData.numeroItem,
         itemData.descricaoItem,
@@ -1210,7 +1297,7 @@ async function createLicitacaoItem(licitacaoId, itemData) {
         itemData.situacaoItem
     ]);
 
-    return result.insertId;
+    return rows[0].id;
 }
 
 async function createSyncControl(params) {
@@ -1219,9 +1306,9 @@ async function createSyncControl(params) {
 
     const sql = `INSERT INTO licitacoes_sync_control 
         (sync_type, status, data_inicial, data_final, cnpj_orgao, total_pages, items_per_page, started_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`;
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id`;
 
-    const [result] = await p.query(sql, [
+    const { rows } = await p.query(sql, [
         params.syncType,
         'running',
         params.dataInicial,
@@ -1231,7 +1318,7 @@ async function createSyncControl(params) {
         params.itemsPerPage || 500
     ]);
 
-    return result.insertId;
+    return rows[0].id;
 }
 
 async function updateSyncControl(id, updates) {
@@ -1240,27 +1327,28 @@ async function updateSyncControl(id, updates) {
 
     const fields = [];
     const values = [];
+    let paramIndex = 1;
 
-    if (updates.status) { fields.push('status = ?'); values.push(updates.status); }
-    if (updates.current_page) { fields.push('current_page = ?'); values.push(updates.current_page); }
-    if (updates.total_imported !== undefined) { fields.push('total_imported = ?'); values.push(updates.total_imported); }
-    if (updates.total_duplicates !== undefined) { fields.push('total_duplicates = ?'); values.push(updates.total_duplicates); }
-    if (updates.total_errors !== undefined) { fields.push('total_errors = ?'); values.push(updates.total_errors); }
-    if (updates.error_message) { fields.push('error_message = ?'); values.push(updates.error_message); }
+    if (updates.status) { fields.push(`status = $${paramIndex++}`); values.push(updates.status); }
+    if (updates.current_page) { fields.push(`current_page = $${paramIndex++}`); values.push(updates.current_page); }
+    if (updates.total_imported !== undefined) { fields.push(`total_imported = $${paramIndex++}`); values.push(updates.total_imported); }
+    if (updates.total_duplicates !== undefined) { fields.push(`total_duplicates = $${paramIndex++}`); values.push(updates.total_duplicates); }
+    if (updates.total_errors !== undefined) { fields.push(`total_errors = $${paramIndex++}`); values.push(updates.total_errors); }
+    if (updates.error_message) { fields.push(`error_message = $${paramIndex++}`); values.push(updates.error_message); }
     if (updates.finished_at) { fields.push('finished_at = NOW()'); }
 
     if (fields.length === 0) return;
 
     values.push(id);
 
-    const sql = `UPDATE licitacoes_sync_control SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE licitacoes_sync_control SET ${fields.join(', ')} WHERE id = $${paramIndex}`;
     await p.query(sql, values);
 }
 
 async function getActiveSyncControl() {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query(
+    const { rows } = await p.query(
         "SELECT * FROM licitacoes_sync_control WHERE status = 'running' ORDER BY started_at DESC LIMIT 1"
     );
     return rows[0];
@@ -1269,7 +1357,7 @@ async function getActiveSyncControl() {
 async function getLatestSyncControl() {
     const p = await getPool();
     if (!p) return null;
-    const [rows] = await p.query(
+    const { rows } = await p.query(
         "SELECT * FROM licitacoes_sync_control ORDER BY created_at DESC LIMIT 1"
     );
     return rows[0];
@@ -1281,13 +1369,13 @@ async function getUserLicitacoesPreferences(userId) {
     const p = await getPool();
     if (!p) return null;
 
-    const [rows] = await p.query(
-        'SELECT * FROM user_licitacoes_preferences WHERE user_id = ?',
+    const { rows } = await p.query(
+        'SELECT * FROM user_licitacoes_preferences WHERE user_id = $1',
         [userId]
     );
 
     if (rows.length === 0) {
-        // Return default preferences if none exist
+        // Return default preferences
         return {
             user_id: userId,
             keywords: [],
@@ -1304,13 +1392,12 @@ async function getUserLicitacoesPreferences(userId) {
     }
 
     const prefs = rows[0];
-    // Parse JSON fields
-    if (typeof prefs.keywords === 'string') prefs.keywords = JSON.parse(prefs.keywords || '[]');
-    if (typeof prefs.preferred_ufs === 'string') prefs.preferred_ufs = JSON.parse(prefs.preferred_ufs || '[]');
-    if (typeof prefs.preferred_municipios === 'string') prefs.preferred_municipios = JSON.parse(prefs.preferred_municipios || '[]');
-    if (typeof prefs.preferred_modalidades === 'string') prefs.preferred_modalidades = JSON.parse(prefs.preferred_modalidades || '[]');
-    if (typeof prefs.preferred_esferas === 'string') prefs.preferred_esferas = JSON.parse(prefs.preferred_esferas || '[]');
-    if (typeof prefs.preferred_poderes === 'string') prefs.preferred_poderes = JSON.parse(prefs.preferred_poderes || '[]');
+    // Postgres JSONB is already an object, but if logic expected strings and parsed them, we should ensure they are objects.
+    // pg driver returns parsed JSON for JSON columns automatically.
+
+    // Safety check just in case
+    if (typeof prefs.keywords === 'string') prefs.keywords = JSON.parse(prefs.keywords);
+    // ... repeat if necessary, but typically not needed with pg driver and jsonb
 
     return prefs;
 }
@@ -1318,9 +1405,6 @@ async function getUserLicitacoesPreferences(userId) {
 async function updateUserLicitacoesPreferences(userId, preferences) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
-
-    // Check if preferences exist
-    const existing = await getUserLicitacoesPreferences(userId);
 
     const data = {
         keywords: JSON.stringify(preferences.keywords || []),
@@ -1335,166 +1419,125 @@ async function updateUserLicitacoesPreferences(userId, preferences) {
         cards_per_row: preferences.cards_per_row || 3
     };
 
-    if (existing && existing.id) {
-        // Update existing
-        await p.query(
-            `UPDATE user_licitacoes_preferences 
-             SET keywords = ?, preferred_ufs = ?, preferred_municipios = ?, 
-                 preferred_modalidades = ?, min_value = ?, max_value = ?,
-                 preferred_esferas = ?, preferred_poderes = ?,
-                 default_view_mode = ?, cards_per_row = ?
-             WHERE user_id = ?`,
-            [
-                data.keywords, data.preferred_ufs, data.preferred_municipios,
-                data.preferred_modalidades, data.min_value, data.max_value,
-                data.preferred_esferas, data.preferred_poderes,
-                data.default_view_mode, data.cards_per_row,
-                userId
-            ]
-        );
-    } else {
-        // Insert new
-        await p.query(
-            `INSERT INTO user_licitacoes_preferences 
-             (user_id, keywords, preferred_ufs, preferred_municipios, 
-              preferred_modalidades, min_value, max_value,
-              preferred_esferas, preferred_poderes, default_view_mode, cards_per_row)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                userId,
-                data.keywords, data.preferred_ufs, data.preferred_municipios,
-                data.preferred_modalidades, data.min_value, data.max_value,
-                data.preferred_esferas, data.preferred_poderes,
-                data.default_view_mode, data.cards_per_row
-            ]
-        );
-    }
+    const sql = `INSERT INTO user_licitacoes_preferences 
+        (user_id, keywords, preferred_ufs, preferred_municipios, 
+         preferred_modalidades, min_value, max_value,
+         preferred_esferas, preferred_poderes, default_view_mode, cards_per_row)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (user_id) DO UPDATE SET
+         keywords = EXCLUDED.keywords,
+         preferred_ufs = EXCLUDED.preferred_ufs,
+         preferred_municipios = EXCLUDED.preferred_municipios,
+         preferred_modalidades = EXCLUDED.preferred_modalidades,
+         min_value = EXCLUDED.min_value,
+         max_value = EXCLUDED.max_value,
+         preferred_esferas = EXCLUDED.preferred_esferas,
+         preferred_poderes = EXCLUDED.preferred_poderes,
+         default_view_mode = EXCLUDED.default_view_mode,
+         cards_per_row = EXCLUDED.cards_per_row`;
+
+    await p.query(sql, [
+        userId,
+        data.keywords, data.preferred_ufs, data.preferred_municipios,
+        data.preferred_modalidades, data.min_value, data.max_value,
+        data.preferred_esferas, data.preferred_poderes,
+        data.default_view_mode, data.cards_per_row
+    ]);
 }
 
 async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offset = 0) {
     const p = await getPool();
     if (!p) return [];
 
-    // Get user preferences AND CNPJ data
     const prefs = await getUserLicitacoesPreferences(userId);
     const cnpjData = await getUserCNPJData(userId);
 
-    // Build base query with enhanced scoring
+    // Postgres SQL Construction
+    // Note: Array iteration for dynamic query building needs careful handling with placeholders
+
+    let paramIndex = 1;
+    let params = [];
+
+    // Keyword scoring logic
+    let keywordScore = '0';
+    if (prefs.keywords && prefs.keywords.length > 0) {
+        // use ILIKE for case insensitive
+        keywordScore = '(' + prefs.keywords.map(kw => {
+            const idx = paramIndex++;
+            params.push(`%${kw}%`); // Push pattern
+            return `(CASE WHEN l.objeto_compra ILIKE $${idx} THEN 10 ELSE 0 END)`;
+        }).join(' + ') + ')';
+    }
+
+    // Location scoring
+    let locationScore = '0';
+    if (prefs.preferred_ufs && prefs.preferred_ufs.length > 0) {
+        const idx = paramIndex++;
+        params.push(prefs.preferred_ufs);
+        locationScore = `(CASE WHEN l.uf_sigla = ANY($${idx}::text[]) THEN 30 ELSE 0 END)`;
+    }
+
+    // Modalidade scoring
+    let modalidadeScore = '0';
+    if (prefs.preferred_modalidades && prefs.preferred_modalidades.length > 0) {
+        const idx = paramIndex++;
+        params.push(prefs.preferred_modalidades);
+        modalidadeScore = `(CASE WHEN l.modalidade_licitacao = ANY($${idx}::text[]) THEN 20 ELSE 0 END)`;
+    }
+
+    // Value Range scoring
+    const minIdx = paramIndex++;
+    const maxIdx = paramIndex++;
+    params.push(prefs.min_value || 0, prefs.max_value || 999999999);
+    const valueScore = `(CASE WHEN l.valor_estimado_total BETWEEN $${minIdx} AND $${maxIdx} THEN 10 ELSE 0 END)`;
+
+    // CNPJ scoring
+    let cnaeScore = '0', ufCompScore = '0', cityCompScore = '0';
+
+    if (cnpjData) {
+        const cnaeDesc = cnpjData.cnae_principal_descricao || '';
+        const idxCnae = paramIndex++;
+        params.push(`%${cnaeDesc}%`);
+        cnaeScore = `(CASE WHEN l.objeto_compra ILIKE $${idxCnae} OR l.informacao_complementar ILIKE $${idxCnae} THEN 30 ELSE 0 END)`;
+
+        const idxUf = paramIndex++;
+        params.push(cnpjData.uf);
+        ufCompScore = `(CASE WHEN l.uf_sigla = $${idxUf} THEN 15 ELSE 0 END)`;
+
+        const idxCity = paramIndex++;
+        params.push(cnpjData.municipio);
+        cityCompScore = `(CASE WHEN l.municipio_nome ILIKE $${idxCity} THEN 25 ELSE 0 END)`;
+    }
+
     let sql = `
         SELECT l.*,
         (
-            -- KEYWORD MATCH (40 points max)
-            ${prefs.keywords.length > 0 ? `
-            (
-                ${prefs.keywords.map((kw, idx) =>
-        `(CASE WHEN LOWER(l.objeto_compra) LIKE ? THEN 10 ELSE 0 END)`
-    ).join(' + ')}
-            )
-            ` : '0'}
-            +
-            -- LOCATION MATCH (30 points base)
-            (CASE 
-                ${prefs.preferred_ufs.length > 0 ?
-            `WHEN l.uf_sigla IN (${prefs.preferred_ufs.map(() => '?').join(',')}) THEN 30`
-            : 'WHEN 1=0 THEN 30'}
-                ELSE 0 
-            END)
-            +
-            -- MODALIDADE MATCH (20 points)
-            (CASE 
-                ${prefs.preferred_modalidades.length > 0 ?
-            `WHEN l.modalidade_licitacao IN (${prefs.preferred_modalidades.map(() => '?').join(',')}) THEN 20`
-            : 'WHEN 1=0 THEN 20'}
-                ELSE 0 
-            END)
-            +
-            -- VALUE RANGE (10 points)
-            (CASE 
-                WHEN l.valor_estimado_total BETWEEN ? AND ? THEN 10
-                ELSE 0 
-            END)
-            ${cnpjData ? `
-            +
-            -- CNAE PRINCIPAL MATCH (30 points bonus!)
-            (CASE 
-                WHEN ? IS NOT NULL AND (
-                    LOWER(l.objeto_compra) LIKE CONCAT('%', LOWER(?), '%')
-                    OR LOWER(l.informacao_complementar) LIKE CONCAT('%', LOWER(?), '%')
-                ) THEN 30
-                ELSE 0
-            END)
-            +
-            -- UF DA EMPRESA MATCH (15 points bonus!)
-            (CASE 
-                WHEN ? IS NOT NULL AND l.uf_sigla = ? THEN 15
-                ELSE 0
-            END)
-            +
-            -- MUNICÍPIO DA EMPRESA MATCH (25 points super bonus!)
-            (CASE 
-                WHEN ? IS NOT NULL AND LOWER(l.municipio_nome) = LOWER(?) THEN 25
-                ELSE 0
-            END)
-            ` : ''}
+            ${keywordScore} +
+            ${locationScore} + 
+            ${modalidadeScore} +
+            ${valueScore}
+            ${cnpjData ? `+ ${cnaeScore} + ${ufCompScore} + ${cityCompScore}` : ''}
         ) AS relevance_score
         FROM licitacoes l
         WHERE 1=1
     `;
 
-    const params = [];
-
-    // Add keyword params (for LIKE matching)
-    prefs.keywords.forEach(kw => {
-        params.push(`%${kw.toLowerCase()}%`);
-    });
-
-    // Add UF params
-    prefs.preferred_ufs.forEach(uf => {
-        params.push(uf);
-    });
-
-    // Add modalidade params
-    prefs.preferred_modalidades.forEach(mod => {
-        params.push(mod);
-    });
-
-    // Add value range params
-    params.push(prefs.min_value || 0, prefs.max_value || 999999999);
-
-    // Add CNPJ-based params if available
-    if (cnpjData) {
-        // CNAE description for matching (3x for the 3 LIKE clauses)
-        const cnaeDesc = cnpjData.cnae_principal_descricao || '';
-        params.push(cnaeDesc, cnaeDesc, cnaeDesc);
-
-        // UF matching (2x)
-        params.push(cnpjData.uf, cnpjData.uf);
-
-        // Município matching (2x)
-        params.push(cnpjData.municipio, cnpjData.municipio);
-    }
-
-    // Apply additional filters from request
+    // Filters
     if (filters.cnpj_orgao) {
-        sql += ' AND l.cnpj_orgao = ?';
+        sql += ` AND l.cnpj_orgao = $${paramIndex++}`;
         params.push(filters.cnpj_orgao);
     }
-
     if (filters.modalidade) {
-        sql += ' AND l.modalidade_licitacao = ?';
+        sql += ` AND l.modalidade_licitacao = $${paramIndex++}`;
         params.push(filters.modalidade);
     }
-
     if (filters.search) {
-        sql += ' AND MATCH(l.objeto_compra, l.informacao_complementar) AGAINST(? IN NATURAL LANGUAGE MODE)';
+        sql += ` AND to_tsvector('portuguese', COALESCE(l.objeto_compra, '') || ' ' || COALESCE(l.informacao_complementar, '')) @@ websearch_to_tsquery('portuguese', $${paramIndex++})`;
         params.push(filters.search);
     }
 
-    // CNPJ-based filtering by company size (porte)
     if (cnpjData && cnpjData.porte_empresa) {
         const porte = cnpjData.porte_empresa.toUpperCase();
-
-        // Filter by appropriate value ranges based on company size
         if (porte.includes('MEI')) {
             sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 100000)';
         } else if (porte.includes('MICRO')) {
@@ -1502,25 +1545,21 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
         } else if (porte.includes('PEQUENO')) {
             sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 2000000)';
         }
-        // No filter for medium/large companies
     }
 
-    // Order by relevance score DESC, then by date
-    sql += ' ORDER BY relevance_score DESC, l.data_publicacao_pncp DESC LIMIT ? OFFSET ?';
+    sql += ` ORDER BY relevance_score DESC, l.data_publicacao_pncp DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);
 
-    const [rows] = await p.query(sql, params);
+    const { rows } = await p.query(sql, params);
 
-    // Add matched keywords to each row for highlighting
+    // Add match indicators (in memory ok)
     rows.forEach(row => {
-        const matchedKeywords = prefs.keywords.filter(kw =>
+        const matchedKeywords = (prefs.keywords || []).filter(kw =>
             row.objeto_compra && row.objeto_compra.toLowerCase().includes(kw.toLowerCase())
         );
         row.matched_keywords = matchedKeywords.join(',');
-
-        // Add CNPJ match indicator
         if (cnpjData) {
-            row.has_cnpj_match = row.relevance_score > 60; // High score indicates CNPJ matching
+            row.has_cnpj_match = row.relevance_score > 60;
         }
     });
 
@@ -1535,13 +1574,13 @@ async function saveUserLicitacao(userId, licitacaoId, notes = null) {
 
     try {
         await p.query(
-            'INSERT INTO user_saved_licitacoes (user_id, licitacao_id, notes) VALUES (?, ?, ?)',
+            'INSERT INTO user_saved_licitacoes (user_id, licitacao_id, notes) VALUES ($1, $2, $3)',
             [userId, licitacaoId, notes]
         );
         return true;
     } catch (e) {
-        // Ignore duplicate key errors
-        if (e.code === 'ER_DUP_ENTRY') return false;
+        // 23505 is unique_violation in Postgres
+        if (e.code === '23505') return false;
         throw e;
     }
 }
@@ -1551,7 +1590,7 @@ async function unsaveUserLicitacao(userId, licitacaoId) {
     if (!p) throw new Error("DB not ready");
 
     await p.query(
-        'DELETE FROM user_saved_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+        'DELETE FROM user_saved_licitacoes WHERE user_id = $1 AND licitacao_id = $2',
         [userId, licitacaoId]
     );
 }
@@ -1560,13 +1599,13 @@ async function getUserSavedLicitacoes(userId, limit = 50, offset = 0) {
     const p = await getPool();
     if (!p) return [];
 
-    const [rows] = await p.query(
+    const { rows } = await p.query(
         `SELECT l.*, s.saved_at, s.notes, 0 AS relevance_score
          FROM user_saved_licitacoes s
          JOIN licitacoes l ON s.licitacao_id = l.id
-         WHERE s.user_id = ?
+         WHERE s.user_id = $1
          ORDER BY s.saved_at DESC
-         LIMIT ? OFFSET ?`,
+         LIMIT $2 OFFSET $3`,
         [userId, limit, offset]
     );
 
@@ -1577,8 +1616,8 @@ async function isLicitacaoSaved(userId, licitacaoId) {
     const p = await getPool();
     if (!p) return false;
 
-    const [rows] = await p.query(
-        'SELECT id FROM user_saved_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+    const { rows } = await p.query(
+        'SELECT id FROM user_saved_licitacoes WHERE user_id = $1 AND licitacao_id = $2',
         [userId, licitacaoId]
     );
 
@@ -1593,13 +1632,12 @@ async function dislikeUserLicitacao(userId, licitacaoId) {
 
     try {
         await p.query(
-            'INSERT INTO user_disliked_licitacoes (user_id, licitacao_id) VALUES (?, ?)',
+            'INSERT INTO user_disliked_licitacoes (user_id, licitacao_id) VALUES ($1, $2)',
             [userId, licitacaoId]
         );
         return true;
     } catch (e) {
-        // Ignore duplicate key errors
-        if (e.code === 'ER_DUP_ENTRY') return false;
+        if (e.code === '23505') return false;
         throw e;
     }
 }
@@ -1609,7 +1647,7 @@ async function undislikeUserLicitacao(userId, licitacaoId) {
     if (!p) throw new Error("DB not ready");
 
     await p.query(
-        'DELETE FROM user_disliked_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+        'DELETE FROM user_disliked_licitacoes WHERE user_id = $1 AND licitacao_id = $2',
         [userId, licitacaoId]
     );
 }
@@ -1618,68 +1656,63 @@ async function isLicitacaoDisliked(userId, licitacaoId) {
     const p = await getPool();
     if (!p) return false;
 
-    const [rows] = await p.query(
-        'SELECT id FROM user_disliked_licitacoes WHERE user_id = ? AND licitacao_id = ?',
+    const { rows } = await p.query(
+        'SELECT id FROM user_disliked_licitacoes WHERE user_id = $1 AND licitacao_id = $2',
         [userId, licitacaoId]
     );
 
     return rows.length > 0;
 }
 
-/**
- * Search Licitacoes with Multi-Select Filters (for Buscador module)
- * @param {Object} filters - { keywords: [], modalidades: [], estados: [], esferas: [] }
- * @param {Number} limit 
- * @param {Number} offset 
- * @returns {Promise\u003cArray\u003e} - Licitacoes matching filters
- */
+// Search Licitacoes with Multi-Select Filters
 async function searchLicitacoes(filters = {}, limit = 50, offset = 0) {
     const p = await getPool();
     if (!p) return [];
 
     let sql = `SELECT l.* FROM licitacoes l WHERE 1=1`;
-    const params = [];
+    let params = [];
+    let paramIndex = 1;
 
-    // Keywords filter (OR logic - any keyword match)
+    // Keywords (OR logic)
     if (filters.keywords && Array.isArray(filters.keywords) && filters.keywords.length > 0) {
-        const keywordConditions = filters.keywords.map(() =>
-            '(LOWER(l.objeto_compra) LIKE ? OR LOWER(l.informacao_complementar) LIKE ?)'
-        ).join(' OR ');
+        const keywordConditions = filters.keywords.map(() => {
+            const idx = paramIndex++;
+            // Use ILIKE in Postgres
+            return `(l.objeto_compra ILIKE $${idx} OR l.informacao_complementar ILIKE $${idx})`;
+        }).join(' OR ');
 
         sql += ` AND (${keywordConditions})`;
 
         filters.keywords.forEach(kw => {
-            const kwLower = `%${kw.toLowerCase()}%`;
-            params.push(kwLower, kwLower); // Push twice: objeto_compra and informacao_complementar
+            params.push(`%${kw}%`);
         });
     }
 
-    // Modalidades filter (IN clause)
+    // Modalidades
     if (filters.modalidades && Array.isArray(filters.modalidades) && filters.modalidades.length > 0) {
-        const placeholders = filters.modalidades.map(() => '?').join(',');
-        sql += ` AND l.modalidade_licitacao IN (${placeholders})`;
-        params.push(...filters.modalidades);
+        const idx = paramIndex++;
+        sql += ` AND l.modalidade_licitacao = ANY($${idx}::text[])`;
+        params.push(filters.modalidades);
     }
 
-    // Estados filter (IN clause)
+    // Estados
     if (filters.estados && Array.isArray(filters.estados) && filters.estados.length > 0) {
-        const placeholders = filters.estados.map(() => '?').join(',');
-        sql += ` AND l.uf_sigla IN (${placeholders})`;
-        params.push(...filters.estados);
+        const idx = paramIndex++;
+        sql += ` AND l.uf_sigla = ANY($${idx}::text[])`;
+        params.push(filters.estados);
     }
 
-    // Esferas filter (IN clause)
+    // Esferas
     if (filters.esferas && Array.isArray(filters.esferas) && filters.esferas.length > 0) {
-        const placeholders = filters.esferas.map(() => '?').join(',');
-        sql += ` AND l.esfera IN (${placeholders})`;
-        params.push(...filters.esferas);
+        const idx = paramIndex++;
+        sql += ` AND l.esfera = ANY($${idx}::text[])`;
+        params.push(filters.esferas);
     }
 
-    // Order by closing date (most urgent first), then publication date
-    sql += ' ORDER BY l.data_encerramento_proposta ASC, l.data_publicacao_pncp DESC LIMIT ? OFFSET ?';
+    sql += ` ORDER BY l.data_encerramento_proposta ASC, l.data_publicacao_pncp DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);
 
-    const [rows] = await p.query(sql, params);
+    const { rows } = await p.query(sql, params);
     return rows;
 }
 
@@ -1698,7 +1731,7 @@ async function createUserCNPJData(userId, cnpjData) {
         capital_social, porte_empresa, natureza_juridica,
         optante_simples, optante_mei,
         socios, raw_data
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`;
 
     await p.query(sql, [
         userId,
@@ -1735,30 +1768,13 @@ async function getUserCNPJData(userId) {
     const p = await getPool();
     if (!p) return null;
 
-    const [rows] = await p.query(
-        'SELECT * FROM user_cnpj_data WHERE user_id = ?',
+    const { rows } = await p.query(
+        'SELECT * FROM user_cnpj_data WHERE user_id = $1',
         [userId]
     );
 
     if (rows.length === 0) return null;
-
-    const data = rows[0];
-
-    // Parse JSON fields
-    if (typeof data.cnaes_secundarios === 'string') {
-        data.cnaes_secundarios = JSON.parse(data.cnaes_secundarios);
-    }
-    if (typeof data.telefones === 'string') {
-        data.telefones = JSON.parse(data.telefones);
-    }
-    if (typeof data.socios === 'string') {
-        data.socios = JSON.parse(data.socios);
-    }
-    if (typeof data.raw_data === 'string') {
-        data.raw_data = JSON.parse(data.raw_data);
-    }
-
-    return data;
+    return rows[0];
 }
 
 async function updateUserCNPJData(userId, cnpjData) {
@@ -1766,33 +1782,33 @@ async function updateUserCNPJData(userId, cnpjData) {
     if (!p) throw new Error("DB not ready");
 
     const sql = `UPDATE user_cnpj_data SET
-        cnpj = ?,
-        razao_social = ?,
-        nome_fantasia = ?,
-        situacao_cadastral = ?,
-        data_situacao = ?,
-        matriz_filial = ?,
-        data_abertura = ?,
-        cnae_principal = ?,
-        cnae_principal_descricao = ?,
-        cnaes_secundarios = ?,
-        logradouro = ?,
-        numero = ?,
-        complemento = ?,
-        bairro = ?,
-        cep = ?,
-        municipio = ?,
-        uf = ?,
-        telefones = ?,
-        email = ?,
-        capital_social = ?,
-        porte_empresa = ?,
-        natureza_juridica = ?,
-        optante_simples = ?,
-        optante_mei = ?,
-        socios = ?,
-        raw_data = ?
-    WHERE user_id = ?`;
+        cnpj = $1,
+        razao_social = $2,
+        nome_fantasia = $3,
+        situacao_cadastral = $4,
+        data_situacao = $5,
+        matriz_filial = $6,
+        data_abertura = $7,
+        cnae_principal = $8,
+        cnae_principal_descricao = $9,
+        cnaes_secundarios = $10,
+        logradouro = $11,
+        numero = $12,
+        complemento = $13,
+        bairro = $14,
+        cep = $15,
+        municipio = $16,
+        uf = $17,
+        telefones = $18,
+        email = $19,
+        capital_social = $20,
+        porte_empresa = $21,
+        natureza_juridica = $22,
+        optante_simples = $23,
+        optante_mei = $24,
+        socios = $25,
+        raw_data = $26
+    WHERE user_id = $27`;
 
     await p.query(sql, [
         cnpjData.cnpj,
@@ -1828,7 +1844,7 @@ async function updateUserCNPJData(userId, cnpjData) {
 async function deleteUserCNPJData(userId) {
     const p = await getPool();
     if (!p) return;
-    await p.query('DELETE FROM user_cnpj_data WHERE user_id = ?', [userId]);
+    await p.query('DELETE FROM user_cnpj_data WHERE user_id = $1', [userId]);
 }
 
 module.exports = {

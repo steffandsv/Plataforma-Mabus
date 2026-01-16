@@ -7,6 +7,8 @@ services:
     shm_size: '4gb'
     ports:
       - "127.0.0.1:3003:3000"
+    networks:
+      - mabus_network
     environment:
       - REDIS_URL=redis://redis:6379
       - DB_DB=${DB_DB}
@@ -34,6 +36,7 @@ services:
       - ./tasks.db:/app/tasks.db
     depends_on:
       - redis
+      - postgres
     command: sh -c "echo \"$COOKIES_B64\" | base64 -d > cookies.json && npm start"
     deploy:
       resources:
@@ -46,8 +49,43 @@ services:
     container_name: plataforma_mabus_redis
     command: redis-server --save 60 1 --loglevel warning
     restart: always
+    networks:
+      - mabus_network
     volumes:
       - agente_redis_data:/data
 
+  postgres:
+    image: postgres:15-alpine
+    container_name: mabus_postgres
+    restart: always
+    networks:
+      - mabus_network
+    environment:
+      POSTGRES_USER: mabus_admin
+      POSTGRES_PASSWORD: Mabus_Secure_DB_2026_XyZ!
+      POSTGRES_DB: plataforma_mabus
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    container_name: mabus_adminer
+    restart: always
+    networks:
+      - mabus_network
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
 volumes:
   agente_redis_data:
+  postgres_data:
+
+
+networks:
+  mabus_network:
+    external: true
+    name: mabus_net
