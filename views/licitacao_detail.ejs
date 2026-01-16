@@ -736,26 +736,30 @@
                     const center = marker.getLatLng();
                     const radiusMeters = document.getElementById('searchRadius').value * 1000;
 
-                    // Overpass API query
-                    // Search for nodes and ways that match the query
-                    const overpassQuery = `
-                        [out:json][timeout:25];
-                        (
-                          node["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-                          way["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-                          node["shop"](around:${radiusMeters},${center.lat},${center.lng});
-                          way["shop"](around:${radiusMeters},${center.lat},${center.lng});
-                          node["amenity"](around:${radiusMeters},${center.lat},${center.lng});
-                          way["amenity"](around:${radiusMeters},${center.lat},${center.lng});
-                        );
-                        out center;
-                    `;
+                    // Overpass API query - Search ONLY for matching businesses
+                    const overpassQuery = `[out:json][timeout:25];
+(
+  node["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
+  way["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
+  node["shop"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
+  way["shop"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
+  node["amenity"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
+  way["amenity"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
+);
+out center 50;`;
 
                     const overpassUrl = 'https://overpass-api.de/api/interpreter';
                     const response = await fetch(overpassUrl, {
                         method: 'POST',
-                        body: overpassQuery
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: 'data=' + encodeURIComponent(overpassQuery)
                     });
+
+                    if (!response.ok) {
+                        throw new Error(`API retornou status ${response.status}`);
+                    }
 
                     const data = await response.json();
 
@@ -785,17 +789,8 @@
                         }
 
                         // Get name and type
-                        name = element.tags?.name || element.tags?.shop || element.tags?.amenity || 'Sem nome';
+                        name = element.tags?.name || element.tags?.shop || element.tags?.amenity || 'Local';
                         type = element.tags?.shop || element.tags?.amenity || element.type;
-
-                        // Filter by query in name (case insensitive)
-                        const queryLower = query.toLowerCase();
-                        const nameLower = name.toLowerCase();
-                        const typeLower = (type || '').toLowerCase();
-
-                        if (!nameLower.includes(queryLower) && !typeLower.includes(queryLower)) {
-                            return; // Skip if doesn't match query
-                        }
 
                         // Create custom icon
                         const icon = L.icon({
@@ -838,7 +833,7 @@
 
                 } catch (e) {
                     console.error('Search error:', e);
-                    document.getElementById('searchStatus').textContent = '❌ Erro na busca. Tente novamente.';
+                    document.getElementById('searchStatus').textContent = '❌ Erro: ' + e.message;
                 }
             }
 
