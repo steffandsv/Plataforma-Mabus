@@ -62,7 +62,6 @@
     /* Padding moved to inner wrapper except bottom */
     overflow: visible;
     /* Allow badge to transpass */
-    pointer-events: none;
     border: 2px solid oklch(var(--bc) / 0.1);
     backdrop-filter: blur(10px);
 }
@@ -76,6 +75,8 @@
     transform: translateX(-50%) translateY(0) rotateX(0deg) scale(1);
     opacity: 1;
     z-index: 10;
+    pointer-events: auto;
+    /* Enable clicks on active card */
 }
 
 .story-card.prev {
