@@ -155,14 +155,43 @@
                 <div class="card bg-base-200">
                     <div class="card-body">
                         <h3 class="card-title">🔑 Palavras-chave de Interesse</h3>
-                        <p class="text-sm opacity-70 mb-3">Digite palavras-chave separadas por vírgula.
-                            Licita\u00e7\u00f5es que cont\u00e9m estas palavras ter\u00e3o maior relev\u00e2ncia no seu
-                            feed.</p>
-                        <input type="text" name="keywords"
-                            value="<%= preferences && preferences.keywords ? preferences.keywords.join(', ') : '' %>"
-                            class="input input-bordered w-full"
-                            placeholder="notebook, computador, impressora, mob\u00edlio...">
-                        <div class="text-xs opacity-60 mt-2">Exemplos: laptop, escolar, material de expediente</div>
+                        <p class="text-sm opacity-70 mb-3">Adicione palavras-chave que aparecem em licitações do seu
+                            interesse.
+                            Licitações que contêm estas palavras terão maior relevância no seu feed.</p>
+
+                        <!-- Hidden input para submission -->
+                        <input type="hidden" name="keywords" id="keywords-hidden"
+                            value="<%= preferences && preferences.keywords ? preferences.keywords.join(',') : '' %>">
+
+                        <!-- Tag input -->
+                        <div class="form-control">
+                            <div class="join w-full mb-2">
+                                <input type="text" id="keyword-input" class="input input-bordered join-item flex-1"
+                                    placeholder="Digite uma palavra-chave e pressione Enter">
+                                <button type="button" onclick="addKeyword()" class="btn btn-primary join-item">
+                                    <i class="fas fa-plus"></i> Adicionar
+                                </button>
+                            </div>
+
+                            <!-- Tags display -->
+                            <div id="keywords-container"
+                                class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-base-300 rounded-lg bg-base-100">
+                                <% if (preferences && preferences.keywords && preferences.keywords.length> 0) { %>
+                                    <% preferences.keywords.forEach(keyword=> { %>
+                                        <span class="badge badge-lg gap-2 keyword-tag">
+                                            <%= keyword %>
+                                                <button type="button" onclick="removeKeyword(this, '<%= keyword %>')"
+                                                    class="btn btn-ghost btn-xs btn-circle">
+                                                    ×
+                                                </button>
+                                        </span>
+                                        <% }) %>
+                                            <% } %>
+                            </div>
+                            <div class="text-xs opacity-60 mt-2">
+                                Exemplos: notebook, computador, software, mobiliário, material escolar
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -174,7 +203,7 @@
                             <div class="form-control">
                                 <label class="label">
                                     <span class="label-text font-semibold">Estados (UF) - Selecione
-                                        m\u00faltiplos</span>
+                                        múltiplos</span>
                                 </label>
                                 <% const selectedUFs=preferences && preferences.preferred_ufs ?
                                     preferences.preferred_ufs : []; %>
@@ -197,13 +226,13 @@
                             </div>
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text font-semibold">Munic\u00edpios Espec\u00edficos
+                                    <span class="label-text font-semibold">Municípios Específicos
                                         (opcional)</span>
                                 </label>
                                 <input type="text" name="preferred_municipios"
                                     value="<%= preferences && preferences.preferred_municipios ? preferences.preferred_municipios.join(', ') : '' %>"
-                                    class="input input-bordered w-full" placeholder="S\u00e3o Paulo, Rio de Janeiro...">
-                                <div class="text-xs opacity-60 mt-1">Separar por v\u00edrgula</div>
+                                    class="input input-bordered w-full" placeholder="São Paulo, Rio de Janeiro...">
+                                <div class="text-xs opacity-60 mt-1">Separar por vírgula</div>
                             </div>
                         </div>
                     </div>
@@ -213,13 +242,13 @@
                 <div class="card bg-base-200">
                     <div class="card-body">
                         <h3 class="card-title">📋 Modalidades Preferidas</h3>
-                        <p class="text-sm opacity-70 mb-3">Selecione os tipos de licita\u00e7\u00f5es que mais lhe
+                        <p class="text-sm opacity-70 mb-3">Selecione os tipos de licitações que mais lhe
                             interessam</p>
                         <% const selectedMods=preferences && preferences.preferred_modalidades ?
                             preferences.preferred_modalidades : []; %>
                             <div class="flex flex-wrap gap-3">
-                                <% ['Preg\u00e3o', 'Concorr\u00eancia' , 'Dispensa' , 'Inexigibilidade' , 'Concurso'
-                                    , 'Leil\u00e3o' ].forEach(mod=> { %>
+                                <% ['Pregão', 'Concorrência' , 'Dispensa' , 'Inexigibilidade' , 'Concurso' , 'Leilão'
+                                    ].forEach(mod=> { %>
                                     <label
                                         class="cursor-pointer label gap-2 bg-base-100 px-4 py-2 rounded-lg hover:bg-base-300 transition-colors">
                                         <input type="checkbox" name="preferred_modalidades" value="<%= mod %>"
@@ -243,7 +272,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text font-semibold">Valor M\u00ednimo (R$)</span>
+                                    <span class="label-text font-semibold">Valor Mínimo (R$)</span>
                                 </label>
                                 <input type="number" name="min_value"
                                     value="<%= preferences && preferences.min_value ? preferences.min_value : 0 %>"
@@ -251,27 +280,27 @@
                             </div>
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text font-semibold">Valor M\u00e1ximo (R$)</span>
+                                    <span class="label-text font-semibold">Valor Máximo (R$)</span>
                                 </label>
                                 <input type="number" name="max_value"
                                     value="<%= preferences && preferences.max_value ? preferences.max_value : 999999999 %>"
                                     class="input input-bordered w-full" min="0" step="0.01">
                             </div>
                         </div>
-                        <div class="text-xs opacity-60 mt-2">💡 Dica: Deixe 0 no m\u00ednimo e um valor alto no
-                            m\u00e1ximo para ver todos os valores</div>
+                        <div class="text-xs opacity-60 mt-2">💡 Dica: Deixe 0 no mínimo e um valor alto no
+                            máximo para ver todos os valores</div>
                     </div>
                 </div>
 
                 <!-- View Preferences -->
                 <div class="card bg-base-200">
                     <div class="card-body">
-                        <h3 class="card-title">👁️ Prefer\u00eancias de Visualiza\u00e7\u00e3o</h3>
+                        <h3 class="card-title">👁️ Preferências de Visualização</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text font-semibold">Modo de Visualiza\u00e7\u00e3o
-                                        Padr\u00e3o</span>
+                                    <span class="label-text font-semibold">Modo de Visualização
+                                        Padrão</span>
                                 </label>
                                 <select name="default_view_mode" class="select select-bordered w-full">
                                     <option value="story" <%=preferences && preferences.default_view_mode==='story'
@@ -284,7 +313,7 @@
                                     </option>
                                 </select>
                                 <div class="text-xs opacity-60 mt-1">Escolha como prefere visualizar as
-                                    licita\u00e7\u00f5es</div>
+                                    licitações</div>
                             </div>
                             <div class="form-control">
                                 <label class="label">
@@ -415,7 +444,7 @@
                     <a href="/licitacoes" class="btn btn-ghost">Cancelar</a>
                     <button type="submit" class="btn btn-primary gap-2">
                         <i class="fas fa-save"></i>
-                        Salvar Prefer\u00eancias
+                        Salvar Preferências
                     </button>
                 </div>
             </form>
@@ -427,10 +456,10 @@
                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <div>
-                    <div class="font-bold">Como funciona a personaliza\u00e7\u00e3o?</div>
-                    <div class="text-sm">Suas prefer\u00eancias ser\u00e3o usadas para calcular um score de
-                        relev\u00e2ncia (0-100%) para cada licita\u00e7\u00e3o. Quanto maior o match, mais relevante a
-                        oportunidade para voc\u00ea!</div>
+                    <div class="font-bold">Como funciona a personalização?</div>
+                    <div class="text-sm">Suas preferências serão usadas para calcular um score de
+                        relevância (0-100%) para cada licitação. Quanto maior o match, mais relevante a
+                        oportunidade para você!</div>
                 </div>
             </div>
 
@@ -597,6 +626,141 @@
                 let aiGeneratedPrefs = null;
                 let currentMode = 'magic';
 
+                // ========== KEYWORD TAGS FUNCTIONS ==========
+
+                // Add keyword tag
+                function addKeyword() {
+                    const input = document.getElementById('keyword-input');
+                    const keyword = input.value.trim();
+
+                    if (!keyword) return;
+
+                    const container = document.getElementById('keywords-container');
+                    const hiddenInput = document.getElementById('keywords-hidden');
+
+                    // Get current keywords
+                    const currentKeywords = hiddenInput.value ? hiddenInput.value.split(',') : [];
+
+                    // Check if already exists
+                    if (currentKeywords.includes(keyword)) {
+                        input.value = '';
+                        return;
+                    }
+
+                    // Add new keyword
+                    currentKeywords.push(keyword);
+                    hiddenInput.value = currentKeywords.join(',');
+
+                    // Create tag element
+                    const tag = document.createElement('span');
+                    tag.className = 'badge badge-lg gap-2 keyword-tag';
+                    tag.innerHTML = `
+                        ${keyword}
+                        <button type="button" onclick="removeKeyword(this, '${keyword}')" 
+                            class="btn btn-ghost btn-xs btn-circle">×</button>
+                    `;
+
+                    container.appendChild(tag);
+                    input.value = '';
+                }
+
+                // Remove keyword tag
+                function removeKeyword(button, keyword) {
+                    const hiddenInput = document.getElementById('keywords-hidden');
+                    let keywords = hiddenInput.value ? hiddenInput.value.split(',') : [];
+
+                    keywords = keywords.filter(k => k !== keyword);
+                    hiddenInput.value = keywords.join(',');
+
+                    button.closest('.keyword-tag').remove();
+                }
+
+                // Allow Enter key to add keyword
+                const keywordInput = document.getElementById('keyword-input');
+                if (keywordInput) {
+                    keywordInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addKeyword();
+                        }
+                    });
+                }
+
+                // ========== MUNICIPALITY TAGS FUNCTIONS ==========
+
+                function addMunicipio() {
+                    const input = document.getElementById('municipio-input');
+                    const municipio = input.value.trim();
+
+                    if (!municipio) return;
+
+                    const container = document.getElementById('municipios-container');
+                    const hiddenInput = document.getElementById('municipios-hidden');
+
+                    const current = hiddenInput.value ? hiddenInput.value.split(',') : [];
+
+                    if (current.includes(municipio)) {
+                        input.value = '';
+                        return;
+                    }
+
+                    current.push(municipio);
+                    hiddenInput.value = current.join(',');
+
+                    const tag = document.createElement('span');
+                    tag.className = 'badge badge-primary gap-1';
+                    tag.innerHTML = `
+                        ${municipio}
+                        <button type="button" onclick="removeMunicipio(this, '${municipio}')" 
+                            class="btn btn-ghost btn-xs btn-circle">×</button>
+                    `;
+
+                    container.appendChild(tag);
+                    input.value = '';
+                }
+
+                function removeMunicipio(button, municipio) {
+                    const hiddenInput = document.getElementById('municipios-hidden');
+                    let municipios = hiddenInput.value ? hiddenInput.value.split(',') : [];
+
+                    municipios = municipios.filter(m => m !== municipio);
+                    hiddenInput.value = municipios.join(',');
+
+                    button.closest('.badge').remove();
+                }
+
+                const municipioInput = document.getElementById('municipio-input');
+                if (municipioInput) {
+                    municipioInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addMunicipio();
+                        }
+                    });
+                }
+
+                // ========== VALUE FILTER TOGGLE ==========
+
+                function toggleValueFilter() {
+                    const toggle = document.getElementById('value-filter-toggle');
+                    const fields = document.getElementById('value-filter-fields');
+                    const minInput = document.getElementById('min-value-input');
+                    const maxInput = document.getElementById('max-value-input');
+
+                    if (toggle.checked) {
+                        fields.classList.remove('hidden');
+                        minInput.disabled = false;
+                        maxInput.disabled = false;
+                    } else {
+                        fields.classList.add('hidden');
+                        minInput.disabled = true;
+                        maxInput.disabled = true;
+                        // Reset to defaults
+                        minInput.value = 0;
+                        maxInput.value = 999999999;
+                    }
+                }
+
                 // Switch between Magic and Manual modes
                 function switchMode(mode) {
                     currentMode = mode;
@@ -735,10 +899,24 @@
 
                     const prefs = aiGeneratedPrefs;
 
-                    // Fill keywords
-                    const keywordsInput = document.querySelector('[name="keywords"]');
-                    if (keywordsInput) {
-                        keywordsInput.value = prefs.keywords.join(', ');
+                    // Fill keywords as tags
+                    const keywordsHidden = document.getElementById('keywords-hidden');
+                    const keywordsContainer = document.getElementById('keywords-container');
+
+                    if (keywordsHidden && prefs.keywords) {
+                        keywordsHidden.value = prefs.keywords.join(',');
+                        keywordsContainer.innerHTML = ''; // Clear existing
+
+                        prefs.keywords.forEach(keyword => {
+                            const tag = document.createElement('span');
+                            tag.className = 'badge badge-lg gap-2 keyword-tag';
+                            tag.innerHTML = `
+                                ${keyword}
+                                <button type="button" onclick="removeKeyword(this, '${keyword}')" 
+                                    class="btn btn-ghost btn-xs btn-circle">×</button>
+                            `;
+                            keywordsContainer.appendChild(tag);
+                        });
                     }
 
                     // Check UF checkboxes
@@ -746,23 +924,46 @@
                         checkbox.checked = prefs.preferred_ufs.includes(checkbox.value);
                     });
 
-                    // Fill municipios
-                    const municipiosInput = document.querySelector('[name="preferred_municipios"]');
-                    if (municipiosInput && prefs.preferred_municipios) {
-                        municipiosInput.value = prefs.preferred_municipios.join(', ');
+                    // Fill municipios as tags
+                    const municipiosHidden = document.getElementById('municipios-hidden');
+                    const municipiosContainer = document.getElementById('municipios-container');
+
+                    if (municipiosHidden && prefs.preferred_municipios) {
+                        municipiosHidden.value = prefs.preferred_municipios.join(',');
+                        municipiosContainer.innerHTML = ''; // Clear existing
+
+                        prefs.preferred_municipios.forEach(mun => {
+                            const tag = document.createElement('span');
+                            tag.className = 'badge badge-primary gap-1';
+                            tag.innerHTML = `
+                                ${mun}
+                                <button type="button" onclick="removeMunicipio(this, '${mun}')" 
+                                    class="btn btn-ghost btn-xs btn-circle">×</button>
+                            `;
+                            municipiosContainer.appendChild(tag);
+                        });
                     }
 
-                    // Check modalidades
+                    // Check modalidades (with defaults: Pregão and Dispensa)
                     document.querySelectorAll('[name="preferred_modalidades"]').forEach(checkbox => {
                         checkbox.checked = prefs.preferred_modalidades.includes(checkbox.value);
                     });
 
-                    // Set values
-                    const minValueInput = document.querySelector('[name="min_value"]');
-                    if (minValueInput) minValueInput.value = prefs.min_value;
+                    // Set values with toggle
+                    const minValueInput = document.getElementById('min-value-input');
+                    const maxValueInput = document.getElementById('max-value-input');
+                    const valueToggle = document.getElementById('value-filter-toggle');
 
-                    const maxValueInput = document.querySelector('[name="max_value"]');
+                    if (minValueInput) minValueInput.value = prefs.min_value;
                     if (maxValueInput) maxValueInput.value = prefs.max_value;
+
+                    // Enable toggle if values are not default
+                    if (prefs.min_value > 0 || prefs.max_value < 999999999) {
+                        if (valueToggle) {
+                            valueToggle.checked = true;
+                            toggleValueFilter();
+                        }
+                    }
 
                     // Switch to manual mode
                     switchMode('manual');

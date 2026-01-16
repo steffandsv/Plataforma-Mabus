@@ -72,9 +72,11 @@ TAREFA:
    - Termos técnicos da área
    - Sinônimos e variações
 
-2. MODALIDADES: Identifique as modalidades de licitação mais comuns para este tipo de empresa (ex: Pregão, Concorrência, Dispensa, etc)
+2. MODALIDADES: Identifique as modalidades de licitação mais comuns para este tipo de empresa (ex: Pregão, Concorrência, Dispensa, etc). Se houver d\u00favida, retorne ["Pregão", "Dispensa"] como padrão.
 
-3. VALORES: Sugira valores mínimo e máximo adequados baseando-se no porte:
+3. MUNICÍPIOS: Liste o município da empresa + até 5 municípios vizinhos/próximos do mesmo estado (importante para personalização regional)
+
+4. VALORES: Sugira valores mínimo e máximo adequados baseando-se no porte:
    - MEI: até R$ 100.000
    - MICROEMPRESA: até R$ 500.000  
    - PEQUENO PORTE: até R$ 2.000.000
@@ -86,6 +88,7 @@ IMPORTANTE: Retorne APENAS um JSON válido, sem texto adicional, no formato:
 {
   "keywords": ["palavra1", "palavra2", ...],
   "modalidades": ["Pregão", ...],
+  "municipios_vizinhos": ["Município Origem", "Município Vizinho 1", ...],
   "min_value": 0,
   "max_value": 500000,
   "reasoning": "Esta empresa de [ramo] tipicamente participa de licitações para..."
@@ -120,12 +123,20 @@ IMPORTANTE: Retorne APENAS um JSON válido, sem texto adicional, no formato:
             preferredUFs.push(...ESTADOS_FRONTEIRAS[uf]);
         }
 
+        // Processar municípios (origem + vizinhos da IA)
+        let municipios = [municipio];
+        if (aiPreferences.municipios_vizinhos && Array.isArray(aiPreferences.municipios_vizinhos)) {
+            municipios = aiPreferences.municipios_vizinhos;
+        }
+
         // Resultado final
         const result = {
             keywords: aiPreferences.keywords || [],
             preferred_ufs: [...new Set(preferredUFs)], // Remove duplicatas
-            preferred_municipios: [municipio],
-            preferred_modalidades: aiPreferences.modalidades || ['Pregão'],
+            preferred_municipios: municipios.filter(m => m), // Remove vazios
+            preferred_modalidades: aiPreferences.modalidades && aiPreferences.modalidades.length > 0
+                ? aiPreferences.modalidades
+                : ['Pregão', 'Dispensa'], // Default
             min_value: aiPreferences.min_value || 0,
             max_value: aiPreferences.max_value || 999999999,
             reasoning: aiPreferences.reasoning || 'Preferências baseadas nos CNAEs da empresa.',
@@ -158,7 +169,7 @@ IMPORTANTE: Retorne APENAS um JSON válido, sem texto adicional, no formato:
             keywords: [],
             preferred_ufs: [...new Set(preferredUFs)],
             preferred_municipios: municipio ? [municipio] : [],
-            preferred_modalidades: ['Pregão'],
+            preferred_modalidades: ['Pregão', 'Dispensa'], // Default
             min_value: 0,
             max_value: 999999999,
             reasoning: 'Não foi possível gerar sugestões com IA. Configure manualmente as palavras-chave.',
