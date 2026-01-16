@@ -734,19 +734,16 @@
 
                 try {
                     const center = marker.getLatLng();
-                    const radiusMeters = document.getElementById('searchRadius').value * 1000;
 
-                    // Overpass API query - Search ONLY for matching businesses
-                    const overpassQuery = `[out:json][timeout:25];
+                    // SMART SEARCH: Priority to named places only (fastest)
+                    const radiusMeters = Math.min(document.getElementById('searchRadius').value * 1000, 3000); // Max 3km
+
+                    const overpassQuery = `[out:json][timeout:8];
 (
   node["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
   way["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-  node["shop"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-  way["shop"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-  node["amenity"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-  way["amenity"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
 );
-out center 50;`;
+out center 15;`;
 
                     const overpassUrl = 'https://overpass-api.de/api/interpreter';
                     const response = await fetch(overpassUrl, {
@@ -758,7 +755,10 @@ out center 50;`;
                     });
 
                     if (!response.ok) {
-                        throw new Error(`API retornou status ${response.status}`);
+                        let errorMsg = `API retornou status ${response.status}`;
+                        if (response.status === 504) errorMsg = 'Muitos resultados. Tente termo mais específico';
+                        if (response.status === 429) errorMsg = 'Muitas buscas. Aguarde alguns segundos';
+                        throw new Error(errorMsg);
                     }
 
                     const data = await response.json();
@@ -768,16 +768,9 @@ out center 50;`;
                         return;
                     }
 
-                    // Filter and process results
-                    let processedCount = 0;
-                    const maxResults = 50;
-
-                    data.elements.forEach((element, idx) => {
-                        if (processedCount >= maxResults) return;
-
-                        let lat, lon, name, type;
-
-                        // Get coordinates
+                    // SMART PROCESSING: Sort by distance and show only best results
+                    const processedResults = data.elements.map(element => {
+                        let lat, lon;
                         if (element.lat && element.lon) {
                             lat = element.lat;
                             lon = element.lon;
@@ -785,14 +778,17 @@ out center 50;`;
                             lat = element.center.lat;
                             lon = element.center.lon;
                         } else {
-                            return; // Skip if no coordinates
+                            return null;
                         }
 
-                        // Get name and type
-                        name = element.tags?.name || element.tags?.shop || element.tags?.amenity || 'Local';
-                        type = element.tags?.shop || element.tags?.amenity || element.type;
+                        const name = element.tags?.name || element.tags?.shop || element.tags?.amenity || 'Local';
+                        const type = element.tags?.shop || element.tags?.amenity || element.type;
+                        const distance = map.distance([center.lat, center.lng], [lat, lon]);
 
-                        // Create custom icon
+                        return { lat, lon, name, type, distance, tags: element.tags };
+                    }).filter(r => r !== null).sort((a, b) => a.distance - b.distance).slice(0, 15);
+
+                    processedResults.forEach(result => {
                         const icon = L.icon({
                             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -802,31 +798,28 @@ out center 50;`;
                             shadowSize: [41, 41]
                         });
 
-                        // Create marker
-                        const searchMarker = L.marker([lat, lon], { icon: icon }).addTo(map);
+                        const searchMarker = L.marker([result.lat, result.lon], { icon: icon }).addTo(map);
+                        const distKm = (result.distance / 1000).toFixed(1);
 
-                        // Create popup content
                         const popupContent = `
-                            <div class="text-sm">
-                                <strong>${name}</strong><br/>
-                                ${type ? `<span class="badge badge-sm badge-ghost">${type}</span><br/>` : ''}
-                                ${element.tags?.['addr:street'] ? `📍 ${element.tags['addr:street']}${element.tags['addr:housenumber'] ? ', ' + element.tags['addr:housenumber'] : ''}<br/>` : ''}
-                                ${element.tags?.phone ? `📞 ${element.tags.phone}<br/>` : ''}
-                                ${element.tags?.website ? `<a href="${element.tags.website}" target="_blank" class="link link-primary">Website</a>` : ''}
+                            <div class="text-sm" style="min-width:150px;">
+                                <strong>${result.name}</strong><br/>
+                                ${result.type ? `<span class="badge badge-sm badge-ghost mt-1">${result.type}</span><br/>` : ''}
+                                <small class="text-primary">📍 ${distKm} km</small><br/>
+                                ${result.tags?.['addr:street'] ? `<small>🏠 ${result.tags['addr:street']}${result.tags['addr:housenumber'] ? ', ' + result.tags['addr:housenumber'] : ''}</small><br/>` : ''}
+                                ${result.tags?.phone ? `<small>📞 ${result.tags.phone}</small><br/>` : ''}
+                                ${result.tags?.website ? `<a href="${result.tags.website}" target="_blank" class="link link-primary text-xs">Website</a>` : ''}
                             </div>
                         `;
 
                         searchMarker.bindPopup(popupContent);
                         searchMarkers.push(searchMarker);
-                        processedCount++;
                     });
 
-                    if (processedCount === 0) {
+                    if (processedResults.length === 0) {
                         document.getElementById('searchStatus').textContent = `❌ Nenhum resultado para "${query}"`;
                     } else {
-                        document.getElementById('searchStatus').textContent = `✅ ${processedCount} resultado(s) encontrado(s)`;
-
-                        // Fit map to show all markers
+                        document.getElementById('searchStatus').textContent = `✅ ${processedResults.length} principal(is)`;
                         const group = L.featureGroup([marker, ...searchMarkers]);
                         map.fitBounds(group.getBounds().pad(0.1));
                     }
