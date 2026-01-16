@@ -105,38 +105,20 @@
                                         <input type="date" name="dataFinal" required class="input input-bordered">
                                     </div>
 
-                                    <div class="form-control mb-4">
-                                        <label class="label">
-                                            <span class="label-text">Modalidade</span>
-                                        </label>
-                                        <select name="codigoModalidadeContratacao" class="select select-bordered"
-                                            required>
-                                            <option value="8" selected>Dispensa (mais comum)</option>
-                                            <option value="6">Pregão Eletrônico</option>
-                                            <option value="7">Pregão Presencial</option>
-                                            <option value="4">Concorrência Eletrônica</option>
-                                            <option value="5">Concorrência Presencial</option>
-                                            <option value="1">Leilão Eletrônico</option>
-                                            <option value="2">Diálogo Competitivo</option>
-                                            <option value="3">Concurso</option>
-                                        </select>
-                                        <label class="label">
-                                            <span class="label-text-alt">Escolha a modalidade das licitações para
-                                                importar</span>
-                                        </label>
+                                    <div class="alert alert-info mb-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                            class="stroke-current shrink-0 w-6 h-6">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span>
+                                            <strong>Modo Genial Ativado:</strong> O sistema importará automaticamente
+                                            TODAS as licitações de
+                                            <span class="badge badge-neutral">Dispensa (8)</span> e
+                                            <span class="badge badge-neutral">Pregão Eletrônico (6)</span>.
+                                        </span>
                                     </div>
-
-                                    <div class="form-control mb-4">
-                                        <label class="label">
-                                            <span class="label-text">Máximo de Páginas</span>
-                                        </label>
-                                        <input type="number" name="maxPages" value="10" min="1" max="100"
-                                            class="input input-bordered">
-                                        <label class="label">
-                                            <span class="label-text-alt">50 licitações por página (máximo da API). Use
-                                                com moderação para não sobrecarregar a API PNCP.</span>
-                                        </label>
-                                    </div>
+                                    <input type="hidden" name="massMode" value="true">
 
                                     <div class="alert alert-warning mb-4">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6"
@@ -144,8 +126,8 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
-                                        <span>A importação é executada em background. O processamento pode levar alguns
-                                            minutos dependendo do volume.</span>
+                                        <span>A importação é executada em background e pode demorar dependendo do volume
+                                            de dados.</span>
                                     </div>
 
                                     <button type="submit" class="btn btn-primary w-full">
