@@ -60,6 +60,14 @@
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Glass Panel - Base for dropdowns (tema escuro) */
+.glass-panel {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* Chromatic Aberration / Dispersion Effect on Hover */
 .glass-studio::before {
     content: "";
