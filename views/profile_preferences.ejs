@@ -1,0 +1,194 @@
+<%- include('partials/head') %>
+    <%- include('partials/header') %>
+
+        <div class="container mx-auto px-4 py-8 max-w-4xl">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold">⚙️ Preferências de Licitações</h1>
+                <a href="/licitacoes" class="btn btn-ghost">← Voltar</a>
+            </div>
+
+            <form method="POST" class="space-y-6">
+                <!-- Palavras-chave -->
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title">🔑 Palavras-chave de Interesse</h3>
+                        <p class="text-sm opacity-70 mb-3">Digite palavras-chave separadas por vírgula.
+                            Licita\u00e7\u00f5es que cont\u00e9m estas palavras ter\u00e3o maior relev\u00e2ncia no seu
+                            feed.</p>
+                        <input type="text" name="keywords"
+                            value="<%= preferences && preferences.keywords ? preferences.keywords.join(', ') : '' %>"
+                            class="input input-bordered w-full"
+                            placeholder="notebook, computador, impressora, mob\u00edlio...">
+                        <div class="text-xs opacity-60 mt-2">Exemplos: laptop, escolar, material de expediente</div>
+                    </div>
+                </div>
+
+                <!-- Localizações -->
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title">📍 Localizações Preferidas</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Estados (UF) - Selecione
+                                        m\u00faltiplos</span>
+                                </label>
+                                <% const selectedUFs=preferences && preferences.preferred_ufs ?
+                                    preferences.preferred_ufs : []; %>
+                                    <% const allUFs=['AC', 'AL' , 'AP' , 'AM' , 'BA' , 'CE' , 'DF' , 'ES' , 'GO' , 'MA'
+                                        , 'MT' , 'MS' , 'MG' , 'PA' , 'PB' , 'PR' , 'PE' , 'PI' , 'RJ' , 'RN' , 'RS'
+                                        , 'RO' , 'RR' , 'SC' , 'SP' , 'SE' , 'TO' ]; %>
+                                        <div
+                                            class="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 border border-base-300 rounded-lg">
+                                            <% allUFs.forEach(uf=> { %>
+                                                <label class="cursor-pointer label justify-start gap-2 p-1">
+                                                    <input type="checkbox" name="preferred_ufs" value="<%= uf %>"
+                                                        class="checkbox checkbox-xs checkbox-primary"
+                                                        <%=selectedUFs.includes(uf) ? 'checked' : '' %>>
+                                                    <span class="label-text text-xs">
+                                                        <%= uf %>
+                                                    </span>
+                                                </label>
+                                                <% }) %>
+                                        </div>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Munic\u00edpios Espec\u00edficos
+                                        (opcional)</span>
+                                </label>
+                                <input type="text" name="preferred_municipios"
+                                    value="<%= preferences && preferences.preferred_municipios ? preferences.preferred_municipios.join(', ') : '' %>"
+                                    class="input input-bordered w-full" placeholder="S\u00e3o Paulo, Rio de Janeiro...">
+                                <div class="text-xs opacity-60 mt-1">Separar por v\u00edrgula</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modalidades -->
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title">📋 Modalidades Preferidas</h3>
+                        <p class="text-sm opacity-70 mb-3">Selecione os tipos de licita\u00e7\u00f5es que mais lhe
+                            interessam</p>
+                        <% const selectedMods=preferences && preferences.preferred_modalidades ?
+                            preferences.preferred_modalidades : []; %>
+                            <div class="flex flex-wrap gap-3">
+                                <% ['Preg\u00e3o', 'Concorr\u00eancia' , 'Dispensa' , 'Inexigibilidade' , 'Concurso'
+                                    , 'Leil\u00e3o' ].forEach(mod=> { %>
+                                    <label
+                                        class="cursor-pointer label gap-2 bg-base-100 px-4 py-2 rounded-lg hover:bg-base-300 transition-colors">
+                                        <input type="checkbox" name="preferred_modalidades" value="<%= mod %>"
+                                            class="checkbox checkbox-primary" <%=selectedMods.includes(mod) ? 'checked'
+                                            : '' %>>
+                                        <span class="label-text font-medium">
+                                            <%= mod %>
+                                        </span>
+                                    </label>
+                                    <% }) %>
+                            </div>
+                    </div>
+                </div>
+
+                <!-- Faixa de Valores -->
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title">💰 Faixa de Valores de Interesse</h3>
+                        <p class="text-sm opacity-70 mb-3">Defina o intervalo de valores estimados que deseja visualizar
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Valor M\u00ednimo (R$)</span>
+                                </label>
+                                <input type="number" name="min_value"
+                                    value="<%= preferences && preferences.min_value ? preferences.min_value : 0 %>"
+                                    class="input input-bordered w-full" min="0" step="0.01">
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Valor M\u00e1ximo (R$)</span>
+                                </label>
+                                <input type="number" name="max_value"
+                                    value="<%= preferences && preferences.max_value ? preferences.max_value : 999999999 %>"
+                                    class="input input-bordered w-full" min="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="text-xs opacity-60 mt-2">💡 Dica: Deixe 0 no m\u00ednimo e um valor alto no
+                            m\u00e1ximo para ver todos os valores</div>
+                    </div>
+                </div>
+
+                <!-- View Preferences -->
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title">👁️ Prefer\u00eancias de Visualiza\u00e7\u00e3o</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Modo de Visualiza\u00e7\u00e3o
+                                        Padr\u00e3o</span>
+                                </label>
+                                <select name="default_view_mode" class="select select-bordered w-full">
+                                    <option value="story" <%=preferences && preferences.default_view_mode==='story'
+                                        ? 'selected' : '' %>>
+                                        📱 Story Feed (Vertical)
+                                    </option>
+                                    <option value="grid" <%=preferences && preferences.default_view_mode==='grid'
+                                        ? 'selected' : '' %>>
+                                        📊 Grid View (Cards)
+                                    </option>
+                                </select>
+                                <div class="text-xs opacity-60 mt-1">Escolha como prefere visualizar as
+                                    licita\u00e7\u00f5es</div>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Cards por linha (Grid Mode)</span>
+                                </label>
+                                <% const cardsPerRow=preferences && preferences.cards_per_row ?
+                                    preferences.cards_per_row : 3; %>
+                                    <input type="range" name="cards_per_row" min="2" max="4" value="<%= cardsPerRow %>"
+                                        class="range range-primary" step="1"
+                                        oninput="document.getElementById('cards-value').textContent = this.value">
+                                    <div class="w-full flex justify-between text-xs px-2 mt-1">
+                                        <span>2</span>
+                                        <span>3</span>
+                                        <span>4</span>
+                                    </div>
+                                    <div class="text-center text-sm mt-2">
+                                        Selecionado: <strong id="cards-value">
+                                            <%= cardsPerRow %>
+                                        </strong> cards
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-end">
+                    <a href="/licitacoes" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary gap-2">
+                        <i class="fas fa-save"></i>
+                        Salvar Prefer\u00eancias
+                    </button>
+                </div>
+            </form>
+
+            <div class="alert alert-info mt-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    class="stroke-current shrink-0 w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <div class="font-bold">Como funciona a personaliza\u00e7\u00e3o?</div>
+                    <div class="text-sm">Suas prefer\u00eancias ser\u00e3o usadas para calcular um score de
+                        relev\u00e2ncia (0-100%) para cada licita\u00e7\u00e3o. Quanto maior o match, mais relevante a
+                        oportunidade para voc\u00ea!</div>
+                </div>
+            </div>
+        </div>
+
+        <%- include('partials/footer') %>

@@ -38,13 +38,31 @@ const {
     setSetting,
     createNotification,
     getUnreadNotifications,
-    markNotificationAsRead
+    markNotificationAsRead,
+    // Licitações
+    getLicitacoes,
+    getLicitacaoById,
+    getLicitacaoItens,
+    getLicitacaoArquivos,
+    createSyncControl,
+    updateSyncControl,
+    getActiveSyncControl,
+    getLatestSyncControl,
+    // Preferences & Personalization
+    getUserLicitacoesPreferences,
+    updateUserLicitacoesPreferences,
+    getPersonalizedLicitacoes,
+    saveUserLicitacao,
+    unsaveUserLicitacao,
+    getUserSavedLicitacoes,
+    isLicitacaoSaved
 } = require('./src/database');
 const { startWorker } = require('./src/worker');
 const { generateExcelBuffer } = require('./src/export');
 const { processPDF } = require('./src/services/tr_processor');
 const { fetchModels } = require('./src/services/ai_manager');
 const { extractItemsFromPdf } = require('./src/services/pdf_parser');
+const licitacoesImporter = require('./src/services/licitacoes_importer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -104,9 +122,9 @@ app.use(async (req, res, next) => {
         if (!res.locals.user) {
             req.session.destroy();
         } else {
-             // Fetch Notifications for SSR
-             const notifications = await getUnreadNotifications(req.session.userId);
-             res.locals.notifications = notifications;
+            // Fetch Notifications for SSR
+            const notifications = await getUnreadNotifications(req.session.userId);
+            res.locals.notifications = notifications;
         }
     }
     next();
@@ -169,15 +187,231 @@ app.get('/oracle', isAuthenticated, async (req, res) => {
         let initialOpportunity = null;
 
         if (req.query.id) {
-             const { getOpportunityById } = require('./src/database');
-             const opp = await getOpportunityById(req.query.id);
-             // Security check
-             if (opp && (opp.user_id === req.session.userId || (res.locals.user && res.locals.user.role ==='admin'))) {
-                 initialOpportunity = opp;
-             }
+            const { getOpportunityById } = require('./src/database');
+            const opp = await getOpportunityById(req.query.id);
+            // Security check
+            if (opp && (opp.user_id === req.session.userId || (res.locals.user && res.locals.user.role === 'admin'))) {
+                initialOpportunity = opp;
+            }
         }
         res.render('oracle', { history, initialOpportunity });
     } catch (e) {
+        res.status(500).send(e.message);
+    }
+});
+
+// === LICITAÇÕES MODULE (PNCP) ===
+
+app.get('/licitacoes', isAuthenticated, async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 50;
+        const offset = (page - 1) * limit;
+
+        // Get user preferences for default view mode
+        const prefs = await getUserLicitacoesPreferences(req.session.userId);
+        const viewMode = req.query.view || prefs.default_view_mode || 'story';
+
+        const filters = {
+            search: req.query.search,
+            cnpj_orgao: req.query.cnpj,
+            modalidade: req.query.modalidade
+        };
+
+        // Use personalized feed with scoring
+        const licitacoes = await getPersonalizedLicitacoes(
+            req.session.userId,
+            filters,
+            limit,
+            offset
+        );
+
+        const hasNext = licitacoes.length === limit;
+
+        res.render('licitacoes', {
+            licitacoes,
+            page,
+            hasNext,
+            filters,
+            viewMode,
+            preferences: prefs,
+            savedMode: false
+        });
+    } catch (e) {
+        console.error('[Licitações Route Error]:', e);
+        res.status(500).send(e.message);
+    }
+});
+
+app.get('/licitacoes/:id', isAuthenticated, async (req, res) => {
+    try {
+        const licitacao = await getLicitacaoById(req.params.id);
+        if (!licitacao) return res.status(404).send('Licitação não encontrada');
+
+        const itens = await getLicitacaoItens(licitacao.id);
+        const arquivos = await getLicitacaoArquivos(licitacao.id); // Added this line
+
+        // Parse raw_data_json if needed
+        if (licitacao.raw_data_json && typeof licitacao.raw_data_json === 'string') {
+            licitacao.raw_data = JSON.parse(licitacao.raw_data_json);
+        } else {
+            licitacao.raw_data = licitacao.raw_data_json;
+        }
+
+        res.render('licitacao_detail', { licitacao, itens, arquivos }); // Modified this line
+    } catch (e) {
+        console.error('[Licitação Detail Error]:', e);
+        res.status(500).send(e.message);
+    }
+});
+
+// Admin: Import Panel
+app.get('/admin/licitacoes/import', isAdmin, async (req, res) => {
+    try {
+        const activeSync = await getActiveSyncControl();
+        const latestSync = await getLatestSyncControl();
+        res.render('admin_licitacoes_import', { activeSync, latestSync });
+    } catch (e) {
+        console.error('[Admin Licitacoes Import Error]:', e);
+        res.status(500).send(e.message);
+    }
+});
+
+app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
+    try {
+        const { dataInicial, dataFinal, maxPages, codigoModalidadeContratacao } = req.body;
+
+        if (!dataInicial || !dataFinal) {
+            req.flash('error', 'Datas inicial e final são obrigatórias');
+            return res.redirect('/admin/licitacoes/import');
+        }
+
+        // Iniciar importação em background (non-blocking)
+        licitacoesImporter.importBatch({
+            dataInicial,
+            dataFinal,
+            maxPages: parseInt(maxPages) || 10,
+            codigoModalidadeContratacao: parseInt(codigoModalidadeContratacao) || 8
+        }).then(result => {
+            console.log('[Licitações] Importação concluída:', result);
+        }).catch(err => {
+            console.error('[Licitações] Erro na importação:', err);
+        });
+
+        req.flash('success', 'Importação iniciada! Acompanhe o progresso abaixo.');
+        res.redirect('/admin/licitacoes/import');
+
+    } catch (e) {
+        console.error('[Admin Import POST Error]:', e);
+        req.flash('error', e.message);
+        res.redirect('/admin/licitacoes/import');
+    }
+});
+
+// API: Sync Status (para polling no frontend)
+app.get('/api/licitacoes/sync-status', isAdmin, async (req, res) => {
+    try {
+        const sync = await getActiveSyncControl();
+        if (sync) {
+            res.json(sync);
+        } else {
+            const latest = await getLatestSyncControl();
+            res.json(latest || { status: 'idle' });
+        }
+    } catch (e) {
+        console.error('[Sync Status API Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// === PREFERENCES & PERSONALIZATION ROUTES ===
+
+// Profile Preferences Page
+app.get('/profile/preferences', isAuthenticated, async (req, res) => {
+    try {
+        const preferences = await getUserLicitacoesPreferences(req.session.userId);
+        res.render('profile_preferences', { preferences });
+    } catch (e) {
+        console.error('[Preferences Error]:', e);
+        res.status(500).send(e.message);
+    }
+});
+
+app.post('/profile/preferences', isAuthenticated, async (req, res) => {
+    try {
+        // Parse form data
+        const preferences = {
+            keywords: req.body.keywords ? req.body.keywords.split(',').map(k => k.trim()).filter(k => k) : [],
+            preferred_ufs: Array.isArray(req.body.preferred_ufs) ? req.body.preferred_ufs : (req.body.preferred_ufs ? [req.body.preferred_ufs] : []),
+            preferred_municipios: req.body.preferred_municipios ? req.body.preferred_municipios.split(',').map(m => m.trim()).filter(m => m) : [],
+            preferred_modalidades: Array.isArray(req.body.preferred_modalidades) ? req.body.preferred_modalidades : (req.body.preferred_modalidades ? [req.body.preferred_modalidades] : []),
+            min_value: parseFloat(req.body.min_value) || 0,
+            max_value: parseFloat(req.body.max_value) || 999999999,
+            preferred_esferas: Array.isArray(req.body.preferred_esferas) ? req.body.preferred_esferas : [],
+            preferred_poderes: Array.isArray(req.body.preferred_poderes) ? req.body.preferred_poderes : [],
+            default_view_mode: req.body.default_view_mode || 'story',
+            cards_per_row: parseInt(req.body.cards_per_row) || 3
+        };
+
+        await updateUserLicitacoesPreferences(req.session.userId, preferences);
+        req.flash('success', '💾 Preferências atualizadas com sucesso!');
+        res.redirect('/profile/preferences');
+    } catch (e) {
+        console.error('[Preferences Update Error]:', e);
+        req.flash('error', 'Erro ao salvar preferências: ' + e.message);
+        res.redirect('/profile/preferences');
+    }
+});
+
+// API: Save licitação
+app.post('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
+    try {
+        const saved = await saveUserLicitacao(req.session.userId, req.params.id, req.body.notes);
+        if (saved) {
+            res.json({ success: true, message: 'Oportunidade salva!' });
+        } else {
+            res.json({ success: false, message: 'Já estava salva' });
+        }
+    } catch (e) {
+        console.error('[Save Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Unsave licitação
+app.delete('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
+    try {
+        await unsaveUserLicitacao(req.session.userId, req.params.id);
+        res.json({ success: true, message: 'Removida dos salvos' });
+    } catch (e) {
+        console.error('[Unsave Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Saved Licitações Page
+app.get('/licitacoes/saved', isAuthenticated, async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 50;
+        const offset = (page - 1) * limit;
+
+        const licitacoes = await getUserSavedLicitacoes(req.session.userId, limit, offset);
+        const hasNext = licitacoes.length === limit;
+        const prefs = await getUserLicitacoesPreferences(req.session.userId);
+        const viewMode = req.query.view || prefs.default_view_mode || 'grid';
+
+        res.render('licitacoes', {
+            licitacoes,
+            page,
+            hasNext,
+            filters: {},
+            viewMode,
+            preferences: prefs,
+            savedMode: true
+        });
+    } catch (e) {
+        console.error('[Saved Licitacoes Error]:', e);
         res.status(500).send(e.message);
     }
 });
@@ -355,8 +589,8 @@ app.post('/api/process-tr', isAuthenticated, upload.array('pdfFiles'), async (re
 
         // Pass onThought callback that sends event
         const result = await processPDF(filePaths, (thoughtChunk) => {
-             // Clean up chunk if needed or just send raw
-             sendEvent('thought', { text: thoughtChunk });
+            // Clean up chunk if needed or just send raw
+            sendEvent('thought', { text: thoughtChunk });
         });
 
         // Clean up files (KEEPING FOR SNIPER IMPORT - Optional)
@@ -381,24 +615,24 @@ app.post('/api/process-tr', isAuthenticated, upload.array('pdfFiles'), async (re
         // Send Final Result WITH ID
         result.file_path = filePaths[0];
         result.id = newId; // Critical for frontend
-        result.unlocked_modules = []; 
+        result.unlocked_modules = [];
 
         // --- NOTIFICATION TRIGGER ---
         if (targetUserId) {
             await createNotification(
-                targetUserId, 
-                "Análise Concluída", 
-                `A análise do edital #${newId} foi finalizada. Clique para ver os detalhes estratégicos.`, 
+                targetUserId,
+                "Análise Concluída",
+                `A análise do edital #${newId} foi finalizada. Clique para ver os detalhes estratégicos.`,
                 `/oracle?id=${newId}` // We might handle query param in Oracle or just generic link
             );
-        } 
+        }
 
         sendEvent('result', result);
         res.write('event: end\ndata: "DONE"\n\n');
         res.end();
 
     } catch (e) {
-        filePaths.forEach(p => { if(fs.existsSync(p)) fs.unlinkSync(p); });
+        filePaths.forEach(p => { if (fs.existsSync(p)) fs.unlinkSync(p); });
         console.error("Oracle Error:", e);
         sendEvent('error', { message: e.message });
         res.end();
@@ -782,14 +1016,14 @@ app.get('/api/notifications', isAuthenticated, async (req, res) => {
     try {
         const notes = await getUnreadNotifications(req.session.userId);
         res.json(notes);
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/notifications/read/:id', isAuthenticated, async (req, res) => {
     try {
         await markNotificationAsRead(req.params.id);
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 

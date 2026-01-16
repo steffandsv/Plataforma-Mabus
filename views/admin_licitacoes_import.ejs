@@ -1,0 +1,237 @@
+<%- include('partials/head') %>
+    <%- include('partials/header') %>
+
+        <div class="container mx-auto px-4 py-8">
+            <div class="mb-6">
+                <a href="/admin/dashboard" class="btn btn-ghost btn-sm">← Voltar para Admin</a>
+            </div>
+
+            <h1 class="text-3xl font-bold mb-6">⚙️ Importar Licitações do PNCP</h1>
+
+            <% if (activeSync && activeSync.status==='running' ) { %>
+                <!-- Importação em Andamento -->
+                <div class="alert alert-info mb-6">
+                    <div class="flex-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            class="w-6 h-6 mx-2 stroke-current">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold">Importação em Andamento...</h3>
+                            <div class="text-sm">
+                                Período: <%= activeSync.data_inicial %> até <%= activeSync.data_final %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-base-100 shadow-xl mb-6">
+                    <div class="card-body">
+                        <h2 class="card-title">Progresso</h2>
+
+                        <!-- Progress Bar -->
+                        <progress class="progress progress-primary w-full" value="<%= activeSync.current_page %>"
+                            max="<%= activeSync.total_pages %>"></progress>
+
+                        <div class="stats shadow mt-4">
+                            <div class="stat">
+                                <div class="stat-title">Página</div>
+                                <div class="stat-value text-primary">
+                                    <%= activeSync.current_page %> / <%= activeSync.total_pages %>
+                                </div>
+                            </div>
+
+                            <div class="stat">
+                                <div class="stat-title">Importadas</div>
+                                <div class="stat-value text-success">
+                                    <%= activeSync.total_imported %>
+                                </div>
+                            </div>
+
+                            <div class="stat">
+                                <div class="stat-title">Duplicadas</div>
+                                <div class="stat-value text-warning">
+                                    <%= activeSync.total_duplicates %>
+                                </div>
+                            </div>
+
+                            <div class="stat">
+                                <div class="stat-title">Erros</div>
+                                <div class="stat-value text-error">
+                                    <%= activeSync.total_errors %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-sm text-gray-500 mt-4">
+                            Iniciado em: <%= new Date(activeSync.started_at).toLocaleString('pt-BR') %>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    // Auto-refresh a cada 3 segundos
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                </script>
+
+                <% } else { %>
+                    <!-- Form de Importação -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="card bg-base-100 shadow-xl">
+                            <div class="card-body">
+                                <h2 class="card-title">Nova Importação</h2>
+
+                                <form method="POST" action="/admin/licitacoes/import">
+                                    <div class="form-control mb-4">
+                                        <label class="label">
+                                            <span class="label-text">Data Inicial</span>
+                                        </label>
+                                        <input type="date" name="dataInicial" required class="input input-bordered">
+                                        <label class="label">
+                                            <span class="label-text-alt">Formato: YYYY-MM-DD</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-control mb-4">
+                                        <label class="label">
+                                            <span class="label-text">Data Final</span>
+                                        </label>
+                                        <input type="date" name="dataFinal" required class="input input-bordered">
+                                    </div>
+
+                                    <div class="form-control mb-4">
+                                        <label class="label">
+                                            <span class="label-text">Modalidade</span>
+                                        </label>
+                                        <select name="codigoModalidadeContratacao" class="select select-bordered"
+                                            required>
+                                            <option value="8" selected>Dispensa (mais comum)</option>
+                                            <option value="6">Pregão Eletrônico</option>
+                                            <option value="7">Pregão Presencial</option>
+                                            <option value="4">Concorrência Eletrônica</option>
+                                            <option value="5">Concorrência Presencial</option>
+                                            <option value="1">Leilão Eletrônico</option>
+                                            <option value="2">Diálogo Competitivo</option>
+                                            <option value="3">Concurso</option>
+                                        </select>
+                                        <label class="label">
+                                            <span class="label-text-alt">Escolha a modalidade das licitações para
+                                                importar</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-control mb-4">
+                                        <label class="label">
+                                            <span class="label-text">Máximo de Páginas</span>
+                                        </label>
+                                        <input type="number" name="maxPages" value="10" min="1" max="100"
+                                            class="input input-bordered">
+                                        <label class="label">
+                                            <span class="label-text-alt">50 licitações por página (máximo da API). Use
+                                                com moderação para não sobrecarregar a API PNCP.</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="alert alert-warning mb-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6"
+                                            fill="none" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <span>A importação é executada em background. O processamento pode levar alguns
+                                            minutos dependendo do volume.</span>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-full">
+                                        🚀 Iniciar Importação
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Última Importação -->
+                        <div>
+                            <% if (latestSync) { %>
+                                <div class="card bg-base-100 shadow-xl">
+                                    <div class="card-body">
+                                        <h2 class="card-title">Última Importação</h2>
+
+                                        <div
+                                            class="badge badge-lg <%= latestSync.status === 'completed' ? 'badge-success' : latestSync.status === 'failed' ? 'badge-error' : 'badge-warning' %>">
+                                            <%= latestSync.status.toUpperCase() %>
+                                        </div>
+
+                                        <div class="divider"></div>
+
+                                        <div class="space-y-2 text-sm">
+                                            <div>
+                                                <strong>Período:</strong>
+                                                <%= latestSync.data_inicial %> até <%= latestSync.data_final %>
+                                            </div>
+                                            <div>
+                                                <strong>Importadas:</strong> <span class="text-success font-bold">
+                                                    <%= latestSync.total_imported %>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <strong>Duplicadas:</strong> <span class="text-warning font-bold">
+                                                    <%= latestSync.total_duplicates %>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <strong>Erros:</strong> <span class="text-error font-bold">
+                                                    <%= latestSync.total_errors %>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <strong>Páginas processadas:</strong>
+                                                <%= latestSync.current_page %>/<%= latestSync.total_pages %>
+                                            </div>
+                                            <div class="text-xs text-gray-500 mt-4">
+                                                Iniciado: <%= new Date(latestSync.started_at).toLocaleString('pt-BR') %>
+                                                    <br>
+                                                    <% if (latestSync.finished_at) { %>
+                                                        Finalizado: <%= new
+                                                            Date(latestSync.finished_at).toLocaleString('pt-BR') %>
+                                                            <% } %>
+                                            </div>
+
+                                            <% if (latestSync.error_message) { %>
+                                                <div class="alert alert-error mt-4">
+                                                    <span class="text-xs">
+                                                        <%= latestSync.error_message %>
+                                                    </span>
+                                                </div>
+                                                <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% } else { %>
+                                    <div class="card bg-base-200">
+                                        <div class="card-body">
+                                            <p class="text-gray-500">Nenhuma importação realizada ainda.</p>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <!-- Dicas -->
+                                        <div class="card bg-base-100 shadow mt-4">
+                                            <div class="card-body">
+                                                <h3 class="font-bold">💡 Dicas</h3>
+                                                <ul class="text-sm space-y-1 list-disc list-inside">
+                                                    <li>Importe períodos pequenos (1-7 dias) para começar</li>
+                                                    <li>O sistema detecta duplicatas automaticamente</li>
+                                                    <li>Rate limit: ~4 requisições/segundo</li>
+                                                    <li>Máx. 500 licitações por página</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                        </div>
+                    </div>
+                    <% } %>
+        </div>
+
+        <%- include('partials/footer') %>

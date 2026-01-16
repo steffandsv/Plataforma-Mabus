@@ -1,0 +1,507 @@
+/* ============================================
+   DOPAMINE ENGINE - Visual Neuroscience CSS
+   Architect of Engagement & Flow States
+   ============================================ */
+
+/* Gradient Palette - Neurociência das Cores */
+:root {
+    --gradient-fire: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-ocean: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --gradient-sunset: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --gradient-forest: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+    --gradient-gold: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+
+    --shadow-glow: 0 0 20px rgba(255, 105, 180, 0.3);
+    --shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   STORY FEED MODE - Vertical Engagement
+   ============================================ */
+
+.story-feed-container {
+    position: relative;
+    perspective: 1000px;
+    background: linear-gradient(180deg,
+            color-mix(in oklch, oklch(from transparent) transparent, oklch(var(--b1)) 100%) 0%,
+            color-mix(in oklch, oklch(var(--b3)), oklch(var(--b1)) 50%) 100%);
+    /* Mobile: Fixed height */
+    height: 80vh;
+}
+
+/* Desktop: Full available height */
+@media (min-width: 1024px) {
+    .story-feed-container {
+        height: 100%;
+        max-height: 100%;
+    }
+}
+
+.story-cards-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.story-card {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100vh) rotateX(-15deg);
+    width: 90%;
+    max-width: 600px;
+    height: 95%;
+    background: oklch(var(--b1));
+    border-radius: 24px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 24px;
+    overflow-y: auto;
+    border: 2px solid oklch(var(--bc) / 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.story-card.active {
+    transform: translateX(-50%) translateY(0) rotateX(0deg) scale(1);
+    opacity: 1;
+    z-index: 10;
+}
+
+.story-card.prev {
+    transform: translateX(-50%) translateY(-120%) rotateX(15deg) scale(0.9);
+    opacity: 0.5;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.story-card.next {
+    transform: translateX(-50%) translateY(120%) rotateX(-15deg) scale(0.9);
+    opacity: 0.3;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Score Badge with Pulse Effect */
+.score-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--gradient-ocean);
+    box-shadow: var(--shadow-glow);
+    animation: pulse-glow 2s ease-in-out infinite;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.score-badge.high {
+    background: var(--gradient-fire);
+}
+
+.score-badge.medium {
+    background: var(--gradient-sunset);
+}
+
+.score-badge.low {
+    background: var(--gradient-ocean);
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(255, 105, 180, 0.8);
+        transform: scale(1.05);
+    }
+}
+
+.score-number {
+    font-size: 28px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.score-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Card Header */
+.story-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid oklch(var(--bc) / 0.1);
+}
+
+.org-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--gradient-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 20px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Value Spotlight */
+.value-spotlight {
+    background: var(--gradient-sunset);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+    box-shadow: var(--shadow-strong);
+    position: relative;
+    overflow: hidden;
+}
+
+.value-spotlight::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.3) 50%,
+            transparent 70%);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.value-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    position: relative;
+    z-index: 1;
+}
+
+.value-amount {
+    font-size: 36px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    margin-top: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Object Description */
+.object-description {
+    background: oklch(var(--b2) / 0.5);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    border-left: 4px solid oklch(var(--p));
+}
+
+.object-description p[data-keywords] {
+    line-height: 1.6;
+}
+
+/* Keyword Highlighting (rendered by JS) */
+.keyword-highlight {
+    background: linear-gradient(120deg,
+            rgba(255, 215, 0, 0.3),
+            rgba(255, 105, 180, 0.3));
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+/* Info Pills */
+.info-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+}
+
+.pill {
+    background: oklch(var(--b2) / 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid oklch(var(--bc) / 0.2);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Story Actions */
+.story-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+.action-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 2px solid oklch(var(--bc) / 0.2);
+    background: oklch(var(--b2) / 0.5);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    color: oklch(var(--bc));
+}
+
+.action-btn:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.action-btn:active {
+    transform: translateY(-2px) scale(1.02);
+}
+
+.action-btn i {
+    font-size: 24px;
+}
+
+.skip-btn:hover {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: rgba(255, 0, 0, 0.5);
+}
+
+.details-btn:hover {
+    background: var(--gradient-ocean);
+    border-color: transparent;
+    color: white;
+}
+
+.save-btn:hover {
+    background: var(--gradient-fire);
+    border-color: transparent;
+    color: white;
+    animation: heart-beat 0.6s ease-in-out;
+}
+
+@keyframes heart-beat {
+
+    0%,
+    100% {
+        transform: translateY(-4px) scale(1.05);
+    }
+
+    50% {
+        transform: translateY(-4px) scale(1.15);
+    }
+}
+
+/* Progress Indicator */
+.progress-indicator {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+}
+
+/* Swipe Hints */
+.swipe-hints {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    animation: hint-fade 3s ease-in-out 1s forwards;
+}
+
+@keyframes hint-fade {
+
+    0%,
+    90% {
+        opacity: 0.7;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.hint-up,
+.hint-down {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    margin: 40px 0;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+.hint-up {
+    animation-delay: 0s;
+}
+
+.hint-down {
+    animation-delay: 0.5s;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* ============================================
+   GRID VIEW MODE - Productivity Layout
+   ============================================ */
+
+.grid-card {
+    position: relative;
+    cursor: pointer;
+}
+
+.grid-card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    animation: overlay-appear 0.3s ease-out;
+}
+
+@keyframes overlay-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ============================================
+   SHARED ANIMATIONS
+   ============================================ */
+
+.pulse-animation {
+    animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 oklch(var(--p) / 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px oklch(var(--p) / 0);
+    }
+}
+
+.animate-count-up {
+    animation: count-up 1s ease-out;
+}
+
+@keyframes count-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .story-card {
+        width: 95%;
+        padding: 16px;
+    }
+
+    .value-amount {
+        font-size: 28px;
+    }
+
+    .score-badge {
+        width: 60px;
+        height: 60px;
+    }
+
+    .score-number {
+        font-size: 20px;
+    }
+
+    .story-actions {
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 120px;
+    }
+}
