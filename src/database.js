@@ -377,6 +377,66 @@ async function initDB() {
             )
         `);
 
+        // --- USER CNPJ DATA TABLE (company information for personalization) ---
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_cnpj_data (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL UNIQUE,
+                
+                -- Identificação
+                cnpj VARCHAR(18) NOT NULL,
+                razao_social VARCHAR(500),
+                nome_fantasia VARCHAR(500),
+                
+                -- Situação Cadastral
+                situacao_cadastral VARCHAR(100),
+                data_situacao VARCHAR(20),
+                matriz_filial VARCHAR(20),
+                data_abertura VARCHAR(20),
+                
+                -- CNAEs (para matching com licitações)
+                cnae_principal VARCHAR(20),
+                cnae_principal_descricao TEXT,
+                cnaes_secundarios JSON,
+                
+                -- Endereço
+                logradouro VARCHAR(500),
+                numero VARCHAR(50),
+                complemento VARCHAR(200),
+                bairro VARCHAR(200),
+                cep VARCHAR(20),
+                municipio VARCHAR(200),
+                uf VARCHAR(2),
+                
+                -- Contatos
+                telefones JSON,
+                email VARCHAR(200),
+                
+                -- Informações Empresariais
+                capital_social DECIMAL(15,2),
+                porte_empresa VARCHAR(50),
+                natureza_juridica VARCHAR(200),
+                
+                -- Simples Nacional
+                optante_simples BOOLEAN DEFAULT FALSE,
+                optante_mei BOOLEAN DEFAULT FALSE,
+                
+                -- Sócios (JSON para flexibilidade)
+                socios JSON,
+                
+                -- Raw Data (backup completo da API)
+                raw_data JSON,
+                
+                -- Controle
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_cnpj (cnpj),
+                INDEX idx_cnae_principal (cnae_principal)
+            )
+        `);
+
         console.log('[Database] ✅ Tables created/verified');
 
         // Check for default admin
@@ -1301,10 +1361,11 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
     const p = await getPool();
     if (!p) return [];
 
-    // Get user preferences
+    // Get user preferences AND CNPJ data
     const prefs = await getUserLicitacoesPreferences(userId);
+    const cnpjData = await getUserCNPJData(userId);
 
-    // Build base query with scoring
+    // Build base query with enhanced scoring
     let sql = `
         SELECT l.*,
         (
@@ -1317,7 +1378,7 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
             )
             ` : '0'}
             +
-            -- LOCATION MATCH (30 points)
+            -- LOCATION MATCH (30 points base)
             (CASE 
                 ${prefs.preferred_ufs.length > 0 ?
             `WHEN l.uf_sigla IN (${prefs.preferred_ufs.map(() => '?').join(',')}) THEN 30`
@@ -1338,6 +1399,29 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
                 WHEN l.valor_estimado_total BETWEEN ? AND ? THEN 10
                 ELSE 0 
             END)
+            ${cnpjData ? `
+            +
+            -- CNAE PRINCIPAL MATCH (30 points bonus!)
+            (CASE 
+                WHEN ? IS NOT NULL AND (
+                    LOWER(l.objeto_compra) LIKE CONCAT('%', LOWER(?), '%')
+                    OR LOWER(l.informacao_complementar) LIKE CONCAT('%', LOWER(?), '%')
+                ) THEN 30
+                ELSE 0
+            END)
+            +
+            -- UF DA EMPRESA MATCH (15 points bonus!)
+            (CASE 
+                WHEN ? IS NOT NULL AND l.uf_sigla = ? THEN 15
+                ELSE 0
+            END)
+            +
+            -- MUNICÍPIO DA EMPRESA MATCH (25 points super bonus!)
+            (CASE 
+                WHEN ? IS NOT NULL AND LOWER(l.municipio_nome) = LOWER(?) THEN 25
+                ELSE 0
+            END)
+            ` : ''}
         ) AS relevance_score
         FROM licitacoes l
         WHERE 1=1
@@ -1363,6 +1447,19 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
     // Add value range params
     params.push(prefs.min_value || 0, prefs.max_value || 999999999);
 
+    // Add CNPJ-based params if available
+    if (cnpjData) {
+        // CNAE description for matching (3x for the 3 LIKE clauses)
+        const cnaeDesc = cnpjData.cnae_principal_descricao || '';
+        params.push(cnaeDesc, cnaeDesc, cnaeDesc);
+
+        // UF matching (2x)
+        params.push(cnpjData.uf, cnpjData.uf);
+
+        // Município matching (2x)
+        params.push(cnpjData.municipio, cnpjData.municipio);
+    }
+
     // Apply additional filters from request
     if (filters.cnpj_orgao) {
         sql += ' AND l.cnpj_orgao = ?';
@@ -1379,6 +1476,21 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
         params.push(filters.search);
     }
 
+    // CNPJ-based filtering by company size (porte)
+    if (cnpjData && cnpjData.porte_empresa) {
+        const porte = cnpjData.porte_empresa.toUpperCase();
+
+        // Filter by appropriate value ranges based on company size
+        if (porte.includes('MEI')) {
+            sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 100000)';
+        } else if (porte.includes('MICRO')) {
+            sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 500000)';
+        } else if (porte.includes('PEQUENO')) {
+            sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 2000000)';
+        }
+        // No filter for medium/large companies
+    }
+
     // Order by relevance score DESC, then by date
     sql += ' ORDER BY relevance_score DESC, l.data_publicacao_pncp DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
@@ -1391,6 +1503,11 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
             row.objeto_compra && row.objeto_compra.toLowerCase().includes(kw.toLowerCase())
         );
         row.matched_keywords = matchedKeywords.join(',');
+
+        // Add CNPJ match indicator
+        if (cnpjData) {
+            row.has_cnpj_match = row.relevance_score > 60; // High score indicates CNPJ matching
+        }
     });
 
     return rows;
@@ -1452,6 +1569,154 @@ async function isLicitacaoSaved(userId, licitacaoId) {
     );
 
     return rows.length > 0;
+}
+
+// --- USER CNPJ DATA FUNCTIONS ---
+
+async function createUserCNPJData(userId, cnpjData) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    const sql = `INSERT INTO user_cnpj_data (
+        user_id, cnpj, razao_social, nome_fantasia,
+        situacao_cadastral, data_situacao, matriz_filial, data_abertura,
+        cnae_principal, cnae_principal_descricao, cnaes_secundarios,
+        logradouro, numero, complemento, bairro, cep, municipio, uf,
+        telefones, email,
+        capital_social, porte_empresa, natureza_juridica,
+        optante_simples, optante_mei,
+        socios, raw_data
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    await p.query(sql, [
+        userId,
+        cnpjData.cnpj,
+        cnpjData.razaoSocial,
+        cnpjData.nomeFantasia,
+        cnpjData.situacaoCadastral,
+        cnpjData.dataSituacao,
+        cnpjData.matrizFilial,
+        cnpjData.dataAbertura,
+        cnpjData.cnaePrincipal?.codigo,
+        cnpjData.cnaePrincipal?.descricao,
+        JSON.stringify(cnpjData.cnaesSecundarios || []),
+        cnpjData.endereco?.logradouro,
+        cnpjData.endereco?.numero,
+        cnpjData.endereco?.complemento,
+        cnpjData.endereco?.bairro,
+        cnpjData.endereco?.cep,
+        cnpjData.endereco?.municipio,
+        cnpjData.endereco?.uf,
+        JSON.stringify(cnpjData.contatos?.telefones || []),
+        cnpjData.contatos?.email,
+        cnpjData.capitalSocial || 0,
+        cnpjData.porteEmpresa,
+        cnpjData.naturezaJuridica,
+        cnpjData.simples?.optante || false,
+        cnpjData.simples?.mei || false,
+        JSON.stringify(cnpjData.socios || []),
+        JSON.stringify(cnpjData)
+    ]);
+}
+
+async function getUserCNPJData(userId) {
+    const p = await getPool();
+    if (!p) return null;
+
+    const [rows] = await p.query(
+        'SELECT * FROM user_cnpj_data WHERE user_id = ?',
+        [userId]
+    );
+
+    if (rows.length === 0) return null;
+
+    const data = rows[0];
+
+    // Parse JSON fields
+    if (typeof data.cnaes_secundarios === 'string') {
+        data.cnaes_secundarios = JSON.parse(data.cnaes_secundarios);
+    }
+    if (typeof data.telefones === 'string') {
+        data.telefones = JSON.parse(data.telefones);
+    }
+    if (typeof data.socios === 'string') {
+        data.socios = JSON.parse(data.socios);
+    }
+    if (typeof data.raw_data === 'string') {
+        data.raw_data = JSON.parse(data.raw_data);
+    }
+
+    return data;
+}
+
+async function updateUserCNPJData(userId, cnpjData) {
+    const p = await getPool();
+    if (!p) throw new Error("DB not ready");
+
+    const sql = `UPDATE user_cnpj_data SET
+        cnpj = ?,
+        razao_social = ?,
+        nome_fantasia = ?,
+        situacao_cadastral = ?,
+        data_situacao = ?,
+        matriz_filial = ?,
+        data_abertura = ?,
+        cnae_principal = ?,
+        cnae_principal_descricao = ?,
+        cnaes_secundarios = ?,
+        logradouro = ?,
+        numero = ?,
+        complemento = ?,
+        bairro = ?,
+        cep = ?,
+        municipio = ?,
+        uf = ?,
+        telefones = ?,
+        email = ?,
+        capital_social = ?,
+        porte_empresa = ?,
+        natureza_juridica = ?,
+        optante_simples = ?,
+        optante_mei = ?,
+        socios = ?,
+        raw_data = ?
+    WHERE user_id = ?`;
+
+    await p.query(sql, [
+        cnpjData.cnpj,
+        cnpjData.razaoSocial,
+        cnpjData.nomeFantasia,
+        cnpjData.situacaoCadastral,
+        cnpjData.dataSituacao,
+        cnpjData.matrizFilial,
+        cnpjData.dataAbertura,
+        cnpjData.cnaePrincipal?.codigo,
+        cnpjData.cnaePrincipal?.descricao,
+        JSON.stringify(cnpjData.cnaesSecundarios || []),
+        cnpjData.endereco?.logradouro,
+        cnpjData.endereco?.numero,
+        cnpjData.endereco?.complemento,
+        cnpjData.endereco?.bairro,
+        cnpjData.endereco?.cep,
+        cnpjData.endereco?.municipio,
+        cnpjData.endereco?.uf,
+        JSON.stringify(cnpjData.contatos?.telefones || []),
+        cnpjData.contatos?.email,
+        cnpjData.capitalSocial || 0,
+        cnpjData.porteEmpresa,
+        cnpjData.naturezaJuridica,
+        cnpjData.simples?.optante || false,
+        cnpjData.simples?.mei || false,
+        JSON.stringify(cnpjData.socios || []),
+        JSON.stringify(cnpjData),
+        userId
+    ]);
+}
+
+async function deleteUserCNPJData(userId) {
+    const p = await getPool();
+    if (!p) return;
+    await p.query('DELETE FROM user_cnpj_data WHERE user_id = ?', [userId]);
 }
 
 module.exports = {
@@ -1518,7 +1783,12 @@ module.exports = {
     saveUserLicitacao,
     unsaveUserLicitacao,
     getUserSavedLicitacoes,
-    isLicitacaoSaved
+    isLicitacaoSaved,
+    // User CNPJ Data
+    createUserCNPJData,
+    getUserCNPJData,
+    updateUserCNPJData,
+    deleteUserCNPJData
 };
 
 

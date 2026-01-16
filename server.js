@@ -55,7 +55,12 @@ const {
     saveUserLicitacao,
     unsaveUserLicitacao,
     getUserSavedLicitacoes,
-    isLicitacaoSaved
+    isLicitacaoSaved,
+    // User CNPJ Data
+    createUserCNPJData,
+    getUserCNPJData,
+    updateUserCNPJData,
+    deleteUserCNPJData
 } = require('./src/database');
 const { startWorker } = require('./src/worker');
 const { generateExcelBuffer } = require('./src/export');
@@ -63,6 +68,7 @@ const { processPDF } = require('./src/services/tr_processor');
 const { fetchModels } = require('./src/services/ai_manager');
 const { extractItemsFromPdf } = require('./src/services/pdf_parser');
 const licitacoesImporter = require('./src/services/licitacoes_importer');
+const cnpjService = require('./src/services/cnpj_service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -330,7 +336,8 @@ app.get('/api/licitacoes/sync-status', isAdmin, async (req, res) => {
 app.get('/profile/preferences', isAuthenticated, async (req, res) => {
     try {
         const preferences = await getUserLicitacoesPreferences(req.session.userId);
-        res.render('profile_preferences', { preferences });
+        const cnpjData = await getUserCNPJData(req.session.userId);
+        res.render('profile_preferences', { preferences, cnpjData });
     } catch (e) {
         console.error('[Preferences Error]:', e);
         res.status(500).send(e.message);
@@ -437,6 +444,109 @@ app.get('/licitacoes/saved', isAuthenticated, async (req, res) => {
     } catch (e) {
         console.error('[Saved Licitacoes Error]:', e);
         res.status(500).send(e.message);
+    }
+});
+
+// === CNPJ API ROUTES ===
+
+// POST /api/cnpj/consultar - Consultar CNPJ na API (público, pode ser usado antes do login)
+app.post('/api/cnpj/consultar', async (req, res) => {
+    try {
+        const { cnpj } = req.body;
+
+        if (!cnpj) {
+            return res.status(400).json({
+                sucesso: false,
+                erro: 'CNPJ é obrigatório',
+                codigo: 'CNPJ_OBRIGATORIO'
+            });
+        }
+
+        // Consultar via serviço
+        const dados = await cnpjService.consultarCNPJ(cnpj);
+
+        res.json({
+            sucesso: true,
+            dados,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (erro) {
+        console.error('[CNPJ API Error]:', erro);
+        res.status(erro.status || 500).json({
+            sucesso: false,
+            erro: erro.message,
+            codigo: erro.codigo || 'ERRO_GERAL'
+        });
+    }
+});
+
+// POST /api/cnpj/salvar - Salvar dados do CNPJ no perfil do usuário (autenticado)
+app.post('/api/cnpj/salvar', isAuthenticated, async (req, res) => {
+    try {
+        const { cnpj } = req.body;
+
+        if (!cnpj) {
+            return res.status(400).json({
+                sucesso: false,
+                erro: 'CNPJ é obrigatório'
+            });
+        }
+
+        // Consultar dados do CNPJ
+        const dadosCNPJ = await cnpjService.consultarCNPJ(cnpj);
+
+        // Verificar se já existe dados de CNPJ para este usuário
+        const dadosExistentes = await getUserCNPJData(req.session.userId);
+
+        if (dadosExistentes) {
+            // Atualizar
+            await updateUserCNPJData(req.session.userId, dadosCNPJ);
+        } else {
+            // Criar novo
+            await createUserCNPJData(req.session.userId, dadosCNPJ);
+        }
+
+        res.json({
+            sucesso: true,
+            mensagem: 'Dados do CNPJ salvos com sucesso!',
+            dados: dadosCNPJ
+        });
+
+    } catch (erro) {
+        console.error('[CNPJ Save Error]:', erro);
+        res.status(erro.status || 500).json({
+            sucesso: false,
+            erro: erro.message,
+            codigo: erro.codigo || 'ERRO_GERAL'
+        });
+    }
+});
+
+// GET /api/cnpj/meus-dados - Obter dados do CNPJ já salvos (autenticado)
+app.get('/api/cnpj/meus-dados', isAuthenticated, async (req, res) => {
+    try {
+        const dados = await getUserCNPJData(req.session.userId);
+
+        if (!dados) {
+            return res.json({
+                sucesso: true,
+                dados: null,
+                mensagem: 'Nenhum dado de CNPJ cadastrado'
+            });
+        }
+
+        res.json({
+            sucesso: true,
+            dados
+        });
+
+    } catch (erro) {
+        console.error('[CNPJ Get Data Error]:', erro);
+        res.status(500).json({
+            sucesso: false,
+            erro: erro.message
+        });
     }
 });
 

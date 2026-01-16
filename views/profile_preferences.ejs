@@ -167,6 +167,107 @@
                     </div>
                 </div>
 
+                <!-- Dados da Empresa (CNPJ) -->
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title">🏢 Dados da Empresa (CNPJ)</h3>
+                        <p class="text-sm opacity-70 mb-3">
+                            Importe os dados do seu CNPJ para personalizar melhor as recomendações de licitações
+                            baseadas no seu ramo de atividade (CNAE) e localização.
+                        </p>
+
+                        <!-- Formulário de importação -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">CNPJ da Empresa</span>
+                            </label>
+                            <div class="join w-full">
+                                <input type="text" id="cnpj-input" class="input input-bordered join-item flex-1"
+                                    placeholder="00.000.000/0000-00" value="<%= cnpjData ? cnpjData.cnpj : '' %>"
+                                    maxlength="18">
+                                <button type="button" onclick="importarCNPJ()" id="btn-importar-cnpj"
+                                    class="btn btn-primary join-item">
+                                    <i class="fas fa-download"></i>
+                                    Importar Dados
+                                </button>
+                            </div>
+                            <div class="text-xs opacity-60 mt-1">
+                                Digite o CNPJ e clique em "Importar Dados" para buscar automaticamente
+                            </div>
+                        </div>
+
+                        <!-- Preview dos dados atuais (se existir) -->
+                        <div id="cnpj-preview" class="<%= cnpjData ? '' : 'hidden' %>">
+                            <div class="bg-base-300 p-4 rounded-lg mt-4">
+                                <h4 class="font-bold mb-3 flex items-center gap-2">
+                                    <i class="fas fa-building text-primary"></i>
+                                    📋 Dados Cadastrados:
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs opacity-60">Razão Social</span>
+                                        <strong id="preview-razao">
+                                            <%= cnpjData ? cnpjData.razao_social : '-' %>
+                                        </strong>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs opacity-60">Nome Fantasia</span>
+                                        <strong id="preview-fantasia">
+                                            <%= cnpjData ? (cnpjData.nome_fantasia || '-' ) : '-' %>
+                                        </strong>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs opacity-60">CNAE Principal</span>
+                                        <strong id="preview-cnae">
+                                            <%= cnpjData ? (cnpjData.cnae_principal || '-' ) : '-' %>
+                                        </strong>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs opacity-60">Localização</span>
+                                        <strong id="preview-local">
+                                            <%= cnpjData ? `${cnpjData.municipio || '' } / ${cnpjData.uf || '' }`.trim()
+                                                : '-' %>
+                                        </strong>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs opacity-60">Porte</span>
+                                        <strong id="preview-porte">
+                                            <%= cnpjData ? (cnpjData.porte_empresa || '-' ) : '-' %>
+                                        </strong>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs opacity-60">Situação</span>
+                                        <strong id="preview-situacao">
+                                            <%= cnpjData ? (cnpjData.situacao_cadastral || '-' ) : '-' %>
+                                        </strong>
+                                    </div>
+                                </div>
+                                <% if (cnpjData) { %>
+                                    <div class="text-xs opacity-60 mt-3 pt-3 border-t border-base-content/10">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        Última atualização: <%= new
+                                            Date(cnpjData.updated_at).toLocaleDateString('pt-BR') %>
+                                    </div>
+                                    <% } %>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="stroke-current shrink-0 w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="text-sm">
+                                <strong>Personalização inteligente:</strong> Os dados do CNPJ serão usados para
+                                recomendar
+                                licitações relacionadas ao seu ramo de atividade (CNAE) e localização, aumentando suas
+                                chances de encontrar oportunidades relevantes!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex gap-3 justify-end">
                     <a href="/licitacoes" class="btn btn-ghost">Cancelar</a>
                     <button type="submit" class="btn btn-primary gap-2">
@@ -190,5 +291,132 @@
                 </div>
             </div>
         </div>
+
+        <script>
+            // Máscara de CNPJ
+            const cnpjInput = document.getElementById('cnpj-input');
+            if (cnpjInput) {
+                cnpjInput.addEventListener('input', (e) => {
+                    let valor = e.target.value.replace(/\D/g, '');
+
+                    if (valor.length <= 14) {
+                        valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
+                        valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                        valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                        valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+                    }
+
+                    e.target.value = valor;
+                });
+            }
+
+            // Função para importar CNPJ
+            async function importarCNPJ() {
+                const cnpj = document.getElementById('cnpj-input').value;
+                const btn = document.getElementById('btn-importar-cnpj');
+
+                if (!cnpj || cnpj.replace(/\D/g, '').length !== 14) {
+                    alert('⚠️ Digite um CNPJ válido (14 dígitos)');
+                    return;
+                }
+
+                // Loading state
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Consultando...';
+
+                try {
+                    const response = await fetch('/api/cnpj/consultar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cnpj })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.erro || 'Erro ao consultar CNPJ');
+                    }
+
+                    if (result.sucesso) {
+                        // Salvar no banco
+                        const saveResponse = await fetch('/api/cnpj/salvar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cnpj })
+                        });
+
+                        const saveResult = await saveResponse.json();
+
+                        if (saveResult.sucesso) {
+                            // Atualizar preview
+                            atualizarPreview(saveResult.dados);
+
+                            // Show success message
+                            mostrarMensagem('✅ Dados do CNPJ importados e salvos com sucesso!', 'success');
+                        } else {
+                            throw new Error(saveResult.erro || 'Erro ao salvar dados');
+                        }
+                    }
+
+                } catch (erro) {
+                    console.error('[CNPJ Import Error]:', erro);
+
+                    let mensagemErro = '❌ Erro ao importar CNPJ: ';
+                    if (erro.message.includes('404') || erro.message.includes('não encontrado')) {
+                        mensagemErro += 'CNPJ não encontrado na Receita Federal';
+                    } else if (erro.message.includes('429') || erro.message.includes('limite')) {
+                        mensagemErro += 'Limite de requisições excedido. Aguarde alguns segundos.';
+                    } else if (erro.message.includes('timeout')) {
+                        mensagemErro += 'Tempo esgotado. Tente novamente.';
+                    } else {
+                        mensagemErro += erro.message;
+                    }
+
+                    mostrarMensagem(mensagemErro, 'error');
+                } finally {
+                    // Reset button
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-download"></i> Importar Dados';
+                }
+            }
+
+            // Atualizar preview com dados importados
+            function atualizarPreview(dados) {
+                const preview = document.getElementById('cnpj-preview');
+                preview.classList.remove('hidden');
+
+                document.getElementById('preview-razao').textContent = dados.razaoSocial || '-';
+                document.getElementById('preview-fantasia').textContent = dados.nomeFantasia || '-';
+                document.getElementById('preview-cnae').textContent =
+                    dados.cnaePrincipal?.codigo
+                        ? `${dados.cnaePrincipal.codigo} - ${dados.cnaePrincipal.descricao}`
+                        : '-';
+                document.getElementById('preview-local').textContent =
+                    `${dados.endereco?.municipio || ''} / ${dados.endereco?.uf || ''}`.trim() || '-';
+                document.getElementById('preview-porte').textContent = dados.porteEmpresa || '-';
+                document.getElementById('preview-situacao').textContent = dados.situacaoCadastral || '-';
+            }
+
+            // Mostrar mensagem toast
+            function mostrarMensagem(texto, tipo) {
+                // Criar toast
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${tipo} shadow-lg fixed top-4 right-4 w-auto max-w-md z-50 animate-bounce`;
+                toast.innerHTML = `
+                    <div>
+                        <span>${texto}</span>
+                    </div>
+                `;
+
+                document.body.appendChild(toast);
+
+                // Remover após 5 segundos
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.5s';
+                    setTimeout(() => toast.remove(), 500);
+                }, 5000);
+            }
+        </script>
 
         <%- include('partials/footer') %>
