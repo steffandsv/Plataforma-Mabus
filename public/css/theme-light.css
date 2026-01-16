@@ -123,12 +123,22 @@
     border-color: rgba(0, 0, 0, 0.08);
 }
 
+/* ===== BACKGROUNDS ===== */
+[data-theme="lumina"] .bg-base-100 {
+    background-color: #F8FAFC !important;
+}
+
 [data-theme="lumina"] .bg-base-200 {
-    background-color: #F1F5F9;
+    background-color: #F1F5F9 !important;
 }
 
 [data-theme="lumina"] .bg-base-300 {
-    background-color: #E2E8F0;
+    background-color: #E2E8F0 !important;
+}
+
+/* Opacity variants */
+[data-theme="lumina"] .bg-base-200\/50 {
+    background-color: rgba(241, 245, 249, 0.5) !important;
 }
 
 /* ===== BUTTONS ===== */
@@ -403,4 +413,32 @@
     background: rgba(255, 255, 255, 0.98);
     border: 1px solid rgba(0, 0, 0, 0.08);
     color: #1A202C;
+}
+
+/* ===== LOGO ADAPTATIVO ===== */
+/* Tema escuro: logo em neon-blue */
+.logo-adaptive {
+    filter: brightness(0) saturate(100%) invert(61%) sepia(97%) saturate(2449%) hue-rotate(161deg) brightness(103%) contrast(101%);
+}
+
+/* Tema claro: logo em azul primary (#0070F3) */
+[data-theme="lumina"] .logo-adaptive {
+    filter: brightness(0) saturate(100%) invert(33%) sepia(98%) saturate(2299%) hue-rotate(199deg) brightness(99%) contrast(101%);
+}
+
+/* ===== ORACLE TITLE ADAPTATIVO ===== */
+/* Tema escuro: gradiente branco */
+.oracle-title {
+    background: linear-gradient(to bottom, #ffffff, rgba(255, 255, 255, 0.1));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Tema claro: gradiente escuro */
+[data-theme="lumina"] .oracle-title {
+    background: linear-gradient(to bottom, #1A202C, #4A5568);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
