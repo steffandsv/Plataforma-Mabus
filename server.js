@@ -52,6 +52,7 @@ const {
     getUserLicitacoesPreferences,
     updateUserLicitacoesPreferences,
     getPersonalizedLicitacoes,
+    searchLicitacoes,
     saveUserLicitacao,
     unsaveUserLicitacao,
     getUserSavedLicitacoes,
@@ -444,6 +445,41 @@ app.get('/licitacoes/saved', isAuthenticated, async (req, res) => {
         });
     } catch (e) {
         console.error('[Saved Licitacoes Error]:', e);
+        res.status(500).send(e.message);
+    }
+});
+
+// Buscador - Multi-Filter Search
+app.get('/buscador', isAuthenticated, async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 50;
+        const offset = (page - 1) * limit;
+
+        // Parse filters from query params (handle arrays)
+        const filters = {
+            keywords: req.query.keywords ? (Array.isArray(req.query.keywords) ? req.query.keywords : req.query.keywords.split(',').map(k => k.trim()).filter(k => k)) : [],
+            modalidades: req.query.modalidades ? (Array.isArray(req.query.modalidades) ? req.query.modalidades : [req.query.modalidades]) : [],
+            estados: req.query.estados ? (Array.isArray(req.query.estados) ? req.query.estados : [req.query.estados]) : [],
+            esferas: req.query.esferas ? (Array.isArray(req.query.esferas) ? req.query.esferas : [req.query.esferas]) : []
+        };
+
+        // Use new search function
+        const licitacoes = await searchLicitacoes(filters, limit, offset);
+        const hasNext = licitacoes.length === limit;
+
+        // Get user preferences for density settings
+        const prefs = await getUserLicitacoesPreferences(req.session.userId);
+
+        res.render('buscador', {
+            licitacoes,
+            page,
+            hasNext,
+            filters,
+            preferences: prefs
+        });
+    } catch (e) {
+        console.error('[Buscador Route Error]:', e);
         res.status(500).send(e.message);
     }
 });

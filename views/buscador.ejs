@@ -1,0 +1,263 @@
+<%- include('partials/head') %>
+    <%- include('partials/header') %>
+
+        <!-- Desktop Split Layout / Mobile Stacked -->
+        <div class="lg:flex lg:h-[calc(100vh-6rem)] lg:gap-4 lg:p-4">
+
+            <!-- SIDEBAR: Filters & Controls (Desktop: Fixed Left | Mobile: Top) -->
+            <aside
+                class="lg:w-80 lg:flex-shrink-0 lg:overflow-y-auto bg-base-200/50 lg:rounded-2xl lg:p-4 p-4 space-y-4">
+                <!-- Header -->
+                <div>
+                    <h1
+                        class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-1">
+                        🔍 Buscador
+                    </h1>
+                    <p class="text-xs opacity-60">
+                        Pesquisa avançada com filtros múltiplos
+                    </p>
+                </div>
+
+                <!-- Filters -->
+                <div class="card bg-base-100 shadow-sm">
+                    <div class="card-body p-3">
+                        <h3 class="card-title text-sm">
+                            <i class="fas fa-filter"></i>
+                            Filtros
+                            <% if (filters.keywords.length> 0 || filters.modalidades.length > 0 ||
+                                filters.estados.length > 0 || filters.esferas.length > 0) { %>
+                                <span class="badge badge-primary badge-xs">Ativos</span>
+                                <% } %>
+                        </h3>
+
+                        <form method="GET" class="space-y-3" id="filterForm">
+
+                            <!-- Keywords Filter (Tag-based) -->
+                            <div class="form-control">
+                                <label class="label py-0">
+                                    <span class="label-text text-xs font-semibold">Palavras-Chave</span>
+                                </label>
+                                <div id="keywordsTagContainer"
+                                    class="flex flex-wrap gap-1 mb-2 min-h-[2rem] p-2 bg-base-200 rounded-lg">
+                                    <!-- Tags will be dynamically added here -->
+                                </div>
+                                <div class="input-group input-group-xs">
+                                    <input type="text" id="keywordInput" placeholder="Digite e pressione Enter..."
+                                        class="input input-bordered input-xs w-full">
+                                    <button type="button" onclick="addKeyword()" class="btn btn-primary btn-xs">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Modalidade Filter (Multi-select) -->
+                            <div class="form-control">
+                                <label class="label py-0">
+                                    <span class="label-text text-xs font-semibold">Modalidade</span>
+                                </label>
+                                <div class="space-y-1 max-h-32 overflow-y-auto p-2 bg-base-200 rounded-lg">
+                                    <label class="label cursor-pointer justify-start gap-2 py-1">
+                                        <input type="checkbox" name="modalidades" value="Pregão"
+                                            <%=filters.modalidades.includes('Pregão') ? 'checked' : '' %>
+                                        class="checkbox checkbox-xs checkbox-primary">
+                                        <span class="label-text text-xs">Pregão</span>
+                                    </label>
+                                    <label class="label cursor-pointer justify-start gap-2 py-1">
+                                        <input type="checkbox" name="modalidades" value="Concorrência"
+                                            <%=filters.modalidades.includes('Concorrência') ? 'checked' : '' %>
+                                        class="checkbox checkbox-xs checkbox-primary">
+                                        <span class="label-text text-xs">Concorrência</span>
+                                    </label>
+                                    <label class="label cursor-pointer justify-start gap-2 py-1">
+                                        <input type="checkbox" name="modalidades" value="Dispensa"
+                                            <%=filters.modalidades.includes('Dispensa') ? 'checked' : '' %>
+                                        class="checkbox checkbox-xs checkbox-primary">
+                                        <span class="label-text text-xs">Dispensa</span>
+                                    </label>
+                                    <label class="label cursor-pointer justify-start gap-2 py-1">
+                                        <input type="checkbox" name="modalidades" value="Inexigibilidade"
+                                            <%=filters.modalidades.includes('Inexigibilidade') ? 'checked' : '' %>
+                                        class="checkbox checkbox-xs checkbox-primary">
+                                        <span class="label-text text-xs">Inexigibilidade</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Est ados Filter (Multi-select with common states) -->
+                            <div class="form-control">
+                                <label class="label py-0">
+                                    <span class="label-text text-xs font-semibold">Estados</span>
+                                </label>
+                                <div class="space-y-1 max-h-40 overflow-y-auto p-2 bg-base-200 rounded-lg">
+                                    <% const estados=['AC', 'AL' , 'AP' , 'AM' , 'BA' , 'CE' , 'DF' , 'ES' , 'GO' , 'MA'
+                                        , 'MT' , 'MS' , 'MG' , 'PA' , 'PB' , 'PR' , 'PE' , 'PI' , 'RJ' , 'RN' , 'RS'
+                                        , 'RO' , 'RR' , 'SC' , 'SP' , 'SE' , 'TO' ]; %>
+                                        <% estados.forEach(uf=> { %>
+                                            <label class="label cursor-pointer justify-start gap-2 py-1">
+                                                <input type="checkbox" name="estados" value="<%= uf %>"
+                                                    <%=filters.estados.includes(uf) ? 'checked' : '' %>
+                                                class="checkbox checkbox-xs checkbox-primary">
+                                                <span class="label-text text-xs">
+                                                    <%= uf %>
+                                                </span>
+                                            </label>
+                                            <% }) %>
+                                </div>
+                            </div>
+
+                            <!-- Esfera Filter (Multi-select) -->
+                            <div class="form-control">
+                                <label class="label py-0">
+                                    <span class="label-text text-xs font-semibold">Esfera</span>
+                                </label>
+                                <div class="space-y-1 p-2 bg-base-200 rounded-lg">
+                                    <label class="label cursor-pointer justify-start gap-2 py-1">
+                                        <input type="checkbox" name="esferas" value="Municipal"
+                                            <%=filters.esferas.includes('Municipal') ? 'checked' : '' %>
+                                        class="checkbox checkbox-xs checkbox-primary">
+                                        <span class="label-text text-xs">Municipal</span>
+                                    </label>
+                                    <label class="label cursor-pointer justify-start gap-2 py-1">
+                                        <input type="checkbox" name="esferas" value="Estadual"
+                                            <%=filters.esferas.includes('Estadual') ? 'checked' : '' %>
+                                        class="checkbox checkbox-xs checkbox-primary">
+                                        <span class="label-text text-xs">Estadual</span>
+                                    </label>
+                                    <label class="label cursor-pointer justify-start gap-2 py-1">
+                                        <input type="checkbox" name="esferas" value="Federal"
+                                            <%=filters.esferas.includes('Federal') ? 'checked' : '' %>
+                                        class="checkbox checkbox-xs checkbox-primary">
+                                        <span class="label-text text-xs">Federal</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-1">
+                                <button type="submit" class="btn btn-primary btn-xs flex-1">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                                <a href="/buscador" class="btn btn-ghost btn-xs">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="stats stats-vertical shadow bg-base-100 w-full">
+                    <div class="stat py-2 px-3">
+                        <div class="stat-title text-xs">Resultados</div>
+                        <div class="stat-value text-lg">
+                            <%= licitacoes ? licitacoes.length : 0 %>
+                        </div>
+                        <div class="stat-desc text-xs">oportunidades</div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT: Grid View -->
+            <main class="lg:flex-1 lg:overflow-y-auto lg:h-full mt-4 lg:mt-0">
+                <%- include('partials/buscador_grid', { licitacoes, preferences }) %>
+
+                    <!-- Pagination -->
+                    <% if (licitacoes && licitacoes.length> 0) { %>
+                        <div class="flex justify-center gap-2 mt-6 pb-4">
+                            <% const buildUrl=(p)=> {
+                                let url = `/buscador?page=${p}`;
+                                if (filters.keywords && filters.keywords.length > 0) {
+                                filters.keywords.forEach(kw => {
+                                url += `&keywords=${encodeURIComponent(kw)}`;
+                                });
+                                }
+                                if (filters.modalidades && filters.modalidades.length > 0) {
+                                filters.modalidades.forEach(m => {
+                                url += `&modalidades=${encodeURIComponent(m)}`;
+                                });
+                                }
+                                if (filters.estados && filters.estados.length > 0) {
+                                filters.estados.forEach(e => {
+                                url += `&estados=${encodeURIComponent(e)}`;
+                                });
+                                }
+                                if (filters.esferas && filters.esferas.length > 0) {
+                                filters.esferas.forEach(e => {
+                                url += `&esferas=${encodeURIComponent(e)}`;
+                                });
+                                }
+                                return url;
+                                } %>
+
+                                <% if (page> 1) { %>
+                                    <a href="<%= buildUrl(page - 1) %>" class="btn btn-outline">
+                                        <i class="fas fa-chevron-left"></i> Anterior
+                                    </a>
+                                    <% } %>
+
+                                        <span class="btn btn-disabled">Página <%= page %></span>
+
+                                        <% if (hasNext) { %>
+                                            <a href="<%= buildUrl(page + 1) %>" class="btn btn-outline">
+                                                Próxima <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                            <% } %>
+                        </div>
+                        <% } %>
+            </main>
+        </div>
+
+        <script>
+            // Keywords tag management
+            const keywords = <%= JSON.stringify(filters.keywords || []) %>;
+            const keywordInput = document.getElementById('keywordInput');
+            const keywordsTagContainer = document.getElementById('keywordsTagContainer');
+
+            function renderTags() {
+                keywordsTagContainer.innerHTML = '';
+                keywords.forEach((kw, idx) => {
+                    const tag = document.createElement('div');
+                    tag.className = 'badge badge-primary gap-1';
+                    tag.innerHTML = `
+                        <span>${kw}</span>
+                        <button type="button" onclick="removeKeyword(${idx})" class="btn btn-ghost btn-xs p-0 h-auto min-h-0">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    `;
+                    keywordsTagContainer.appendChild(tag);
+
+                    // Add hidden input for form submission
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'keywords';
+                    hiddenInput.value = kw;
+                    keywordsTagContainer.appendChild(hiddenInput);
+                });
+            }
+
+            function addKeyword() {
+                const value = keywordInput.value.trim();
+                if (value && !keywords.includes(value)) {
+                    keywords.push(value);
+                    renderTags();
+                    keywordInput.value = '';
+                }
+            }
+
+            function removeKeyword(idx) {
+                keywords.splice(idx, 1);
+                renderTags();
+            }
+
+            // Add keyword on Enter
+            keywordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addKeyword();
+                }
+            });
+
+            // Initial render
+            renderTags();
+        </script>
+
+        <%- include('partials/footer') %>

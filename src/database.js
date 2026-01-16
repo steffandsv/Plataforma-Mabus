@@ -1571,6 +1571,63 @@ async function isLicitacaoSaved(userId, licitacaoId) {
     return rows.length > 0;
 }
 
+/**
+ * Search Licitacoes with Multi-Select Filters (for Buscador module)
+ * @param {Object} filters - { keywords: [], modalidades: [], estados: [], esferas: [] }
+ * @param {Number} limit 
+ * @param {Number} offset 
+ * @returns {Promise\u003cArray\u003e} - Licitacoes matching filters
+ */
+async function searchLicitacoes(filters = {}, limit = 50, offset = 0) {
+    const p = await getPool();
+    if (!p) return [];
+
+    let sql = `SELECT l.* FROM licitacoes l WHERE 1=1`;
+    const params = [];
+
+    // Keywords filter (OR logic - any keyword match)
+    if (filters.keywords && Array.isArray(filters.keywords) && filters.keywords.length > 0) {
+        const keywordConditions = filters.keywords.map(() =>
+            '(LOWER(l.objeto_compra) LIKE ? OR LOWER(l.informacao_complementar) LIKE ?)'
+        ).join(' OR ');
+
+        sql += ` AND (${keywordConditions})`;
+
+        filters.keywords.forEach(kw => {
+            const kwLower = `%${kw.toLowerCase()}%`;
+            params.push(kwLower, kwLower); // Push twice: objeto_compra and informacao_complementar
+        });
+    }
+
+    // Modalidades filter (IN clause)
+    if (filters.modalidades && Array.isArray(filters.modalidades) && filters.modalidades.length > 0) {
+        const placeholders = filters.modalidades.map(() => '?').join(',');
+        sql += ` AND l.modalidade_licitacao IN (${placeholders})`;
+        params.push(...filters.modalidades);
+    }
+
+    // Estados filter (IN clause)
+    if (filters.estados && Array.isArray(filters.estados) && filters.estados.length > 0) {
+        const placeholders = filters.estados.map(() => '?').join(',');
+        sql += ` AND l.uf_sigla IN (${placeholders})`;
+        params.push(...filters.estados);
+    }
+
+    // Esferas filter (IN clause)
+    if (filters.esferas && Array.isArray(filters.esferas) && filters.esferas.length > 0) {
+        const placeholders = filters.esferas.map(() => '?').join(',');
+        sql += ` AND l.esfera IN (${placeholders})`;
+        params.push(...filters.esferas);
+    }
+
+    // Order by closing date (most urgent first), then publication date
+    sql += ' ORDER BY l.data_encerramento_proposta ASC, l.data_publicacao_pncp DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await p.query(sql, params);
+    return rows;
+}
+
 // --- USER CNPJ DATA FUNCTIONS ---
 
 async function createUserCNPJData(userId, cnpjData) {
@@ -1780,6 +1837,7 @@ module.exports = {
     getUserLicitacoesPreferences,
     updateUserLicitacoesPreferences,
     getPersonalizedLicitacoes,
+    searchLicitacoes,
     saveUserLicitacao,
     unsaveUserLicitacao,
     getUserSavedLicitacoes,

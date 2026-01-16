@@ -3,68 +3,78 @@
 
     <ul class="menu p-4 w-full text-starlight/80 gap-2 flex-1 overflow-y-auto scrollbar-hide">
         <li>
-            <a href="/" class="group hover:bg-neon-blue/10 hover:text-neon-blue transition-all duration-300 <%= path === '/' ? 'active-nav' : '' %>">
-                <i class="fas fa-search w-6 group-hover:scale-110 transition-transform"></i> 
-                <span class="font-medium tracking-wide">BUSCA</span>
+            <a href="/buscador"
+                class="group hover:bg-neon-blue/10 hover:text-neon-blue transition-all duration-300 <%= path === '/buscador' ? 'active-nav' : '' %>">
+                <i class="fas fa-search w-6 group-hover:scale-110 transition-transform"></i>
+                <span class="font-medium tracking-wide">BUSCADOR</span>
             </a>
         </li>
         <li>
-            <a href="/oracle" class="group hover:bg-neon-purple/10 hover:text-neon-purple transition-all duration-300 <%= path === '/oracle' ? 'active-nav' : '' %>">
-                <i class="fas fa-chart-pie w-6 group-hover:scale-110 transition-transform"></i> 
+            <a href="/oracle"
+                class="group hover:bg-neon-purple/10 hover:text-neon-purple transition-all duration-300 <%= path === '/oracle' ? 'active-nav' : '' %>">
+                <i class="fas fa-chart-pie w-6 group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium tracking-wide">ANALISADOR</span>
             </a>
         </li>
         <li>
-            <a href="/sniper" class="group hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 <%= path === '/sniper' ? 'active-nav' : '' %>">
-                <i class="fas fa-bullseye w-6 group-hover:scale-110 transition-transform"></i> 
+            <a href="/sniper"
+                class="group hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 <%= path === '/sniper' ? 'active-nav' : '' %>">
+                <i class="fas fa-bullseye w-6 group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium tracking-wide">COTADOR</span>
             </a>
         </li>
         <li>
-            <a href="/licitacoes" class="group hover:bg-green-500/10 hover:text-green-400 transition-all duration-300 <%= path === '/licitacoes' ? 'active-nav' : '' %>">
-                <i class="fas fa-gavel w-6 group-hover:scale-110 transition-transform"></i> 
-                <span class="font-medium tracking-wide">LICITAÇÕES</span>
+            <a href="/licitacoes"
+                class="group hover:bg-green-500/10 hover:text-green-400 transition-all duration-300 <%= path === '/licitacoes' ? 'active-nav' : '' %>">
+                <i class="fas fa-rss w-6 group-hover:scale-110 transition-transform"></i>
+                <span class="font-medium tracking-wide">FEED</span>
             </a>
         </li>
 
         <li class="menu-title mt-6 text-xs font-bold text-starlight/30 uppercase tracking-widest px-4">Gestão</li>
 
         <li>
-            <a href="/dashboard" class="group hover:bg-white/5 hover:text-white transition-all duration-300 <%= path === '/dashboard' ? 'active-nav' : '' %>">
-                <i class="fas fa-tasks w-6"></i> 
+            <a href="/dashboard"
+                class="group hover:bg-white/5 hover:text-white transition-all duration-300 <%= path === '/dashboard' ? 'active-nav' : '' %>">
+                <i class="fas fa-tasks w-6"></i>
                 <span class="font-medium">DASHBOARD</span>
             </a>
         </li>
 
-        <% if (user && user.role === 'admin') { %>
-        <li class="menu-title mt-6 text-xs font-bold text-starlight/30 uppercase tracking-widest px-4">Administração</li>
-        
-        <li>
-            <a href="/admin/dashboard" class="group hover:bg-white/5 hover:text-white transition-all duration-300 <%= path === '/admin/dashboard' ? 'active-nav' : '' %>">
-                <i class="fas fa-user-shield w-6 text-warning/70"></i> 
-                <span class="font-medium">ADMIN</span>
-            </a>
-        </li>
-        <li>
-            <a href="/admin/ai-config" class="group hover:bg-white/5 hover:text-white transition-all duration-300 <%= path === '/admin/ai-config' ? 'active-nav' : '' %>">
-                <i class="fas fa-robot w-6 text-warning/70"></i> 
-                <span class="font-medium">GERENCIAR I.A.</span>
-            </a>
-        </li>
-        <% } %>
+        <% if (user && user.role==='admin' ) { %>
+            <li class="menu-title mt-6 text-xs font-bold text-starlight/30 uppercase tracking-widest px-4">Administração
+            </li>
 
-        <div class="mt-auto"></div>
+            <li>
+                <a href="/admin/dashboard"
+                    class="group hover:bg-white/5 hover:text-white transition-all duration-300 <%= path === '/admin/dashboard' ? 'active-nav' : '' %>">
+                    <i class="fas fa-user-shield w-6 text-warning/70"></i>
+                    <span class="font-medium">ADMIN</span>
+                </a>
+            </li>
+            <li>
+                <a href="/admin/ai-config"
+                    class="group hover:bg-white/5 hover:text-white transition-all duration-300 <%= path === '/admin/ai-config' ? 'active-nav' : '' %>">
+                    <i class="fas fa-robot w-6 text-warning/70"></i>
+                    <span class="font-medium">GERENCIAR I.A.</span>
+                </a>
+            </li>
+            <% } %>
 
-        <li>
-            <a href="/logout" class="text-error/70 hover:bg-error/10 hover:text-error mt-4 mb-2">
-                <i class="fas fa-power-off w-6"></i> 
-                <span class="font-bold">SAIR</span>
-            </a>
-        </li>
+                <div class="mt-auto"></div>
+
+                <li>
+                    <a href="/logout" class="text-error/70 hover:bg-error/10 hover:text-error mt-4 mb-2">
+                        <i class="fas fa-power-off w-6"></i>
+                        <span class="font-bold">SAIR</span>
+                    </a>
+                </li>
     </ul>
-    
+
     <!-- Decor element -->
-    <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-blue/20 to-transparent"></div>
+    <div
+        class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-blue/20 to-transparent">
+    </div>
 </aside>
 
 <style>
