@@ -28,32 +28,31 @@
 
                             <!-- Inner Wrapper for Content (Calculated Height + Hidden Overflow) -->
                             <div class="story-content-inner flex flex-col h-full overflow-hidden">
-                                <!-- Card Header -->
+                                <!-- Card Header - Compact -->
                                 <div class="story-card-header flex-none">
-                                    <div class="flex items-center gap-3 flex-1">
-                                        <div class="org-avatar">
+                                    <div class="flex items-center gap-2 flex-1">
+                                        <div class="org-avatar w-10 h-10 text-sm">
                                             <%= (lic.razao_social_orgao || 'X' ).charAt(0).toUpperCase() %>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <h3 class="font-bold text-lg truncate pr-16">
-                                                <!-- Padding right for badge clearance -->
+                                            <h3 class="font-bold truncate pr-16">
                                                 <%= lic.razao_social_orgao || 'Órgão não informado' %>
                                             </h3>
-                                            <p class="text-sm opacity-70">
-                                                <i class="fas fa-map-marker-alt"></i>
+                                            <p class="opacity-70">
+                                                <i class="fas fa-map-marker-alt text-xs"></i>
                                                 <%= lic.municipio_nome || 'N/D' %> - <%= lic.uf_sigla || 'N/D' %>
                                             </p>
                                         </div>
                                     </div>
-                                    <span class="badge badge-lg badge-primary pulse-animation">
+                                    <span class="badge badge-sm badge-primary pulse-animation text-xs">
                                         <%= lic.modalidade_licitacao || 'N/D' %>
                                     </span>
                                 </div>
 
-                                <!-- Value Spotlight -->
+                                <!-- Value Spotlight - Compact -->
                                 <% if (lic.valor_estimado_total && lic.valor_estimado_total> 0) { %>
                                     <div class="value-spotlight flex-none">
-                                        <div class="value-label">Valor Estimado</div>
+                                        <div class="value-label text-[10px]">Valor Estimado</div>
                                         <div class="value-amount animate-count-up">
                                             R$ <%= parseFloat(lic.valor_estimado_total).toLocaleString('pt-BR',
                                                 {minimumFractionDigits: 2, maximumFractionDigits: 2}) %>
