@@ -74,20 +74,20 @@
                                                 Objeto
                                             </h4>
                                             <div class="object-preview">
-                                                <p class="text-sm leading-relaxed line-clamp-4"
-                                                    id="objeto-preview-<%= index %>"
-                                                    data-keywords="<%= lic.matched_keywords || '' %>"
-                                                    data-full-text="<%= (lic.objeto_compra || 'Não informado').replace(/"
-                                                    /g, '&quot;' ) %>">
-                                                    <%= lic.objeto_compra || 'Não informado' %>
-                                                </p>
-                                                <% if (lic.objeto_compra && lic.objeto_compra.length> 200) { %>
-                                                    <button class="ver-mais-btn"
-                                                        onclick="openObjetoModal('<%= index %>')">
-                                                        <i class="fas fa-expand-alt"></i>
-                                                        Ver mais
-                                                    </button>
-                                                    <% } %>
+                                                <% const objetoText=lic.objeto_compra || 'Não informado' ; %>
+                                                    <p class="text-sm leading-relaxed line-clamp-4"
+                                                        id="objeto-preview-<%= index %>"
+                                                        data-keywords="<%= lic.matched_keywords || '' %>"
+                                                        data-full-text="<%= objetoText %>">
+                                                        <%= objetoText %>
+                                                    </p>
+                                                    <% if (objetoText.length> 200) { %>
+                                                        <button class="ver-mais-btn"
+                                                            onclick="openObjetoModal('<%= index %>')">
+                                                            <i class="fas fa-expand-alt"></i>
+                                                            Ver mais
+                                                        </button>
+                                                        <% } %>
                                             </div>
                                         </div>
 
