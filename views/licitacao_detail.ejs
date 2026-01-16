@@ -215,9 +215,7 @@
                                                 %>
                                         </div>
                                         <div class="text-xs opacity-70">
-                                            <%= new Date(licitacao.data_encerramento_proposta).toLocaleTim
-                                                eString('pt-BR', {hour: '2-digit' , minute: '2-digit' }) %>
-                                        </div>
+                                            <%= new Date(licitacao.data_encerramento_proposta).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) %>
                                         <% } else { %>
                                             <div class="text-sm">N/D</div>
                                             <% } %>
@@ -303,7 +301,7 @@
                                             <div class="space-y-2 text-sm">
                                                 <% if (licitacao.modo_disputa_nome) { %>
                                                     <div><strong>Modo de Disputa:</strong>
-                                                        <= licitacao.modo_disputa_nome %>
+                                                        <%= licitacao.modo_disputa_nome %>
                                                     </div>
                                                     <% } %>
                                                         <% if (licitacao.tipo_instrumento_nome) { %>
@@ -486,7 +484,7 @@
                                             <% itens.forEach(item=> { %>
                                                 <tr>
                                                     <td>
-                                                        <= item.numero_item %>
+                                                        <%= item.numero_item %>
                                                     </td>
                                                     <td>
                                                         <%= item.descricao_item %>
