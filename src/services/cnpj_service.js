@@ -48,17 +48,24 @@ class CNPJService {
      * @private
      */
     _validarDigitoVerificador(cnpj) {
-        const calcularDigito = (cnpj, posicoes) => {
+        // Algoritmo oficial da Receita Federal
+        const calcularDigito = (base) => {
+            const pesos = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
             let soma = 0;
-            for (let i = 0; i < posicoes; i++) {
-                soma += parseInt(cnpj.charAt(i)) * ((posicoes + 1 - i));
+
+            for (let i = 0; i < base.length; i++) {
+                soma += parseInt(base.charAt(i)) * pesos[pesos.length - base.length + i];
             }
+
             const resto = soma % 11;
             return resto < 2 ? 0 : 11 - resto;
         };
 
-        const digito1 = calcularDigito(cnpj, 12);
-        const digito2 = calcularDigito(cnpj, 13);
+        // Primeiro dígito verificador
+        const digito1 = calcularDigito(cnpj.substring(0, 12));
+
+        // Segundo dígito verificador
+        const digito2 = calcularDigito(cnpj.substring(0, 13));
 
         return (
             parseInt(cnpj.charAt(12)) === digito1 &&
