@@ -390,6 +390,16 @@ async function initDB() {
             END $$;
         `);
 
+        // Ensure job_id exists in licitacoes_sync_control
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_sync_control' AND column_name='job_id') THEN
+                    ALTER TABLE licitacoes_sync_control ADD COLUMN job_id VARCHAR(100);
+                END IF;
+            END $$;
+        `);
+
         // --- LICITACOES ARQUIVOS TABLE (PDFs e anexos) ---
         await query(`
             CREATE TABLE IF NOT EXISTS licitacoes_arquivos (

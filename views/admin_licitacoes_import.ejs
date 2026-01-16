@@ -8,7 +8,7 @@
 
             <h1 class="text-3xl font-bold mb-6">⚙️ Importar Licitações do PNCP</h1>
 
-            <% if (activeSync && activeSync.status==='running' ) { %>
+            <% if (activeSync && (activeSync.status==='running' || activeSync.status==='queued' )) { %>
                 <!-- Importação em Andamento -->
                 <div class="alert alert-info mb-6">
                     <div class="flex-1">
@@ -18,7 +18,10 @@
                                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         <div>
-                            <h3 class="font-bold">Importação em Andamento...</h3>
+                            <h3 class="font-bold">
+                                <%= activeSync.status==='queued' ? 'Aguardando na fila...'
+                                    : 'Importação em Andamento...' %>
+                            </h3>
                             <div class="text-sm">
                                 Período: <%= activeSync.data_inicial %> até <%= activeSync.data_final %>
                             </div>

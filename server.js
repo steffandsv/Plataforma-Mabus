@@ -74,6 +74,9 @@ const { extractItemsFromPdf } = require('./src/services/pdf_parser');
 const licitacoesImporter = require('./src/services/licitacoes_importer');
 const cnpjService = require('./src/services/cnpj_service');
 const cnpjAIAnalyzer = require('./src/services/cnpj_ai_analyzer');
+const { licitacoesQueue } = require('./src/queues/licitacoes.queue');
+const licitacoesWorker = require('./src/workers/licitacoes.worker'); // Initialize worker
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -340,19 +343,32 @@ app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
             return res.redirect('/admin/licitacoes/import');
         }
 
-        // Iniciar importação em background (non-blocking)
-        licitacoesImporter.importBatch({
+        // 1. Create Sync Record first
+        const syncId = await createSyncControl({
+            syncType: 'bullmq',
+            dataInicial,
+            dataFinal,
+            status: 'queued', // New initial status
+            totalPages: parseInt(maxPages) || 10,
+            itemsPerPage: 50
+        });
+
+        // 2. Add to Queue
+        await licitacoesQueue.add('import-job', {
+            syncId,
             dataInicial,
             dataFinal,
             maxPages: parseInt(maxPages) || 10,
-            codigoModalidadeContratacao: parseInt(codigoModalidadeContratacao) || 8
-        }).then(result => {
-            console.log('[Licitações] Importação concluída:', result);
-        }).catch(err => {
-            console.error('[Licitações] Erro na importação:', err);
+            codigoModalidadeContratacao: parseInt(codigoModalidadeContratacao) || 8,
+            cursor: 1
+        }, {
+            jobId: `sync-${syncId}` // Deduplication ID
         });
 
-        req.flash('success', 'Importação iniciada! Acompanhe o progresso abaixo.');
+        // 3. Update Sync Record with Job ID (optional but good practice)
+        await updateSyncControl(syncId, { job_id: `sync-${syncId}` });
+
+        req.flash('success', 'Importação agendada! O worker processará em breve.');
         res.redirect('/admin/licitacoes/import');
 
     } catch (e) {
@@ -1450,3 +1466,18 @@ app.post('/api/notifications/read/:id', isAuthenticated, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+// Graceful Shutdown
+const gracefulShutdown = async (signal) => {
+    console.log(`[Server] Received ${signal}. Shutting down gracefully...`);
+    try {
+        await licitacoesWorker.close();
+        console.log('[Server] Worker closed.');
+        process.exit(0);
+    } catch (err) {
+        console.error('[Server] Error during shutdown:', err);
+        process.exit(1);
+    }
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
