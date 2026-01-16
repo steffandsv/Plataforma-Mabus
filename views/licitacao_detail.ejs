@@ -309,33 +309,7 @@
                                         <div class="relative">
                                             <div id="map" class="h-96 rounded-lg mb-4 bg-base-300"></div>
 
-                                            <!-- Floating Search Form -->
-                                            <div class="absolute top-4 right-4 z-[1000] w-80">
-                                                <div class="card bg-base-100 shadow-2xl border border-base-300">
-                                                    <div class="card-body p-4">
-                                                        <h4 class="font-bold text-sm mb-2">🔍 Buscar na Região</h4>
-                                                        <div class="form-control">
-                                                            <input type="text" id="searchQuery"
-                                                                placeholder="Ex: Lojas de armarinho"
-                                                                class="input input-sm input-bordered w-full mb-2" />
-                                                            <div class="flex gap-2">
-                                                                <button class="btn btn-primary btn-sm flex-1"
-                                                                    onclick="performSearch()">
-                                                                    <i class="fas fa-search"></i>
-                                                                    Buscar
-                                                                </button>
-                                                                <button class="btn btn-ghost btn-sm"
-                                                                    onclick="clearSearchResults()"
-                                                                    title="Limpar resultados">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                            <div id="searchStatus" class="text-xs mt-2 opacity-70">
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+
                                         </div>
 
                                         <!-- Location Info -->
@@ -359,15 +333,7 @@
                                                         <% } %>
                                         </div>
 
-                                        <!-- Search Radius Control -->
-                                        <div class="flex gap-2 items-center">
-                                            <label class="label">
-                                                <span class="label-text text-xs font-semibold">Raio de busca:</span>
-                                            </label>
-                                            <input type="range" min="1" max="50" value="5" step="1"
-                                                class="range range-xs range-primary flex-1" id="searchRadius">
-                                            <span id="radiusValue" class="badge badge-primary">5 km</span>
-                                        </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -628,8 +594,7 @@
             }
 
             // Map Functionality
-            let map, marker, circle;
-            let searchMarkers = [];
+            let map, marker;
             const licitacaoCity = "<%= licitacao.municipio_nome || '' %>";
             const licitacaoState = "<%= licitacao.uf_sigla || '' %>";
             const licitacaoAddress = `${licitacaoCity}, ${licitacaoState}, Brasil`;
@@ -656,9 +621,6 @@
                         // Add marker for the city center
                         marker = L.marker([lat, lon]).addTo(map)
                             .bindPopup(`<strong>${licitacaoCity}, ${licitacaoState}</strong>`).openPopup();
-
-                        // Add radius circle
-                        updateRadius();
                     } else {
                         // Fallback to Brazil center if geocoding fails
                         map = L.map('map').setView([-14.235, -51.925], 4);
@@ -673,175 +635,11 @@
                 }
             }
 
-            // Update radius circle
-            function updateRadius() {
-                if (!marker || !map) return;
 
-                const radiusKm = document.getElementById('searchRadius').value;
-                document.getElementById('radiusValue').textContent = radiusKm + ' km';
-
-                if (circle) map.removeLayer(circle);
-
-                const center = marker.getLatLng();
-                circle = L.circle(center, {
-                    radius: radiusKm * 1000, // Convert to meters
-                    color: '#3b82f6',
-                    fillColor: '#3b82f6',
-                    fillOpacity: 0.15,
-                    weight: 2
-                }).addTo(map);
-
-                // Fit map to circle bounds
-                map.fitBounds(circle.getBounds());
-            }
-
-            // Clear search results
-            function clearSearchResults() {
-                // Remove all search markers
-                searchMarkers.forEach(m => map.removeLayer(m));
-                searchMarkers = [];
-
-                // Clear search input and status
-                document.getElementById('searchQuery').value = '';
-                document.getElementById('searchStatus').textContent = '';
-
-                // Re-center map on the city
-                if (marker) {
-                    map.setView(marker.getLatLng(), 13);
-                    updateRadius();
-                }
-            }
-
-            // Perform search using Overpass API
-            async function performSearch() {
-                const query = document.getElementById('searchQuery').value.trim();
-                if (!query) {
-                    document.getElementById('searchStatus').textContent = '⚠️ Digite algo para buscar';
-                    return;
-                }
-
-                if (!marker || !map) {
-                    document.getElementById('searchStatus').textContent = '⚠️ Mapa não inicializado';
-                    return;
-                }
-
-                // Show loading state
-                document.getElementById('searchStatus').textContent = '🔍 Buscando...';
-
-                // Clear previous results
-                searchMarkers.forEach(m => map.removeLayer(m));
-                searchMarkers = [];
-
-                try {
-                    const center = marker.getLatLng();
-
-                    // SMART SEARCH: Priority to named places only (fastest)
-                    const radiusMeters = Math.min(document.getElementById('searchRadius').value * 1000, 3000); // Max 3km
-
-                    const overpassQuery = `[out:json][timeout:8];
-(
-  node["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-  way["name"~"${query}",i](around:${radiusMeters},${center.lat},${center.lng});
-);
-out center 15;`;
-
-                    const overpassUrl = 'https://overpass-api.de/api/interpreter';
-                    const response = await fetch(overpassUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: 'data=' + encodeURIComponent(overpassQuery)
-                    });
-
-                    if (!response.ok) {
-                        let errorMsg = `API retornou status ${response.status}`;
-                        if (response.status === 504) errorMsg = 'Muitos resultados. Tente termo mais específico';
-                        if (response.status === 429) errorMsg = 'Muitas buscas. Aguarde alguns segundos';
-                        throw new Error(errorMsg);
-                    }
-
-                    const data = await response.json();
-
-                    if (!data.elements || data.elements.length === 0) {
-                        document.getElementById('searchStatus').textContent = `❌ Nenhum resultado para "${query}"`;
-                        return;
-                    }
-
-                    // SMART PROCESSING: Sort by distance and show only best results
-                    const processedResults = data.elements.map(element => {
-                        let lat, lon;
-                        if (element.lat && element.lon) {
-                            lat = element.lat;
-                            lon = element.lon;
-                        } else if (element.center) {
-                            lat = element.center.lat;
-                            lon = element.center.lon;
-                        } else {
-                            return null;
-                        }
-
-                        const name = element.tags?.name || element.tags?.shop || element.tags?.amenity || 'Local';
-                        const type = element.tags?.shop || element.tags?.amenity || element.type;
-                        const distance = map.distance([center.lat, center.lng], [lat, lon]);
-
-                        return { lat, lon, name, type, distance, tags: element.tags };
-                    }).filter(r => r !== null).sort((a, b) => a.distance - b.distance).slice(0, 15);
-
-                    processedResults.forEach(result => {
-                        const icon = L.icon({
-                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-                            iconSize: [25, 41],
-                            iconAnchor: [12, 41],
-                            popupAnchor: [1, -34],
-                            shadowSize: [41, 41]
-                        });
-
-                        const searchMarker = L.marker([result.lat, result.lon], { icon: icon }).addTo(map);
-                        const distKm = (result.distance / 1000).toFixed(1);
-
-                        const popupContent = `
-                            <div class="text-sm" style="min-width:150px;">
-                                <strong>${result.name}</strong><br/>
-                                ${result.type ? `<span class="badge badge-sm badge-ghost mt-1">${result.type}</span><br/>` : ''}
-                                <small class="text-primary">📍 ${distKm} km</small><br/>
-                                ${result.tags?.['addr:street'] ? `<small>🏠 ${result.tags['addr:street']}${result.tags['addr:housenumber'] ? ', ' + result.tags['addr:housenumber'] : ''}</small><br/>` : ''}
-                                ${result.tags?.phone ? `<small>📞 ${result.tags.phone}</small><br/>` : ''}
-                                ${result.tags?.website ? `<a href="${result.tags.website}" target="_blank" class="link link-primary text-xs">Website</a>` : ''}
-                            </div>
-                        `;
-
-                        searchMarker.bindPopup(popupContent);
-                        searchMarkers.push(searchMarker);
-                    });
-
-                    if (processedResults.length === 0) {
-                        document.getElementById('searchStatus').textContent = `❌ Nenhum resultado para "${query}"`;
-                    } else {
-                        document.getElementById('searchStatus').textContent = `✅ ${processedResults.length} principal(is)`;
-                        const group = L.featureGroup([marker, ...searchMarkers]);
-                        map.fitBounds(group.getBounds().pad(0.1));
-                    }
-
-                } catch (e) {
-                    console.error('Search error:', e);
-                    document.getElementById('searchStatus').textContent = '❌ Erro: ' + e.message;
-                }
-            }
 
             // Initialize on page load
             document.addEventListener('DOMContentLoaded', () => {
                 initMap();
-                document.getElementById('searchRadius').addEventListener('input', updateRadius);
-
-                // Enable Enter key to trigger search
-                document.getElementById('searchQuery').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        performSearch();
-                    }
-                });
             });
         </script>
 
