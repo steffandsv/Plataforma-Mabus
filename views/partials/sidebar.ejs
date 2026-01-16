@@ -1,8 +1,8 @@
 <aside
     class="fixed top-0 left-0 h-screen w-64 bg-[#030014]/95 backdrop-blur-xl border-r border-white/5 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col pt-20">
-    <!-- Brand -->
+    <!-- Brand - Removido, agora está no header -->
     <div class="absolute top-0 left-0 w-full h-16 flex items-center px-6 border-b border-white/5 bg-black/20">
-        <img src="/logo.svg" alt="MABUS" class="h-10 w-auto logo-adaptive" />
+        <!-- Espaço vazio, logo agora está no header -->
     </div>
 
     <ul class="menu p-4 w-full text-starlight/80 gap-2 flex-1 overflow-y-auto scrollbar-hide">
@@ -22,6 +22,12 @@
             <a href="/sniper" class="group hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 <%= path === '/sniper' ? 'active-nav' : '' %>">
                 <i class="fas fa-bullseye w-6 group-hover:scale-110 transition-transform"></i> 
                 <span class="font-medium tracking-wide">COTADOR</span>
+            </a>
+        </li>
+        <li>
+            <a href="/licitacoes" class="group hover:bg-green-500/10 hover:text-green-400 transition-all duration-300 <%= path === '/licitacoes' ? 'active-nav' : '' %>">
+                <i class="fas fa-gavel w-6 group-hover:scale-110 transition-transform"></i> 
+                <span class="font-medium tracking-wide">LICITAÇÕES</span>
             </a>
         </li>
 
