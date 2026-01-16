@@ -192,7 +192,8 @@
                                 ANALISADOR</h1>
                             <div
                                 class="absolute -top-10 -right-10 text-neon-purple/20 text-9xl blur-sm select-none z-0">
-                                <i class="fas fa-brain"></i></div>
+                                <i class="fas fa-brain"></i>
+                            </div>
                         </div>
                         <p class="text-xl text-starlight/60 font-light tracking-wide max-w-2xl mx-auto">
                             Envie o edital para ser analisado por nosso <span class="text-neon-blue font-bold">Agente
@@ -433,10 +434,10 @@
 
                 // --- INIT ---
                 document.addEventListener('DOMContentLoaded', () => {
-                    const initialHistory = <% - JSON.stringify(history || []) %>;
+                    const initialHistory = <%= JSON.stringify(history || []) %>;
                     renderHistoryDeck(initialHistory);
 
-                    const deepLinkData = <% - JSON.stringify(initialOpportunity || null) %>;
+                    const deepLinkData = <%= JSON.stringify(initialOpportunity || null) %>;
                     if (deepLinkData) {
                         try {
                             const parsed = {
