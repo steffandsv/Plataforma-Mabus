@@ -163,14 +163,7 @@
 }
 
 /* Object Description with Internal Scroll */
-.object-description {
-    background: oklch(var(--b2) / 0.5);
-    border-radius: 12px;
-    padding: 16px;
-    margin: 16px 0;
-    border-left: 4px solid oklch(var(--p));
-    /* Scroll properties handled by tailwind classes in HTML, ensuring reset here if needed */
-}
+/* Object Description styles moved to Tailwind util classes in EJS */
 
 /* Custom Scrollbar for Object Description */
 .scrollbar-thin::-webkit-scrollbar {
@@ -257,11 +250,9 @@
 }
 
 /* Object Description - Override generic */
-.object-description p[data-keywords] {
+/* Object Description - Override generic */
+.object-content p[data-keywords] {
     line-height: 1.8;
-    margin-top: 10px;
-    /* Space for the sticky header */
-    padding-top: 10px;
 }
 
 /* Keyword Highlighting (rendered by JS) */
