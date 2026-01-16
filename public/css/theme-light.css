@@ -275,19 +275,19 @@
 }
 
 /* ===== SCROLLBAR ===== */
-[data-theme="lumina"] .card-body > div::-webkit-scrollbar-track {
+[data-theme="lumina"] .card-body>div::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.03);
 }
 
-[data-theme="lumina"] .card-body > div::-webkit-scrollbar-thumb {
+[data-theme="lumina"] .card-body>div::-webkit-scrollbar-thumb {
     background: rgba(0, 112, 243, 0.2);
 }
 
-[data-theme="lumina"] .card-body > div::-webkit-scrollbar-thumb:hover {
+[data-theme="lumina"] .card-body>div::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 112, 243, 0.4);
 }
 
-[data-theme="lumina"] .card-body > div {
+[data-theme="lumina"] .card-body>div {
     scrollbar-color: rgba(0, 112, 243, 0.2) rgba(0, 0, 0, 0.03);
 }
 
@@ -330,6 +330,7 @@
 [data-theme="lumina"] .markdown-content h2 {
     background: linear-gradient(to right, #0070F3, #7928CA);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -442,4 +443,55 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* ===== CORREÇÕES DE INPUTS (Formulários) ===== */
+[data-theme="lumina"] input,
+[data-theme="lumina"] textarea,
+[data-theme="lumina"] select {
+    color: #1A202C;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="lumina"] input::placeholder,
+[data-theme="lumina"] textarea::placeholder {
+    color: #A0AEC0;
+}
+
+[data-theme="lumina"] input:focus,
+[data-theme="lumina"] textarea:focus,
+[data-theme="lumina"] select:focus {
+    background-color: #FFFFFF;
+    border-color: #0070F3;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+}
+
+/* ===== CORREÇÕES ORACLE PAGE ===== */
+/* Override específico para o ID classificacaoDisplay para garantir contraste */
+[data-theme="lumina"] #classificacaoDisplay {
+    background-image: linear-gradient(to right, #1A202C, #4A5568) !important;
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* Texto de resumo com opacidade */
+[data-theme="lumina"] .text-starlight\/90 {
+    color: #2D3748;
+}
+
+/* Markdown strong text */
+[data-theme="lumina"] .markdown-content strong {
+    color: #1A202C;
+}
+
+/* Markdown headings gradients if not covered */
+[data-theme="lumina"] .markdown-content h1,
+[data-theme="lumina"] .markdown-content h2 {
+    background: linear-gradient(to right, #0070F3, #7928CA);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
