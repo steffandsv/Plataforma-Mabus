@@ -15,7 +15,7 @@
                             data-id="<%= lic.id %>">
 
                             <!-- Relevance Score Badge (Outside inner wrapper to overlap) -->
-                            <div class="score-badge-wrapper"> <!-- Wrapper for z-index management if needed -->
+                            <div class="score-badge-wrapper">
                                 <% const score=lic.relevance_score || 0; %>
                                     <div
                                         class="score-badge <%= score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low' %>">
@@ -60,65 +60,111 @@
                                     </div>
                                     <% } %>
 
-                                        <!-- Object Description with Keyword Highlights -->
-                                        <div
-                                            class="object-section flex-1 flex flex-col min-h-0 my-4 p-4 rounded-xl bg-base-200/50 border-l-4 border-primary">
-                                            <h4
-                                                class="font-semibold mb-2 flex-none flex items-center gap-2 text-primary">
-                                                <i class="fas fa-file-alt"></i>
-                                                Objeto
-                                            </h4>
-                                            <div class="object-content overflow-y-auto scrollbar-thin min-h-0">
-                                                <p class="text-base leading-relaxed"
-                                                    data-keywords="<%= lic.matched_keywords || '' %>">
-                                                    <%= lic.objeto_compra || 'Não informado' %>
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Quick Info Pills -->
-                                        <div class="info-pills flex-none">
-                                            <% if (lic.data_publicacao_pncp) { %>
-                                                <div class="pill">
-                                                    <i class="fas fa-calendar"></i>
-                                                    <%= new Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
-                                                        %>
+                                        <!-- Deadline Banner - Neurociência da Urgência -->
+                                        <% if (lic.data_encerramento_proposta) { %>
+                                            <div class="deadline-banner flex-none"
+                                                data-deadline="<%= lic.data_encerramento_proposta %>">
+                                                <div class="deadline-icon">
+                                                    <i class="fas fa-hourglass-half"></i>
                                                 </div>
-                                                <% } %>
-                                                    <% if (lic.data_abertura_proposta) { %>
-                                                        <div class="pill">
-                                                            <i class="fas fa-clock"></i>
-                                                            Abertura: <%= new
-                                                                Date(lic.data_abertura_proposta).toLocaleDateString('pt-BR')
-                                                                %>
-                                                        </div>
-                                                        <% } %>
-                                                            <% if (lic.srp) { %>
-                                                                <div class="pill">
-                                                                    <i class="fas fa-box-open"></i>
-                                                                    SRP
-                                                                </div>
-                                                                <% } %>
-                                        </div>
+                                                <div class="deadline-content">
+                                                    <div class="deadline-label">Participe até:</div>
+                                                    <div class="deadline-time"
+                                                        data-date="<%= lic.data_encerramento_proposta %>">
+                                                        Carregando...
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% } %>
 
-                                        <!-- Action Buttons -->
-                                        <div class="story-actions flex-none">
-                                            <button class="action-btn skip-btn" onclick="skipCard()"
-                                                title="Pular esta licitação">
-                                                <i class="fas fa-forward"></i>
-                                                <span>Pular</span>
-                                            </button>
-                                            <a href="/licitacoes/<%= lic.id %>" class="action-btn details-btn"
-                                                title="Ver todos os detalhes">
-                                                <i class="fas fa-eye"></i>
-                                                <span>Detalhes</span>
-                                            </a>
-                                            <button class="action-btn save-btn" onclick="saveOpportunity(<%= lic.id %>)"
-                                                title="Salvar para depois">
-                                                <i class="fas fa-heart"></i>
-                                                <span>Salvar</span>
-                                            </button>
-                                        </div>
+                                                <!-- Loot Box de Itens - Gamificação Dopaminérgica -->
+                                                <div class="loot-box-container flex-none">
+                                                    <div class="loot-box closed" data-licitacao-id="<%= lic.id %>"
+                                                        onclick="toggleLootBox(this)">
+                                                        <div class="loot-box-closed-state">
+                                                            <div class="treasure-icon">
+                                                                <i class="fas fa-treasure-chest"></i>
+                                                                <i class="fas fa-gift"></i>
+                                                            </div>
+                                                            <div class="loot-box-label">
+                                                                <span class="shimmer">✨ Ver Itens da Licitação</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="loot-box-open-state" style="display: none;">
+                                                            <div class="loot-box-header">
+                                                                <i class="fas fa-box-open"></i>
+                                                                <span>Itens da Licitação</span>
+                                                            </div>
+                                                            <div class="loot-box-content">
+                                                                <div class="loading-items">
+                                                                    <i class="fas fa-spinner fa-spin"></i>
+                                                                    Carregando itens...
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Object Description with Keyword Highlights -->
+                                                <div
+                                                    class="object-section flex-1 flex flex-col min-h-0 my-4 p-4 rounded-xl bg-base-200/50 border-l-4 border-primary">
+                                                    <h4
+                                                        class="font-semibold mb-2 flex-none flex items-center gap-2 text-primary">
+                                                        <i class="fas fa-file-alt"></i>
+                                                        Objeto
+                                                    </h4>
+                                                    <div class="object-content overflow-y-auto scrollbar-thin min-h-0">
+                                                        <p class="text-base leading-relaxed"
+                                                            data-keywords="<%= lic.matched_keywords || '' %>">
+                                                            <%= lic.objeto_compra || 'Não informado' %>
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Quick Info Pills - Mantidos para informações adicionais -->
+                                                <% if (lic.srp || lic.data_publicacao_pncp) { %>
+                                                    <div class="info-pills flex-none">
+                                                        <% if (lic.data_publicacao_pncp) { %>
+                                                            <div class="pill">
+                                                                <i class="fas fa-calendar"></i>
+                                                                Publicado: <%= new
+                                                                    Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
+                                                                    %>
+                                                            </div>
+                                                            <% } %>
+                                                                <% if (lic.srp) { %>
+                                                                    <div class="pill">
+                                                                        <i class="fas fa-box-open"></i>
+                                                                        Sistema de Registro de Preços
+                                                                    </div>
+                                                                    <% } %>
+                                                    </div>
+                                                    <% } %>
+                            </div>
+
+                            <!-- Action Buttons - EXTERNAL with Overlap Effect -->
+                            <div class="story-actions-external">
+                                <button class="action-btn-external skip-btn-external" onclick="skipCard()"
+                                    title="Pular esta licitação">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-forward"></i>
+                                    </div>
+                                    <span class="btn-label">Pular</span>
+                                </button>
+                                <a href="/licitacoes/<%= lic.id %>" class="action-btn-external details-btn-external"
+                                    title="Ver todos os detalhes">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-eye"></i>
+                                    </div>
+                                    <span class="btn-label">Detalhes</span>
+                                </a>
+                                <button class="action-btn-external save-btn-external"
+                                    onclick="saveOpportunity(<%= lic.id %>)" title="Salvar para depois">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                    <span class="btn-label">Salvar</span>
+                                </button>
                             </div>
 
                             <!-- Progress Indicator -->

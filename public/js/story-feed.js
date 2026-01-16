@@ -192,3 +192,199 @@ function skipCard() {
         storyFeed.nextCard();
     }
 }
+
+/* ============================================
+   LOOT BOX CONTROLLER - Gamification System
+   ============================================ */
+
+const lootBoxCache = new Map();
+
+async function toggleLootBox(element) {
+    const lootBox = element;
+    const licitacaoId = lootBox.dataset.licitacaoId;
+    const isOpen = lootBox.classList.contains('open');
+
+    if (isOpen) {
+        // Close the loot box
+        lootBox.classList.remove('open');
+        return;
+    }
+
+    // Open the loot box
+    lootBox.classList.add('open');
+
+    // Check if items are already loaded
+    if (lootBoxCache.has(licitacaoId)) {
+        renderItems(lootBox, lootBoxCache.get(licitacaoId));
+        return;
+    }
+
+    // Fetch items from API
+    try {
+        const response = await fetch(`/api/licitacoes/${licitacaoId}/items`);
+        if (!response.ok) throw new Error('Failed to fetch items');
+
+        const data = await response.json();
+        lootBoxCache.set(licitacaoId, data.items || []);
+        renderItems(lootBox, data.items || []);
+    } catch (error) {
+        console.error('Error fetching loot box items:', error);
+        renderError(lootBox);
+    }
+}
+
+function renderItems(lootBox, items) {
+    const content = lootBox.querySelector('.loot-box-content');
+
+    if (!items || items.length === 0) {
+        content.innerHTML = `
+            <div class="no-items-message">
+                <i class="fas fa-inbox" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+                <p>Nenhum item encontrado para esta licitação.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const tableHTML = `
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Descrição</th>
+                    <th>Qtd</th>
+                    <th>Valor Un.</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr>
+                        <td class="item-number">${item.numero_item || '-'}</td>
+                        <td class="item-description" title="${escapeHtml(item.descricao || 'N/D')}">
+                            ${escapeHtml(truncate(item.descricao || 'N/D', 80))}
+                        </td>
+                        <td class="item-quantity">${formatNumber(item.quantidade)}</td>
+                        <td class="item-value">${formatCurrency(item.valor_unitario_estimado)}</td>
+                        <td class="item-value">${formatCurrency(item.valor_total)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+
+    content.innerHTML = tableHTML;
+}
+
+function renderError(lootBox) {
+    const content = lootBox.querySelector('.loot-box-content');
+    content.innerHTML = `
+        <div class="no-items-message">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #EF4444; opacity: 0.5; margin-bottom: 12px;"></i>
+            <p>Erro ao carregar itens. Tente novamente.</p>
+        </div>
+    `;
+}
+
+// Helper functions
+function formatCurrency(value) {
+    if (!value || isNaN(value)) return 'R$ -';
+    return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function formatNumber(value) {
+    if (!value || isNaN(value)) return '-';
+    return parseFloat(value).toLocaleString('pt-BR');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function truncate(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+/* ============================================
+   DEADLINE HUMANIZER - Temporal Psychology
+   ============================================ */
+
+function humanizeDeadline(deadlineStr, currentDate = new Date()) {
+    const deadline = new Date(deadlineStr);
+    const now = currentDate;
+
+    // Calculate difference in milliseconds
+    const diff = deadline - now;
+    const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    const diffHours = Math.ceil(diff / (1000 * 60 * 60));
+
+    // Urgency classification
+    let urgency = 'safe';
+    if (diffHours < 24) urgency = 'critical';
+    else if (diffDays < 7) urgency = 'warning';
+
+    // Day names in Portuguese
+    const dayNames = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    const dayName = dayNames[deadline.getDay()];
+
+    // Format time
+    const hours = String(deadline.getHours()).padStart(2, '0');
+    const minutes = String(deadline.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+
+    // Format date
+    const day = String(deadline.getDate()).padStart(2, '0');
+    const month = String(deadline.getMonth() + 1).padStart(2, '0');
+    const dateStr = `${day}/${month}`;
+
+    let humanText = '';
+
+    if (diffHours < 0) {
+        humanText = 'Prazo encerrado';
+        urgency = 'critical';
+    } else if (diffHours < 24) {
+        if (diffHours === 1) {
+            humanText = `Daqui 1 hora (às ${timeStr})`;
+        } else {
+            humanText = `Daqui ${diffHours} horas (às ${timeStr})`;
+        }
+    } else if (diffDays === 1) {
+        humanText = `Amanhã, ${dayName} (${dateStr}) às ${timeStr}`;
+    } else if (diffDays <= 7) {
+        humanText = `Daqui ${diffDays} dias, ${dayName} (${dateStr}) às ${timeStr}`;
+    } else if (diffDays <= 14) {
+        humanText = `Daqui ${diffDays} dias, ${dayName} que vem (${dateStr}) às ${timeStr}`;
+    } else {
+        humanText = `Daqui ${diffDays} dias (${dateStr}) às ${timeStr}`;
+    }
+
+    return { humanText, urgency };
+}
+
+function initializeDeadlines() {
+    const deadlineBanners = document.querySelectorAll('.deadline-banner');
+    const now = new Date();
+
+    deadlineBanners.forEach(banner => {
+        const deadlineTime = banner.querySelector('.deadline-time');
+        const deadlineStr = deadlineTime.dataset.date;
+
+        if (!deadlineStr) return;
+
+        const { humanText, urgency } = humanizeDeadline(deadlineStr, now);
+
+        deadlineTime.textContent = humanText;
+        banner.setAttribute('data-urgency', urgency);
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDeadlines();
+});

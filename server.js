@@ -378,6 +378,30 @@ app.post('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
     }
 });
 
+// API: Get licitação items (for loot box)
+app.get('/api/licitacoes/:id/items', isAuthenticated, async (req, res) => {
+    try {
+        const items = await getLicitacaoItens(req.params.id);
+
+        // Transform and limit items
+        const formattedItems = items
+            .map(item => ({
+                numero_item: item.numero_item,
+                descricao: item.descricao,
+                quantidade: item.quantidade,
+                valor_unitario_estimado: item.valor_unitario_estimado,
+                valor_total: item.valor_total || (item.quantidade * item.valor_unitario_estimado)
+            }))
+            .sort((a, b) => (b.valor_total || 0) - (a.valor_total || 0)) // Sort by value DESC
+            .slice(0, 50); // Limit to 50 items for performance
+
+        res.json({ success: true, items: formattedItems });
+    } catch (e) {
+        console.error('[Get Licitacao Items Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // API: Unsave licitação
 app.delete('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
     try {

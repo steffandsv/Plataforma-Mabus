@@ -521,6 +521,566 @@
 }
 
 /* ============================================
+   EXTERNAL ACTION BUTTONS - Overlap Effect
+   ============================================ */
+
+.story-actions-external {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 15;
+    width: 90%;
+    max-width: 550px;
+}
+
+.action-btn-external {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 12px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-weight: 700;
+    font-size: 12px;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: button-levitate 3s ease-in-out infinite;
+}
+
+.action-btn-external::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.action-btn-external:hover::before {
+    opacity: 1;
+}
+
+.btn-icon {
+    font-size: 24px;
+    transition: transform 0.3s;
+}
+
+.btn-label {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 11px;
+}
+
+/* Skip Button - Reject Psychology (Red/Orange) */
+.skip-btn-external {
+    background: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
+    color: white;
+}
+
+.skip-btn-external:hover {
+    transform: translateY(-6px) scale(1.08);
+    box-shadow: 0 15px 50px rgba(238, 90, 111, 0.5);
+}
+
+.skip-btn-external:hover .btn-icon {
+    transform: translateX(5px);
+}
+
+.skip-btn-external:active {
+    transform: translateY(-3px) scale(1.04);
+}
+
+/* Details Button - Information Psychology (Blue/Cyan) */
+.details-btn-external {
+    background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+    color: white;
+}
+
+.details-btn-external:hover {
+    transform: translateY(-6px) scale(1.08);
+    box-shadow: 0 15px 50px rgba(78, 205, 196, 0.5);
+}
+
+.details-btn-external:hover .btn-icon {
+    transform: scale(1.2);
+}
+
+.details-btn-external:active {
+    transform: translateY(-3px) scale(1.04);
+}
+
+/* Save Button - Desire Psychology (Pink/Purple) */
+.save-btn-external {
+    background: linear-gradient(135deg, #F093FB 0%, #F5576C 100%);
+    color: white;
+    animation: button-levitate 3s ease-in-out infinite, subtle-pulse 2s ease-in-out infinite;
+}
+
+.save-btn-external:hover {
+    transform: translateY(-6px) scale(1.08);
+    box-shadow: 0 15px 50px rgba(240, 147, 251, 0.6);
+    animation: button-levitate 3s ease-in-out infinite, heart-beat-continuous 0.8s ease-in-out infinite;
+}
+
+.save-btn-external:hover .btn-icon {
+    animation: heart-beat 0.6s ease-in-out;
+}
+
+.save-btn-external:active {
+    transform: translateY(-3px) scale(1.04);
+}
+
+@keyframes button-levitate {
+
+    0%,
+    100% {
+        transform: translateY(-4px);
+    }
+
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+@keyframes subtle-pulse {
+
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.1);
+    }
+}
+
+@keyframes heart-beat-continuous {
+
+    0%,
+    100% {
+        transform: translateY(-6px) scale(1.08);
+    }
+
+    50% {
+        transform: translateY(-6px) scale(1.15);
+    }
+}
+
+/* ============================================
+   DEADLINE BANNER - Temporal Urgency
+   ============================================ */
+
+.deadline-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    margin: 12px 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border-left: 4px solid #22C55E;
+    position: relative;
+    overflow: hidden;
+}
+
+.deadline-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: inherit;
+    animation: urgency-glow 2s ease-in-out infinite;
+}
+
+/* Urgency States - Color Psychology */
+.deadline-banner[data-urgency="critical"] {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+    border-left-color: #EF4444;
+    animation: urgency-pulse 1.5s ease-in-out infinite;
+}
+
+.deadline-banner[data-urgency="warning"] {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.1) 100%);
+    border-left-color: #F97316;
+}
+
+.deadline-banner[data-urgency="safe"] {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border-left-color: #22C55E;
+}
+
+.deadline-icon {
+    font-size: 24px;
+    animation: clock-tick 2s linear infinite;
+}
+
+.deadline-banner[data-urgency="critical"] .deadline-icon {
+    animation: clock-tick-fast 1s linear infinite;
+    color: #EF4444;
+}
+
+.deadline-banner[data-urgency="warning"] .deadline-icon {
+    color: #F97316;
+}
+
+.deadline-banner[data-urgency="safe"] .deadline-icon {
+    color: #22C55E;
+}
+
+.deadline-content {
+    flex: 1;
+}
+
+.deadline-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.7;
+    margin-bottom: 2px;
+}
+
+.deadline-time {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+@keyframes clock-tick {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes clock-tick-fast {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.1);
+    }
+
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+@keyframes urgency-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+}
+
+@keyframes urgency-glow {
+
+    0%,
+    100% {
+        opacity: 0.8;
+    }
+
+    50% {
+        opacity: 1;
+        filter: brightness(1.2);
+    }
+}
+
+/* ============================================
+   LOOT BOX - Gamification Dopamine
+   ============================================ */
+
+.loot-box-container {
+    margin: 12px 0;
+}
+
+.loot-box {
+    position: relative;
+    cursor: pointer;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Closed State - Mystery & Anticipation */
+.loot-box-closed-state {
+    background: linear-gradient(135deg, #F6D365 0%, #FDA085 100%);
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    animation: lootbox-breathe 3s ease-in-out infinite;
+}
+
+.loot-box-closed-state::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.4) 50%,
+            transparent 70%);
+    animation: shimmer 4s infinite;
+}
+
+.loot-box-closed-state::after {
+    content: '✨';
+    position: absolute;
+    font-size: 20px;
+    animation: particles-float 3s ease-in-out infinite;
+    opacity: 0.7;
+}
+
+.treasure-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.treasure-icon i {
+    display: block;
+}
+
+.treasure-icon i:first-child {
+    display: none;
+}
+
+.loot-box-label {
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+.shimmer {
+    display: inline-block;
+    animation: text-shimmer 2s ease-in-out infinite;
+}
+
+.loot-box:hover .loot-box-closed-state {
+    transform: scale(1.03);
+    animation: lootbox-breathe 3s ease-in-out infinite, shake 0.5s ease-in-out;
+}
+
+/* Open State - Reward Revealed */
+.loot-box-open-state {
+    background: oklch(var(--b2));
+    border: 2px solid oklch(var(--bc) / 0.1);
+    max-height: 350px;
+}
+
+.loot-box.open .loot-box-closed-state {
+    display: none;
+}
+
+.loot-box.open .loot-box-open-state {
+    display: block !important;
+    animation: lootbox-open 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.loot-box-header {
+    background: var(--gradient-gold);
+    padding: 12px 16px;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.loot-box-content {
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.loading-items {
+    text-align: center;
+    padding: 20px;
+    color: oklch(var(--bc) / 0.5);
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.items-table thead {
+    background: var(--gradient-sunset);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.items-table th {
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.items-table tbody tr {
+    border-bottom: 1px solid oklch(var(--bc) / 0.1);
+    transition: background 0.2s;
+}
+
+.items-table tbody tr:nth-child(odd) {
+    background: oklch(var(--b1) / 0.5);
+}
+
+.items-table tbody tr:hover {
+    background: oklch(var(--p) / 0.1);
+    transform: scale(1.01);
+}
+
+.items-table td {
+    padding: 10px 8px;
+}
+
+.item-number {
+    font-weight: 700;
+    color: oklch(var(--p));
+}
+
+.item-description {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item-quantity {
+    text-align: center;
+    font-weight: 600;
+}
+
+.item-value {
+    font-weight: 700;
+    color: #F6D365;
+    text-shadow: 0 0 10px rgba(246, 211, 101, 0.3);
+    white-space: nowrap;
+}
+
+.no-items-message {
+    text-align: center;
+    padding: 30px;
+    color: oklch(var(--bc) / 0.5);
+    font-style: italic;
+}
+
+/* Loot Box Animations */
+@keyframes lootbox-breathe {
+
+    0%,
+    100% {
+        box-shadow: 0 5px 25px rgba(246, 211, 101, 0.4);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 10px 40px rgba(246, 211, 101, 0.6);
+        transform: scale(1.02);
+    }
+}
+
+@keyframes lootbox-open {
+    0% {
+        transform: rotateX(90deg) scale(0.8);
+        opacity: 0;
+    }
+
+    50% {
+        transform: rotateX(-10deg) scale(1.05);
+    }
+
+    100% {
+        transform: rotateX(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes particles-float {
+
+    0%,
+    100% {
+        top: 10%;
+        left: 10%;
+        opacity: 0;
+    }
+
+    50% {
+        top: -20%;
+        left: 90%;
+        opacity: 1;
+    }
+}
+
+@keyframes text-shimmer {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    }
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0) scale(1.03);
+    }
+
+    25% {
+        transform: translateX(-5px) scale(1.03) rotate(-2deg);
+    }
+
+    75% {
+        transform: translateX(5px) scale(1.03) rotate(2deg);
+    }
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 
@@ -543,12 +1103,50 @@
         font-size: 20px;
     }
 
-    .story-actions {
-        flex-wrap: wrap;
+    .story-actions-external {
+        bottom: -20px;
+        gap: 8px;
     }
 
-    .action-btn {
-        flex: 1 1 calc(50% - 6px);
-        min-width: 120px;
+    .action-btn-external {
+        padding: 12px 8px;
+        gap: 4px;
+    }
+
+    .btn-icon {
+        font-size: 20px;
+    }
+
+    .btn-label {
+        font-size: 10px;
+    }
+
+    .deadline-banner {
+        padding: 10px 12px;
+    }
+
+    .deadline-icon {
+        font-size: 20px;
+    }
+
+    .deadline-time {
+        font-size: 13px;
+    }
+
+    .loot-box-closed-state {
+        padding: 16px;
+    }
+
+    .treasure-icon {
+        font-size: 28px;
+    }
+
+    .items-table {
+        font-size: 11px;
+    }
+
+    .items-table th,
+    .items-table td {
+        padding: 8px 6px;
     }
 }
