@@ -16,7 +16,7 @@
                             data-id="<%= lic.id %>">
 
                             <!-- Relevance Score Badge (Outside inner wrapper to overlap) -->
-                            <div class="absolute -top-4 -right-4 z-50">
+                            <div class="score-badge-wrapper"> <!-- Wrapper for z-index management if needed -->
                                 <% const score=lic.relevance_score || 0; %>
                                     <div
                                         class="score-badge <%= score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low' %>">

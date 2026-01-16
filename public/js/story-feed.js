@@ -39,17 +39,7 @@ class StoryFeedEngine {
             this.handleSwipe();
         });
 
-        // Mouse wheel support (desktop)
-        container.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            if (this.isNavigating) return;
 
-            if (e.deltaY > 0) {
-                this.nextCard();
-            } else {
-                this.prevCard();
-            }
-        }, { passive: false });
     }
 
     setupKeyboardNavigation() {

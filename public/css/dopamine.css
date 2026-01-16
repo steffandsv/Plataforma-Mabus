@@ -96,12 +96,19 @@
     align-items: center;
     justify-content: center;
     width: 80px;
+    width: 80px;
     height: 80px;
     border-radius: 50%;
     background: var(--gradient-ocean);
     box-shadow: var(--shadow-glow);
     animation: pulse-glow 2s ease-in-out infinite;
     border: 3px solid rgba(255, 255, 255, 0.3);
+    /* Updated Position Phase 2 */
+    position: absolute;
+    top: -2rem;
+    right: -2rem;
+    z-index: 9999;
+    /* Ensure top of everything */
 }
 
 .score-badge.high {
@@ -251,7 +258,10 @@
 
 /* Object Description - Override generic */
 .object-description p[data-keywords] {
-    line-height: 1.6;
+    line-height: 1.8;
+    margin-top: 10px;
+    /* Space for the sticky header */
+    padding-top: 10px;
 }
 
 /* Keyword Highlighting (rendered by JS) */
