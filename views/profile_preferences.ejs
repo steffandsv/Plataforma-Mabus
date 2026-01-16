@@ -878,24 +878,24 @@
                     try {
                         // Step 0: Buscando CNPJ
                         updateThinkingStep(0);
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        await new Promise(resolve => setTimeout(resolve, 300));
 
-                        // Step 1: Obtendo dados
+                        // Step 1: Obtendo dados (início da chamada)
                         updateThinkingStep(1);
 
-                        // Make API call
+                        // Step 2: Enviando para IA
+                        updateThinkingStep(2);
+                        await new Promise(resolve => setTimeout(resolve, 200));
+
+                        // Step 3: Raciocinando (este é o passo que demora - acontece no servidor)
+                        updateThinkingStep(3);
+
+                        // Make API call (THIS is where the actual waiting happens)
                         const response = await fetch('/api/cnpj/analyze-magic', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ cnpj })
                         });
-
-                        // Step 2: Enviando para IA
-                        updateThinkingStep(2);
-                        await new Promise(resolve => setTimeout(resolve, 300));
-
-                        // Step 3: Raciocinando (happening on server)
-                        updateThinkingStep(3);
 
                         const result = await response.json();
 
@@ -903,7 +903,7 @@
                             throw new Error(result.erro || 'Erro ao analisar CNPJ');
                         }
 
-                        // Step 4: Recebendo resposta
+                        // Step 4: Recebendo resposta (API já respondeu)
                         updateThinkingStep(4);
                         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -929,6 +929,11 @@
                         // Reset UI
                         document.getElementById('ai-thinking').classList.add('hidden');
                         document.getElementById('magic-input-area').classList.remove('hidden');
+
+                        // Reset steps
+                        document.querySelectorAll('.step').forEach(step => {
+                            step.classList.remove('active', 'done');
+                        });
                     }
                 }
 

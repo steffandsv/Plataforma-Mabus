@@ -613,6 +613,121 @@ app.post('/api/cnpj/analyze-magic', isAuthenticated, async (req, res) => {
     }
 });
 
+// POST /api/cnpj/refine-keywords - Refinar palavras-chave com IA (apenas uma vez)
+app.post('/api/cnpj/refine-keywords', isAuthenticated, async (req, res) => {
+    try {
+        const { current_keywords, feedback } = req.body;
+
+        if (!Array.isArray(current_keywords) || current_keywords.length === 0) {
+            return res.status(400).json({
+                sucesso: false,
+                erro: 'Palavras-chave atuais não fornecidas'
+            });
+        }
+
+        if (!feedback || feedback.trim().length === 0) {
+            return res.status(400).json({
+                sucesso: false,
+                erro: 'Feedback não fornecido'
+            });
+        }
+
+        console.log('[Refine Keywords] Iniciando refinamento com AI...');
+
+        // Get API key
+        let apiKey = process.env.DEEPSEEK_API_KEY;
+        if (!apiKey) {
+            apiKey = await getSetting('sniper_api_key');
+        }
+
+        if (!apiKey) {
+            return res.status(500).json({
+                sucesso: false,
+                erro: 'API key não configurada'
+            });
+        }
+
+        // Build refine prompt
+        const prompt = `Você é um especialista em licitações públicas. O usuário tem as seguintes palavras-chave atuais:
+
+${current_keywords.join(', ')}
+
+FEEDBACK DO USUÁRIO:
+"${feedback}"
+
+TAREFA: Refine a lista de palavras-chave baseando-se no feedback. Mantenha palavras relevantes, remova aquelas que o usuário não quer, e adicione novas que façam sentido. Retorne 50-100 palavras-chave.
+
+IMPORTANTE: Retorne APENAS um JSON válido, SEM markdown, no formato exato:
+{"keywords": ["palavra1", "palavra2", "palavra3"]}`;
+
+        const { generateText } = require('./src/services/ai_manager');
+
+        console.log('[Refine Keywords] Chamando IA...');
+
+        const aiResponse = await generateText({
+            provider: 'deepseek',
+            model: 'deepseek-chat',
+            apiKey: apiKey,
+            messages: [
+                { role: 'system', content: 'Você é um assistente que retorna apenas JSON válido, sem markdown ou texto adicional.' },
+                { role: 'user', content: prompt }
+            ]
+        });
+
+        console.log('[Refine Keywords] Resposta da IA recebida, processando...');
+        console.log('[Refine Keywords] Raw response:', aiResponse.substring(0, 200));
+
+        // Parse JSON com tratamento robusto
+        let jsonStr = aiResponse.trim();
+
+        // Remove markdown code blocks
+        if (jsonStr.startsWith('```json')) {
+            jsonStr = jsonStr.replace(/^```json\s*\n?/, '').replace(/\n?```\s*$/, '');
+        } else if (jsonStr.startsWith('```')) {
+            jsonStr = jsonStr.replace(/^```\s*\n?/, '').replace(/\n?```\s*$/, '');
+        }
+
+        // Remove any leading/trailing whitespace again
+        jsonStr = jsonStr.trim();
+
+        // Try to parse
+        let result;
+        try {
+            result = JSON.parse(jsonStr);
+        } catch (parseError) {
+            console.error('[Refine Keywords] JSON Parse Error:', parseError);
+            console.error('[Refine Keywords] Failed to parse:', jsonStr);
+
+            // Try to extract JSON from text if there's additional text
+            const jsonMatch = jsonStr.match(/\{[\s\S]*"keywords"[\s\S]*\}/);
+            if (jsonMatch) {
+                console.log('[Refine Keywords] Tentando extrair JSON do texto...');
+                result = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('Resposta da IA não está em formato JSON válido');
+            }
+        }
+
+        if (!result.keywords || !Array.isArray(result.keywords)) {
+            throw new Error('Resposta da IA não contém array de keywords');
+        }
+
+        console.log(`[Refine Keywords] ✅ ${result.keywords.length} keywords refinadas`);
+
+        res.json({
+            sucesso: true,
+            keywords: result.keywords
+        });
+
+    } catch (erro) {
+        console.error('[Refine Keywords] Erro:', erro);
+        res.status(500).json({
+            sucesso: false,
+            erro: erro.message || 'Erro ao refinar palavras-chave'
+        });
+    }
+});
+
 // Module 3: SNIPER (Execution/Create Task)
 app.get('/sniper', isAuthenticated, async (req, res) => {
     const modules = getModules();
