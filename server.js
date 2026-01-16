@@ -387,10 +387,10 @@ app.get('/api/licitacoes/:id/items', isAuthenticated, async (req, res) => {
         const formattedItems = items
             .map(item => ({
                 numero_item: item.numero_item,
-                descricao: item.descricao,
+                descricao: item.descricao_item, // Correct field name from database
                 quantidade: item.quantidade,
                 valor_unitario_estimado: item.valor_unitario_estimado,
-                valor_total: item.valor_total || (item.quantidade * item.valor_unitario_estimado)
+                valor_total: item.valor_total_estimado || (item.quantidade * item.valor_unitario_estimado)
             }))
             .sort((a, b) => (b.valor_total || 0) - (a.valor_total || 0)) // Sort by value DESC
             .slice(0, 50); // Limit to 50 items for performance

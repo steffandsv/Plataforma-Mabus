@@ -57,9 +57,12 @@
     opacity: 0;
     transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     padding: 0;
-    /* Remove padding from card, moved to inner */
+    padding-bottom: 80px;
+    /* Extra space for external buttons at bottom */
+    /* Padding moved to inner wrapper except bottom */
     overflow: visible;
     /* Allow badge to transpass */
+    pointer-events: none;
     border: 2px solid oklch(var(--bc) / 0.1);
     backdrop-filter: blur(10px);
 }
@@ -1097,6 +1100,52 @@
     background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
     color: white;
     border: none;
+}
+
+/* ============================================
+   OBJECT DESCRIPTION - Line Clamp & Ver Mais
+   ============================================ */
+
+.line-clamp-4 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    /* Standard property */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ver-mais-btn {
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, oklch(var(--p)) 0%, oklch(var(--s)) 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s;
+}
+
+.ver-mais-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ver-mais-btn i {
+    font-size: 10px;
+}
+
+.objeto-full-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: oklch(var(--bc));
+    white-space: pre-wrap;
 }
 
 /* ============================================

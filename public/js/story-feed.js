@@ -290,10 +290,39 @@ function renderModalItems(container, items) {
 
 // Close modal on Escape key
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && currentModalLicitacaoId) {
-        closeItemsModal();
+    if (e.key === 'Escape') {
+        if (currentModalLicitacaoId) {
+            closeItemsModal();
+        }
+        if (currentObjetoIndex !== null) {
+            closeObjetoModal();
+        }
     }
 });
+
+/* ============================================
+   OBJETO MODAL CONTROLLER
+   ============================================ */
+
+let currentObjetoIndex = null;
+
+function openObjetoModal(cardIndex) {
+    currentObjetoIndex = cardIndex;
+    const modal = document.getElementById('objetoModal');
+    const objetoElement = document.getElementById(`objeto-preview-${cardIndex}`);
+    const fullText = objetoElement.dataset.fullText;
+
+    const modalBody = document.getElementById('objetoFullText');
+    modalBody.textContent = fullText;
+
+    modal.style.display = 'flex';
+}
+
+function closeObjetoModal() {
+    const modal = document.getElementById('objetoModal');
+    modal.style.display = 'none';
+    currentObjetoIndex = null;
+}
 
 // Helper functions
 function formatCurrency(value) {

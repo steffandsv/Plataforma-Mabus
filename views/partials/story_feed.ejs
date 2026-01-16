@@ -68,17 +68,26 @@
 
                                         <!-- Object Description with Keyword Highlights - PRIORIDADE MÁXIMA -->
                                         <div
-                                            class="object-section flex-1 flex flex-col min-h-0 my-3 p-4 rounded-xl bg-base-200/50 border-l-4 border-primary">
-                                            <h4
-                                                class="font-semibold mb-2 flex-none flex items-center gap-2 text-primary text-sm">
+                                            class="object-section flex-none my-3 p-4 rounded-xl bg-base-200/50 border-l-4 border-primary">
+                                            <h4 class="font-semibold mb-2 flex items-center gap-2 text-primary text-sm">
                                                 <i class="fas fa-file-alt"></i>
                                                 Objeto
                                             </h4>
-                                            <div class="object-content overflow-y-auto scrollbar-thin min-h-0 flex-1">
-                                                <p class="text-sm leading-relaxed"
-                                                    data-keywords="<%= lic.matched_keywords || '' %>">
+                                            <div class="object-preview">
+                                                <p class="text-sm leading-relaxed line-clamp-4"
+                                                    id="objeto-preview-<%= index %>"
+                                                    data-keywords="<%= lic.matched_keywords || '' %>"
+                                                    data-full-text="<%= (lic.objeto_compra || 'Não informado').replace(/"
+                                                    /g, '&quot;' ) %>">
                                                     <%= lic.objeto_compra || 'Não informado' %>
                                                 </p>
+                                                <% if (lic.objeto_compra && lic.objeto_compra.length> 200) { %>
+                                                    <button class="ver-mais-btn"
+                                                        onclick="openObjetoModal('<%= index %>')">
+                                                        <i class="fas fa-expand-alt"></i>
+                                                        Ver mais
+                                                    </button>
+                                                    <% } %>
                                             </div>
                                         </div>
 
@@ -185,6 +194,25 @@
                     <i class="fas fa-spinner fa-spin"></i>
                     Carregando itens...
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Objeto Modal Overlay -->
+    <div id="objetoModal" class="items-modal" style="display: none;">
+        <div class="items-modal-backdrop" onclick="closeObjetoModal()"></div>
+        <div class="items-modal-container">
+            <div class="items-modal-header">
+                <h3>
+                    <i class="fas fa-file-alt"></i>
+                    Objeto Completo da Licitação
+                </h3>
+                <button class="modal-close-btn" onclick="closeObjetoModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="items-modal-body">
+                <div id="objetoFullText" class="objeto-full-text"></div>
             </div>
         </div>
     </div>
