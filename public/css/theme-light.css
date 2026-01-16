@@ -90,6 +90,7 @@
 [data-theme="lumina"] aside {
     background: rgba(255, 255, 255, 0.98);
     border-right-color: rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(20px);
 }
 
 [data-theme="lumina"] aside .menu a {
