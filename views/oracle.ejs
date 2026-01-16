@@ -1,406 +1,505 @@
 <%- include('partials/head') %>
-<%- include('partials/header') %>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="/js/neural_network.js"></script>
+    <%- include('partials/header') %>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script src="/js/neural_network.js"></script>
 
-<!-- Custom Styles for Oracle Specifics -->
-<style>
-    .animate-float-slow { animation: float 8s ease-in-out infinite; }
-    .animate-float-reverse { animation: float 10s ease-in-out infinite reverse; }
-    
-    .neon-text-glow { text-shadow: 0 0 10px rgba(0, 240, 255, 0.7); }
-    .neon-box-glow { box-shadow: 0 0 20px rgba(112, 0, 255, 0.3); }
-
-    .scanner-line {
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 2px;
-        background: linear-gradient(to right, transparent, #00F0FF, transparent);
-        animation: scan 3s linear infinite;
-        opacity: 0.5;
-    }
-    @keyframes scan {
-        0% { transform: translateY(-100%); opacity: 0; }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { transform: translateY(500px); opacity: 0; }
-    }
-
-    /* Markdown Content Styling - Dopamine Architecture */
-    .markdown-content h2 {
-        font-size: 1.25rem;
-        font-weight: 800;
-        background: linear-gradient(to right, #00F0FF, #7000FF);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-top: 1.5rem;
-        margin-bottom: 0.75rem;
-    }
-    .markdown-content h3 {
-        font-size: 1rem;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.9);
-        margin-top: 1rem;
-        margin-bottom: 0.5rem;
-    }
-    .markdown-content h4 {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: rgba(0, 240, 255, 0.8);
-        margin-top: 0.75rem;
-        margin-bottom: 0.5rem;
-    }
-    .markdown-content table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 1rem 0;
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 0.75rem;
-        overflow: hidden;
-    }
-    .markdown-content thead {
-        background: rgba(0, 240, 255, 0.1);
-    }
-    .markdown-content th {
-        padding: 0.75rem;
-        text-align: left;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: rgba(0, 240, 255, 0.9);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border-bottom: 2px solid rgba(0, 240, 255, 0.3);
-    }
-    .markdown-content td {
-        padding: 0.75rem;
-        font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.7);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .markdown-content tbody tr:last-child td {
-        border-bottom: none;
-    }
-    .markdown-content ul {
-        list-style: none;
-        padding-left: 0;
-        margin: 0.5rem 0;
-    }
-    .markdown-content li {
-        padding-left: 1.5rem;
-        position: relative;
-        margin-bottom: 0.5rem;
-        color: rgba(255, 255, 255, 0.8);
-    }
-    .markdown-content li::before {
-        content: "▸";
-        position: absolute;
-        left: 0;
-        color: rgba(0, 240, 255, 0.6);
-    }
-    .markdown-content strong {
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.95);
-    }
-    .markdown-content em {
-        font-style: italic;
-        color: rgba(112, 0, 255, 0.9);
-    }
-    .markdown-content p {
-        margin: 0.75rem 0;
-        line-height: 1.6;
-        color: rgba(255, 255, 255, 0.8);
-    }
-    .markdown-content hr {
-        border: none;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        margin: 1.5rem 0;
-    }
-</style>
-
-<div class="min-h-screen flex flex-col items-center pb-20 relative overflow-hidden bg-cosmic-void">
-    
-    <!-- Ambient Background -->
-    <div class="fixed inset-0 pointer-events-none z-0">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-purple/10 rounded-full blur-[150px] animate-pulse-slow"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-blue/10 rounded-full blur-[150px] animate-pulse-slow" style="animation-delay: 2s"></div>
-    </div>
-
-    <!-- Container -->
-    <div class="container mx-auto px-4 py-8 max-w-6xl relative z-10">
-
-        <!-- Header Controls -->
-        <div class="flex justify-between items-center mb-12">
-            <button onclick="resetView()" class="btn btn-ghost hover:bg-white/5 gap-2 group text-starlight hover:text-white transition-all">
-                <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
-                <span class="tracking-widest text-xs font-bold">VOLTAR</span>
-            </button>
-            <div class="text-xs font-mono text-starlight/30 tracking-[0.3em]">ORACLE_SYS_V6.1 :: <span class="text-neon-blue animate-pulse">ONLINE</span></div>
-        </div>
-
-        <!-- =========== VIEW: UPLOAD ============ -->
-        <div id="uploadView" class="transition-all duration-700 ease-out">
-            <div class="text-center mb-16 relative">
-                 <div class="inline-block relative">
-                    <h1 class="text-7xl md:text-8xl font-black oracle-title tracking-tighter mb-4 relative z-10">ANALISADOR</h1>
-                    <div class="absolute -top-10 -right-10 text-neon-purple/20 text-9xl blur-sm select-none z-0"><i class="fas fa-brain"></i></div>
-                 </div>
-                <p class="text-xl text-starlight/60 font-light tracking-wide max-w-2xl mx-auto">
-                    Envie o edital para ser analisado por nosso <span class="text-neon-blue font-bold">Agente Neural</span> especializado.
-                </p>
-            </div>
-
-            <div id="uploadContainer" class="flex justify-center items-center perspective-1000">
-                <form id="uploadForm" class="w-full max-w-2xl relative group transform hover:rotate-x-2 transition-transform duration-500">
-                    <!-- Scanner Effect -->
-                    <div class="absolute inset-0 z-20 pointer-events-none overflow-hidden rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                        <div class="scanner-line"></div>
-                    </div>
-
-                    <!-- Glow Backdrop -->
-                    <div class="absolute -inset-1 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-blue rounded-[2.5rem] blur-xl opacity-20 group-hover:opacity-50 transition duration-500 animate-gradient-xy"></div>
-                    
-                    <label for="pdfFiles" class="relative w-full h-96 glass-card rounded-[2.5rem] flex flex-col justify-center items-center cursor-pointer hover:border-neon-blue/50 transition-all duration-300 group-hover:shadow-[0_0_50px_rgba(0,240,255,0.2)]" id="dropZoneArea">
-                        <div class="relative mb-8">
-                            <div class="absolute inset-0 bg-neon-blue/20 rounded-full blur-xl animate-pulse-slow"></div>
-                            <div class="w-24 h-24 rounded-full bg-black/40 border border-white/10 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform duration-300">
-                                <i class="fas fa-cloud-upload-alt text-4xl text-white group-hover:text-neon-blue transition-colors"></i>
-                            </div>
-                        </div>
-                        
-                        <div class="text-3xl font-bold text-white tracking-tight group-hover:text-neon-blue transition-colors">INICIAR ENVIO</div>
-                        <div class="text-starlight/40 mt-3 font-mono text-xs tracking-widest uppercase border border-white/10 px-3 py-1 rounded-full">Apenas PDFs</div>
-                        <input type="file" id="pdfFiles" name="pdfFiles" accept=".pdf" multiple hidden required>
-                    </label>
-                </form>
-            </div>
-
-            <!-- NEURAL LOADER -->
-            <div id="loader" class="hidden text-center py-20 flex flex-col items-center min-h-[50vh] justify-center relative">
-                
-                <!-- Explanatory Message (Above Animation) -->
-                <div class="glass-card p-6 rounded-2xl max-w-2xl mb-12 border border-neon-blue/20">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-full bg-neon-blue/10 border border-neon-blue/30 flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-brain text-neon-blue text-xl"></i>
-                        </div>
-                        <div class="text-left">
-                            <h3 class="text-sm font-bold text-white mb-2 tracking-wide">ANÁLISE NEURAL EM ANDAMENTO</h3>
-                            <p class="text-xs text-starlight/80 leading-relaxed mb-3">
-                                Nosso agente está processando dados sobre o <span class="text-neon-blue font-semibold">município</span>, <span class="text-neon-blue font-semibold">produtos</span>, <span class="text-neon-blue font-semibold">concorrentes</span> e muito mais. 
-                                Como a pesquisa é feita de forma a mimetizar um processo humano profundo, ela pode demorar de <span class="text-white font-bold">1 a 3 minutos</span>.
-                            </p>
-                            <p class="text-xs text-neon-purple/70 font-semibold">
-                                💡 Você pode sair desta aba e ser notificado quando acabar.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <!-- Notification Button -->
-                    <div class="mt-4 pt-4 border-t border-white/10">
-                        <button id="notifyButton" onclick="enableNotifications()" class="btn btn-sm w-full bg-neon-blue/10 border-neon-blue/40 text-neon-blue hover:bg-neon-blue hover:text-black gap-2 transition-all">
-                            <i class="fas fa-bell" id="notifyIcon"></i>
-                            <span id="notifyText">ATIVAR NOTIFICAÇÕES</span>
-                        </button>
-                    </div>
-                </div>
-                <!-- Canvas Container -->
-                <div class="relative w-full max-w-lg aspect-square mb-8">
-                    <canvas id="neuralCanvas" class="w-full h-full opacity-80 mix-blend-screen"></canvas>
-                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                         <div class="w-32 h-32 rounded-full border border-neon-blue/30 animate-ping"></div>
-                         <div class="w-48 h-48 rounded-full border border-neon-purple/20 animate-ping" style="animation-delay: 0.5s"></div>
-                    </div>
-                </div>
-
-                <div class="text-4xl font-black text-white mb-2 tracking-tighter animate-pulse" id="loaderTitle">
-                    CARREGANDO DADOS
-                </div>
-                
-                <div class="h-8 relative overflow-hidden w-full max-w-md bg-black/20 rounded-full border border-white/5">
-                     <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-neon-blue to-neon-purple opacity-50 animate-progress"></div>
-                     <div class="absolute inset-0 flex items-center justify-center text-xs font-mono font-bold text-white z-10" id="loaderText">
-                        INITIALIZING...
-                     </div>
-                </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- =========== VIEW: RESULT ============ -->
-        <div id="resultView" class="hidden transition-opacity duration-700">
-            <!-- Header Info -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 items-center">
-                
-                <!-- Left: Tags & Class -->
-                <div class="text-center lg:text-left order-2 lg:order-1">
-                    <div id="metaIdDisplay" class="text-xs font-mono text-starlight/30 mb-2">#ID_UNKNOWN</div>
-                    <div id="classificacaoDisplay" class="text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-starlight uppercase leading-none mb-6">---</div>
-                    <div id="tagsDisplay" class="flex flex-wrap gap-2 justify-center lg:justify-start"></div>
-                </div>
-
-                <!-- Center: Score (The Core) -->
-                <div class="relative h-64 w-64 mx-auto flex items-center justify-center order-1 lg:order-2 group">
-                    <!-- Rotating Rings -->
-                    <div class="absolute inset-0 border-2 border-neon-blue/30 rounded-full border-t-transparent animate-spin duration-[10s]"></div>
-                    <div class="absolute inset-4 border-2 border-neon-purple/30 rounded-full border-b-transparent animate-spin duration-[15s] reverse"></div>
-                    <div class="absolute inset-0 bg-neon-blue/5 rounded-full blur-xl group-hover:bg-neon-blue/10 transition-colors duration-500"></div>
-
-                    <!-- Score Value (IPM Paywall) -->
-                    <div class="text-center relative z-10">
-                        <!-- /100 Indicator -->
-                        <div class="absolute -top-6 right-8 text-xs font-mono text-white/40 tracking-wider">/100</div>
-                        <div id="ipmDisplay" class="text-7xl font-black text-white drop-shadow-[0_0_20px_rgba(0,240,255,0.8)] font-sans tracking-tighter blur-lg select-none">XX</div>
-                         <div class="text-xs font-bold tracking-[0.4em] text-neon-blue mt-1">IPM SCORE</div>
-                        
-                        <!-- Unlock Overlay -->
-                        <div id="ipmLockOverlay" class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group" onclick="unlockModule('ipm_detalhado', 300)">
-                            <div class="w-12 h-12 rounded-full bg-black/60 border border-white/20 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-lock text-white group-hover:text-neon-blue transition-colors"></i>
-                            </div>
-                            <div class="text-[10px] font-bold text-white opacity-80">300W PARA REVELAR</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right: Summary -->
-                <div class="glass-card p-6 rounded-2xl order-3 relative overflow-hidden group hover:border-white/20 transition-colors">
-                     <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
-                        <i class="fas fa-quote-right text-4xl text-white"></i>
-                     </div>
-                     <h3 class="text-xs font-bold text-neon-purple mb-3 tracking-widest uppercase">Insight Estratégico</h3>
-                     <p id="resumoDisplay" class="text-lg text-starlight/90 leading-relaxed font-light">...</p>
-                </div>
-            </div>
-
-            <!-- MODULES GRID -->
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8 mb-24" id="modulesGrid">
-                <!-- JS Injected Cards -->
-            </div>
-
-            <!-- ACTION FOOTER -->
-            <div class="text-center pb-20 border-t border-white/5 pt-12">
-                <h3 class="text-2xl font-bold text-white mb-8 tracking-tight">PRONTO PARA COTAR?</h3>
-                <form action="/create" method="POST" id="sniperForm" class="inline-block relative group">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-neon-blue to-neon-purple rounded-full blur opacity-30 group-hover:opacity-70 transition duration-300"></div>
-                    
-                    <input type="hidden" name="name" id="sniperName">
-                    <input type="hidden" name="cep" value="00000-000">
-                    <input type="hidden" name="gridData" id="sniperGridData">
-                    <input type="hidden" name="metadataJSON" id="sniperMetadata">
-                    <input type="hidden" name="moduleName" value="gemini_meli">
-                    <input type="hidden" name="existingFilePath" id="sniperExistingFilePath">
-
-                    <button type="submit" class="btn btn-lg h-16 px-12 rounded-full relative bg-black border border-white/20 text-white font-black text-xl tracking-widest overflow-hidden group-hover:text-neon-blue transition-colors">
-                         <span class="relative z-10 flex items-center gap-3">
-                            <i class="fas fa-crosshairs"></i>
-                            ENVIAR PARA COTAÇÃO
-                         </span>
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- HISTORY DECK -->
-        <div class="mt-20 pt-10 border-t border-white/5">
-            <h2 class="text-xl font-bold text-starlight mb-8 flex items-center gap-3 tracking-widest uppercase text-xs">
-                <i class="fas fa-history text-neon-purple"></i> 
-                Histórico de Análises
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5" id="historyGrid">
-                <div class="col-span-full text-center py-10 opacity-30 font-mono text-xs">LOADING ARCHIVES...</div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<%- include('partials/footer') %>
-
-<script>
-    // Classification Color Mapping (Neuroscientific)
-    const classificationColors = {
-        'OPORTUNIDADE MAGNÉTICA': 'from-green-400 to-emerald-600',
-        'ZONA DE LUCRO ALTO': 'from-blue-400 to-cyan-600',
-        'COMPETIÇÃO MODERADA': 'from-yellow-400 to-orange-500',
-        'ALTO RISCO': 'from-red-500 to-rose-700'
-    };
-
-    let currentOpportunityId = null;
-    let currentUserCredits = <%= user.current_credits %>;
-    const historyGrid = document.getElementById('historyGrid');
-    const userCreditsEl = document.getElementById('userCredits');
-
-    // --- INIT ---
-    document.addEventListener('DOMContentLoaded', () => {
-        const initialHistory = <%- JSON.stringify(history || []) %>;
-        renderHistoryDeck(initialHistory);
-
-        const deepLinkData = <%- JSON.stringify(initialOpportunity || null) %>;
-        if(deepLinkData) {
-            try {
-                const parsed = {
-                    id: deepLinkData.id,
-                    metadata: typeof deepLinkData.metadata_json === 'string' ? JSON.parse(deepLinkData.metadata_json || '{}') : deepLinkData.metadata_json,
-                    locked_content: typeof deepLinkData.locked_content_json === 'string' ? JSON.parse(deepLinkData.locked_content_json || '{}') : deepLinkData.locked_content_json,
-                    items: typeof deepLinkData.items_json === 'string' ? JSON.parse(deepLinkData.items_json || '[]') : deepLinkData.items_json,
-                    unlocked_modules: typeof deepLinkData.unlocked_modules === 'string' ? JSON.parse(deepLinkData.unlocked_modules || '[]') : (deepLinkData.unlocked_modules || []),
-                    file_path: "" 
-                };
-                showResult(parsed);
-            } catch(e) {
-                console.error("Deep link parse error", e);
+        <!-- Custom Styles for Oracle Specifics -->
+        <style>
+            .animate-float-slow {
+                animation: float 8s ease-in-out infinite;
             }
-        }
-    });
 
-    // --- VIEW MANAGEMENT ---
-    function showUpload() {
-        document.getElementById('uploadView').classList.remove('hidden');
-        document.getElementById('resultView').classList.add('hidden');
-        currentOpportunityId = null;
-        document.getElementById('uploadForm').reset();
-        
-        document.getElementById('loader').classList.add('hidden');
-        document.getElementById('uploadContainer').style.display = 'flex';
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+            .animate-float-reverse {
+                animation: float 10s ease-in-out infinite reverse;
+            }
 
-    function showResult(data) {
-        document.getElementById('uploadView').classList.add('hidden');
-        document.getElementById('resultView').classList.remove('hidden');
-        // ensure loader hidden
-        document.getElementById('loader').classList.add('hidden'); 
-        renderFullAnalysis(data);
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+            .neon-text-glow {
+                text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+            }
 
-    function resetView() {
-        showUpload();
-    }
+            .neon-box-glow {
+                box-shadow: 0 0 20px rgba(112, 0, 255, 0.3);
+            }
 
-    // --- HISTORY DECK ---
-    function renderHistoryDeck(items) {
-        historyGrid.innerHTML = '';
-        if(items.length === 0) {
-            historyGrid.innerHTML = '<div class="col-span-full text-center p-8 border border-dashed border-white/10 rounded-2xl text-starlight/30 text-xs">No recent transmissions found.</div>';
-            return;
-        }
+            .scanner-line {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 2px;
+                background: linear-gradient(to right, transparent, #00F0FF, transparent);
+                animation: scan 3s linear infinite;
+                opacity: 0.5;
+            }
 
-        items.forEach(item => {
-            const meta = typeof item.metadata_json === 'string' ? JSON.parse(item.metadata_json || '{}') : item.metadata_json;
-            const unlocked = typeof item.unlocked_modules === 'string' ? JSON.parse(item.unlocked_modules || '[]') : (item.unlocked_modules || []);
-            const score = item.ipm_score || 0;
-            const title = item.title || 'Untitled';
-            const date = new Date(item.created_at).toLocaleDateString();
-            const unlockedCount = unlocked.length;
+            @keyframes scan {
+                0% {
+                    transform: translateY(-100%);
+                    opacity: 0;
+                }
 
-            const card = document.createElement('div');
-            card.className = `glass-card p-5 rounded-xl cursor-pointer group relative hover:-translate-y-1 transition-transform duration-300`;
-            card.innerHTML = `
+                10% {
+                    opacity: 1;
+                }
+
+                90% {
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: translateY(500px);
+                    opacity: 0;
+                }
+            }
+
+            /* Markdown Content Styling - Dopamine Architecture */
+            .markdown-content h2 {
+                font-size: 1.25rem;
+                font-weight: 800;
+                background: linear-gradient(to right, #00F0FF, #7000FF);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-top: 1.5rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .markdown-content h3 {
+                font-size: 1rem;
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.9);
+                margin-top: 1rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .markdown-content h4 {
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: rgba(0, 240, 255, 0.8);
+                margin-top: 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .markdown-content table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 1rem 0;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 0.75rem;
+                overflow: hidden;
+            }
+
+            .markdown-content thead {
+                background: rgba(0, 240, 255, 0.1);
+            }
+
+            .markdown-content th {
+                padding: 0.75rem;
+                text-align: left;
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: rgba(0, 240, 255, 0.9);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+            }
+
+            .markdown-content td {
+                padding: 0.75rem;
+                font-size: 0.875rem;
+                color: rgba(255, 255, 255, 0.7);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            .markdown-content tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .markdown-content ul {
+                list-style: none;
+                padding-left: 0;
+                margin: 0.5rem 0;
+            }
+
+            .markdown-content li {
+                padding-left: 1.5rem;
+                position: relative;
+                margin-bottom: 0.5rem;
+                color: rgba(255, 255, 255, 0.8);
+            }
+
+            .markdown-content li::before {
+                content: "▸";
+                position: absolute;
+                left: 0;
+                color: rgba(0, 240, 255, 0.6);
+            }
+
+            .markdown-content strong {
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.95);
+            }
+
+            .markdown-content em {
+                font-style: italic;
+                color: rgba(112, 0, 255, 0.9);
+            }
+
+            .markdown-content p {
+                margin: 0.75rem 0;
+                line-height: 1.6;
+                color: rgba(255, 255, 255, 0.8);
+            }
+
+            .markdown-content hr {
+                border: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                margin: 1.5rem 0;
+            }
+        </style>
+
+        <div class="min-h-screen flex flex-col items-center pb-20 relative overflow-hidden bg-cosmic-void">
+
+            <!-- Ambient Background -->
+            <div class="fixed inset-0 pointer-events-none z-0">
+                <div
+                    class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-purple/10 rounded-full blur-[150px] animate-pulse-slow">
+                </div>
+                <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-blue/10 rounded-full blur-[150px] animate-pulse-slow"
+                    style="animation-delay: 2s"></div>
+            </div>
+
+            <!-- Container -->
+            <div class="container mx-auto px-4 py-8 max-w-6xl relative z-10">
+
+                <!-- Header Controls -->
+                <div class="flex justify-between items-center mb-12">
+                    <button onclick="resetView()"
+                        class="btn btn-ghost hover:bg-white/5 gap-2 group text-starlight hover:text-white transition-all">
+                        <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                        <span class="tracking-widest text-xs font-bold">VOLTAR</span>
+                    </button>
+                    <div class="text-xs font-mono text-starlight/30 tracking-[0.3em]">ORACLE_SYS_V6.1 :: <span
+                            class="text-neon-blue animate-pulse">ONLINE</span></div>
+                </div>
+
+                <!-- =========== VIEW: UPLOAD ============ -->
+                <div id="uploadView" class="transition-all duration-700 ease-out">
+                    <div class="text-center mb-16 relative">
+                        <div class="inline-block relative">
+                            <h1
+                                class="text-7xl md:text-8xl font-black oracle-title tracking-tighter mb-4 relative z-10">
+                                ANALISADOR</h1>
+                            <div
+                                class="absolute -top-10 -right-10 text-neon-purple/20 text-9xl blur-sm select-none z-0">
+                                <i class="fas fa-brain"></i></div>
+                        </div>
+                        <p class="text-xl text-starlight/60 font-light tracking-wide max-w-2xl mx-auto">
+                            Envie o edital para ser analisado por nosso <span class="text-neon-blue font-bold">Agente
+                                Neural</span> especializado.
+                        </p>
+                    </div>
+
+                    <div id="uploadContainer" class="flex justify-center items-center perspective-1000">
+                        <form id="uploadForm"
+                            class="w-full max-w-2xl relative group transform hover:rotate-x-2 transition-transform duration-500">
+                            <!-- Scanner Effect -->
+                            <div
+                                class="absolute inset-0 z-20 pointer-events-none overflow-hidden rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <div class="scanner-line"></div>
+                            </div>
+
+                            <!-- Glow Backdrop -->
+                            <div
+                                class="absolute -inset-1 bg-gradient-to-r from-neon-blue via-neon-purple to-neon-blue rounded-[2.5rem] blur-xl opacity-20 group-hover:opacity-50 transition duration-500 animate-gradient-xy">
+                            </div>
+
+                            <label for="pdfFiles"
+                                class="relative w-full h-96 glass-card rounded-[2.5rem] flex flex-col justify-center items-center cursor-pointer hover:border-neon-blue/50 transition-all duration-300 group-hover:shadow-[0_0_50px_rgba(0,240,255,0.2)]"
+                                id="dropZoneArea">
+                                <div class="relative mb-8">
+                                    <div
+                                        class="absolute inset-0 bg-neon-blue/20 rounded-full blur-xl animate-pulse-slow">
+                                    </div>
+                                    <div
+                                        class="w-24 h-24 rounded-full bg-black/40 border border-white/10 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform duration-300">
+                                        <i
+                                            class="fas fa-cloud-upload-alt text-4xl text-white group-hover:text-neon-blue transition-colors"></i>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="text-3xl font-bold text-white tracking-tight group-hover:text-neon-blue transition-colors">
+                                    INICIAR ENVIO</div>
+                                <div
+                                    class="text-starlight/40 mt-3 font-mono text-xs tracking-widest uppercase border border-white/10 px-3 py-1 rounded-full">
+                                    Apenas PDFs</div>
+                                <input type="file" id="pdfFiles" name="pdfFiles" accept=".pdf" multiple hidden required>
+                            </label>
+                        </form>
+                    </div>
+
+                    <!-- NEURAL LOADER -->
+                    <div id="loader"
+                        class="hidden text-center py-20 flex flex-col items-center min-h-[50vh] justify-center relative">
+
+                        <!-- Explanatory Message (Above Animation) -->
+                        <div class="glass-card p-6 rounded-2xl max-w-2xl mb-12 border border-neon-blue/20">
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-neon-blue/10 border border-neon-blue/30 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-brain text-neon-blue text-xl"></i>
+                                </div>
+                                <div class="text-left">
+                                    <h3 class="text-sm font-bold text-white mb-2 tracking-wide">ANÁLISE NEURAL EM
+                                        ANDAMENTO</h3>
+                                    <p class="text-xs text-starlight/80 leading-relaxed mb-3">
+                                        Nosso agente está processando dados sobre o <span
+                                            class="text-neon-blue font-semibold">município</span>, <span
+                                            class="text-neon-blue font-semibold">produtos</span>, <span
+                                            class="text-neon-blue font-semibold">concorrentes</span> e muito mais.
+                                        Como a pesquisa é feita de forma a mimetizar um processo humano profundo, ela
+                                        pode demorar de <span class="text-white font-bold">1 a 3 minutos</span>.
+                                    </p>
+                                    <p class="text-xs text-neon-purple/70 font-semibold">
+                                        💡 Você pode sair desta aba e ser notificado quando acabar.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Notification Button -->
+                            <div class="mt-4 pt-4 border-t border-white/10">
+                                <button id="notifyButton" onclick="enableNotifications()"
+                                    class="btn btn-sm w-full bg-neon-blue/10 border-neon-blue/40 text-neon-blue hover:bg-neon-blue hover:text-black gap-2 transition-all">
+                                    <i class="fas fa-bell" id="notifyIcon"></i>
+                                    <span id="notifyText">ATIVAR NOTIFICAÇÕES</span>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Canvas Container -->
+                        <div class="relative w-full max-w-lg aspect-square mb-8">
+                            <canvas id="neuralCanvas" class="w-full h-full opacity-80 mix-blend-screen"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="w-32 h-32 rounded-full border border-neon-blue/30 animate-ping"></div>
+                                <div class="w-48 h-48 rounded-full border border-neon-purple/20 animate-ping"
+                                    style="animation-delay: 0.5s"></div>
+                            </div>
+                        </div>
+
+                        <div class="text-4xl font-black text-white mb-2 tracking-tighter animate-pulse"
+                            id="loaderTitle">
+                            CARREGANDO DADOS
+                        </div>
+
+                        <div
+                            class="h-8 relative overflow-hidden w-full max-w-md bg-black/20 rounded-full border border-white/5">
+                            <div
+                                class="absolute top-0 left-0 h-full bg-gradient-to-r from-neon-blue to-neon-purple opacity-50 animate-progress">
+                            </div>
+                            <div class="absolute inset-0 flex items-center justify-center text-xs font-mono font-bold text-white z-10"
+                                id="loaderText">
+                                INITIALIZING...
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- =========== VIEW: RESULT ============ -->
+            <div id="resultView" class="hidden transition-opacity duration-700">
+                <!-- Header Info -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 items-center">
+
+                    <!-- Left: Tags & Class -->
+                    <div class="text-center lg:text-left order-2 lg:order-1">
+                        <div id="metaIdDisplay" class="text-xs font-mono text-starlight/30 mb-2">#ID_UNKNOWN</div>
+                        <div id="classificacaoDisplay"
+                            class="text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-starlight uppercase leading-none mb-6">
+                            ---</div>
+                        <div id="tagsDisplay" class="flex flex-wrap gap-2 justify-center lg:justify-start"></div>
+                    </div>
+
+                    <!-- Center: Score (The Core) -->
+                    <div class="relative h-64 w-64 mx-auto flex items-center justify-center order-1 lg:order-2 group">
+                        <!-- Rotating Rings -->
+                        <div
+                            class="absolute inset-0 border-2 border-neon-blue/30 rounded-full border-t-transparent animate-spin duration-[10s]">
+                        </div>
+                        <div
+                            class="absolute inset-4 border-2 border-neon-purple/30 rounded-full border-b-transparent animate-spin duration-[15s] reverse">
+                        </div>
+                        <div
+                            class="absolute inset-0 bg-neon-blue/5 rounded-full blur-xl group-hover:bg-neon-blue/10 transition-colors duration-500">
+                        </div>
+
+                        <!-- Score Value (IPM Paywall) -->
+                        <div class="text-center relative z-10">
+                            <!-- /100 Indicator -->
+                            <div class="absolute -top-6 right-8 text-xs font-mono text-white/40 tracking-wider">/100
+                            </div>
+                            <div id="ipmDisplay"
+                                class="text-7xl font-black text-white drop-shadow-[0_0_20px_rgba(0,240,255,0.8)] font-sans tracking-tighter blur-lg select-none">
+                                XX</div>
+                            <div class="text-xs font-bold tracking-[0.4em] text-neon-blue mt-1">IPM SCORE</div>
+
+                            <!-- Unlock Overlay -->
+                            <div id="ipmLockOverlay"
+                                class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group"
+                                onclick="unlockModule('ipm_detalhado', 300)">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-black/60 border border-white/20 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-lock text-white group-hover:text-neon-blue transition-colors"></i>
+                                </div>
+                                <div class="text-[10px] font-bold text-white opacity-80">300W PARA REVELAR</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Summary -->
+                    <div
+                        class="glass-card p-6 rounded-2xl order-3 relative overflow-hidden group hover:border-white/20 transition-colors">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+                            <i class="fas fa-quote-right text-4xl text-white"></i>
+                        </div>
+                        <h3 class="text-xs font-bold text-neon-purple mb-3 tracking-widest uppercase">Insight
+                            Estratégico</h3>
+                        <p id="resumoDisplay" class="text-lg text-starlight/90 leading-relaxed font-light">...</p>
+                    </div>
+                </div>
+
+                <!-- MODULES GRID -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8 mb-24" id="modulesGrid">
+                    <!-- JS Injected Cards -->
+                </div>
+
+                <!-- ACTION FOOTER -->
+                <div class="text-center pb-20 border-t border-white/5 pt-12">
+                    <h3 class="text-2xl font-bold text-white mb-8 tracking-tight">PRONTO PARA COTAR?</h3>
+                    <form action="/create" method="POST" id="sniperForm" class="inline-block relative group">
+                        <div
+                            class="absolute -inset-1 bg-gradient-to-r from-neon-blue to-neon-purple rounded-full blur opacity-30 group-hover:opacity-70 transition duration-300">
+                        </div>
+
+                        <input type="hidden" name="name" id="sniperName">
+                        <input type="hidden" name="cep" value="00000-000">
+                        <input type="hidden" name="gridData" id="sniperGridData">
+                        <input type="hidden" name="metadataJSON" id="sniperMetadata">
+                        <input type="hidden" name="moduleName" value="gemini_meli">
+                        <input type="hidden" name="existingFilePath" id="sniperExistingFilePath">
+
+                        <button type="submit"
+                            class="btn btn-lg h-16 px-12 rounded-full relative bg-black border border-white/20 text-white font-black text-xl tracking-widest overflow-hidden group-hover:text-neon-blue transition-colors">
+                            <span class="relative z-10 flex items-center gap-3">
+                                <i class="fas fa-crosshairs"></i>
+                                ENVIAR PARA COTAÇÃO
+                            </span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- HISTORY DECK -->
+            <div class="mt-20 pt-10 border-t border-white/5">
+                <h2
+                    class="text-xl font-bold text-starlight mb-8 flex items-center gap-3 tracking-widest uppercase text-xs">
+                    <i class="fas fa-history text-neon-purple"></i>
+                    Histórico de Análises
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5" id="historyGrid">
+                    <div class="col-span-full text-center py-10 opacity-30 font-mono text-xs">LOADING ARCHIVES...</div>
+                </div>
+            </div>
+
+        </div>
+        </div>
+
+        <%- include('partials/footer') %>
+
+            <script>
+                // Classification Color Mapping (Neuroscientific)
+                const classificationColors = {
+                    'OPORTUNIDADE MAGNÉTICA': 'from-green-400 to-emerald-600',
+                    'ZONA DE LUCRO ALTO': 'from-blue-400 to-cyan-600',
+                    'COMPETIÇÃO MODERADA': 'from-yellow-400 to-orange-500',
+                    'ALTO RISCO': 'from-red-500 to-rose-700'
+                };
+
+                let currentOpportunityId = null;
+                let currentUserCredits = <%= user.current_credits %>;
+                const historyGrid = document.getElementById('historyGrid');
+                const userCreditsEl = document.getElementById('userCredits');
+
+                // --- INIT ---
+                document.addEventListener('DOMContentLoaded', () => {
+                    const initialHistory = <% - JSON.stringify(history || []) %>;
+                    renderHistoryDeck(initialHistory);
+
+                    const deepLinkData = <% - JSON.stringify(initialOpportunity || null) %>;
+                    if (deepLinkData) {
+                        try {
+                            const parsed = {
+                                id: deepLinkData.id,
+                                metadata: typeof deepLinkData.metadata_json === 'string' ? JSON.parse(deepLinkData.metadata_json || '{}') : deepLinkData.metadata_json,
+                                locked_content: typeof deepLinkData.locked_content_json === 'string' ? JSON.parse(deepLinkData.locked_content_json || '{}') : deepLinkData.locked_content_json,
+                                items: typeof deepLinkData.items_json === 'string' ? JSON.parse(deepLinkData.items_json || '[]') : deepLinkData.items_json,
+                                unlocked_modules: typeof deepLinkData.unlocked_modules === 'string' ? JSON.parse(deepLinkData.unlocked_modules || '[]') : (deepLinkData.unlocked_modules || []),
+                                file_path: ""
+                            };
+                            showResult(parsed);
+                        } catch (e) {
+                            console.error("Deep link parse error", e);
+                        }
+                    }
+                });
+
+                // --- VIEW MANAGEMENT ---
+                function showUpload() {
+                    document.getElementById('uploadView').classList.remove('hidden');
+                    document.getElementById('resultView').classList.add('hidden');
+                    currentOpportunityId = null;
+                    document.getElementById('uploadForm').reset();
+
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('uploadContainer').style.display = 'flex';
+
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                function showResult(data) {
+                    document.getElementById('uploadView').classList.add('hidden');
+                    document.getElementById('resultView').classList.remove('hidden');
+                    // ensure loader hidden
+                    document.getElementById('loader').classList.add('hidden');
+                    renderFullAnalysis(data);
+
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                function resetView() {
+                    showUpload();
+                }
+
+                // --- HISTORY DECK ---
+                function renderHistoryDeck(items) {
+                    historyGrid.innerHTML = '';
+                    if (items.length === 0) {
+                        historyGrid.innerHTML = '<div class="col-span-full text-center p-8 border border-dashed border-white/10 rounded-2xl text-starlight/30 text-xs">No recent transmissions found.</div>';
+                        return;
+                    }
+
+                    items.forEach(item => {
+                        const meta = typeof item.metadata_json === 'string' ? JSON.parse(item.metadata_json || '{}') : item.metadata_json;
+                        const unlocked = typeof item.unlocked_modules === 'string' ? JSON.parse(item.unlocked_modules || '[]') : (item.unlocked_modules || []);
+                        const score = item.ipm_score || 0;
+                        const title = item.title || 'Untitled';
+                        const date = new Date(item.created_at).toLocaleDateString();
+                        const unlockedCount = unlocked.length;
+
+                        const card = document.createElement('div');
+                        card.className = `glass-card p-5 rounded-xl cursor-pointer group relative hover:-translate-y-1 transition-transform duration-300`;
+                        card.innerHTML = `
                 <div class="flex justify-between items-center mb-3">
                     <div class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-bold ${score > 70 ? 'text-neon-blue' : 'text-white'}">${score} IPM</div>
                     <div class="text-[10px] opacity-40 font-mono">${date}</div>
@@ -413,138 +512,138 @@
                      ${unlockedCount > 0 ? `${unlockedCount} UNLOCKED` : 'LOCKED'}
                 </div>
             `;
-            card.onclick = () => loadAnalysis(item.id);
-            historyGrid.appendChild(card);
-        });
-    }
-
-    async function loadAnalysis(id) {
-        try {
-            document.getElementById('resultView').classList.add('hidden');
-            document.getElementById('uploadView').classList.remove('hidden');
-            document.getElementById('uploadContainer').style.display = 'none';
-            document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('loaderText').innerText = "RETRIEVING ARCHIVED DATA..."; 
-
-            const res = await fetch(`/api/oracle/history/${id}`);
-            if(!res.ok) throw new Error("Load failed");
-            const data = await res.json();
-
-            const parsed = {
-                id: data.id,
-                metadata: typeof data.metadata_json === 'string' ? JSON.parse(data.metadata_json) : data.metadata_json,
-                locked_content: typeof data.locked_content_json === 'string' ? JSON.parse(data.locked_content_json) : data.locked_content_json,
-                items: typeof data.items_json === 'string' ? JSON.parse(data.items_json) : data.items_json,
-                unlocked_modules: typeof data.unlocked_modules === 'string' ? JSON.parse(data.unlocked_modules) : (data.unlocked_modules || []),
-                file_path: "" 
-            };
-            
-            showResult(parsed);
-
-        } catch(e) {
-            console.error(e);
-            alert("Error loading analysis.");
-            resetView();
-        }
-    }
-
-    // --- RENDER FULL ANALYSIS ---
-    function renderFullAnalysis(data) {
-        currentOpportunityId = data.id; 
-        const meta = data.metadata || {};
-        const lockedModules = data.locked_content || {};
-        const unlockedList = data.unlocked_modules || [];
-
-        document.getElementById('metaIdDisplay').innerText = data.id ? `#${data.id}` : 'NEW_ANALYSIS';
-        
-        // IPM Score - Check if unlocked
-        const score = meta.ipm_score || data.ipm_score || 0;
-        const scoreDisplay = document.getElementById('ipmDisplay');
-        const ipmUnlocked = unlockedList.includes('ipm_detalhado');
-        const ipmOverlay = document.getElementById('ipmLockOverlay');
-        
-        if (ipmUnlocked) {
-            // Reveal score with animation
-            scoreDisplay.classList.remove('blur-lg', 'select-none');
-            if (ipmOverlay) ipmOverlay.remove();
-            
-            let start = 0;
-            const interval = setInterval(() => {
-                start += 1;
-                if(start >= score) {
-                    start = score;
-                    clearInterval(interval);
+                        card.onclick = () => loadAnalysis(item.id);
+                        historyGrid.appendChild(card);
+                    });
                 }
-                scoreDisplay.innerText = start;
-            }, 20);
-        } else {
-            // Keep blurred
-            scoreDisplay.classList.add('blur-lg', 'select-none');
-            scoreDisplay.innerText = 'XX';
-        }
 
-        // Classification with neuroscientific gradient
-        const classification = meta.classificacao || 'ANÁLISE EM ANDAMENTO';
-        const classDisplay = document.getElementById('classificacaoDisplay');
-        classDisplay.innerText = classification;
-        
-        // Apply color gradient based on classification
-        const gradientClass = classificationColors[classification] || 'from-white to-starlight';
-        classDisplay.className = `text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r ${gradientClass} uppercase leading-none mb-6`;
-        
-        document.getElementById('resumoDisplay').innerText = meta.resumo_glitch || meta.resumo_poderoso || 'Gerando relatório de inteligência... O cruzamento de dados pode levar alguns minutos, analisaremos todo o histórico da prefeitura, dos itens, dos fornecedores... Você pode sair dessa página, notificaremos quando estiver pronto.';
-        
-        const tagsBox = document.getElementById('tagsDisplay');
-        tagsBox.innerHTML = '';
-        (meta.tags_visuais || meta.tags_elite || []).forEach(tag => {
-            tagsBox.innerHTML += `<span class="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-wider text-starlight hover:bg-neon-blue/20 hover:border-neon-blue/50 transition-colors">${tag}</span>`;
-        });
+                async function loadAnalysis(id) {
+                    try {
+                        document.getElementById('resultView').classList.add('hidden');
+                        document.getElementById('uploadView').classList.remove('hidden');
+                        document.getElementById('uploadContainer').style.display = 'none';
+                        document.getElementById('loader').classList.remove('hidden');
+                        document.getElementById('loaderText').innerText = "RETRIEVING ARCHIVED DATA...";
 
-        const grid = document.getElementById('modulesGrid');
-        grid.innerHTML = '';
+                        const res = await fetch(`/api/oracle/history/${id}`);
+                        if (!res.ok) throw new Error("Load failed");
+                        const data = await res.json();
 
-        Object.keys(lockedModules).forEach(key => {
-            const moduleData = lockedModules[key];
-            const isUnlocked = unlockedList.includes(key);
-            renderModuleCard(key, moduleData, isUnlocked, grid);
-        });
+                        const parsed = {
+                            id: data.id,
+                            metadata: typeof data.metadata_json === 'string' ? JSON.parse(data.metadata_json) : data.metadata_json,
+                            locked_content: typeof data.locked_content_json === 'string' ? JSON.parse(data.locked_content_json) : data.locked_content_json,
+                            items: typeof data.items_json === 'string' ? JSON.parse(data.items_json) : data.items_json,
+                            unlocked_modules: typeof data.unlocked_modules === 'string' ? JSON.parse(data.unlocked_modules) : (data.unlocked_modules || []),
+                            file_path: ""
+                        };
 
-        // Setup Sniper Form
-        document.getElementById('sniperName').value = meta.edital_numero || 'Oracle Mission';
-        document.getElementById('sniperMetadata').value = JSON.stringify(meta);
-        if (data.file_path) document.getElementById('sniperExistingFilePath').value = data.file_path;
-        document.getElementById('sniperGridData').value = "ID;Descricao;valor_venda;quantidade\n";
-    }
+                        showResult(parsed);
 
-    function renderModuleCard(key, data, isUnlocked, container) {
-        const cost = data.custo_watts || 100;
-        const isBlur = !isUnlocked;
-        
-        let innerHtml = '';
-        // Content rendering logic with markdown support
-        if (data.taticas) {
-            innerHtml = data.taticas.map(t => `<div class="mb-3 p-3 rounded bg-white/5 border-l-2 border-neon-blue"><div class="font-bold text-neon-blue text-sm mb-1">${t.titulo}</div><div class="text-xs opacity-70">${t.texto}</div></div>`).join('');
-        } else if (data.dados) {
-            innerHtml = `<table class="w-full text-sm"><tbody>` + 
-                data.dados.map(d => `<tr class="border-b border-white/5"><td class="py-2 opacity-70">${d.label}</td><td class="text-right font-bold ${d.alerta === 'ALTO RISCO' ? 'text-error' : 'text-success'}">${d.valor}</td></tr>`).join('') +
-                `</tbody></table>`;
-        } else if (data.lista_riscos) {
-            innerHtml = `<ul class="space-y-2 text-sm">` + 
-                data.lista_riscos.map(r => `<li class="flex gap-2 text-error"><i class="fas fa-exclamation-triangle mt-1"></i> <span>${r}</span></li>`).join('') +
-                `</ul>`;
-        } else if (data.conteudo_oculto) {
-            // Markdown content - wrap in special class for styling
-            if(Array.isArray(data.conteudo_oculto)) {
-                const md = data.conteudo_oculto.map(item => `- ${item}`).join('\n');
-                innerHtml = `<div class="markdown-content">${marked.parse(md)}</div>`;
-            } else if (typeof data.conteudo_oculto === 'string') {
-                innerHtml = `<div class="markdown-content">${marked.parse(data.conteudo_oculto)}</div>`;
-            }
-        }
+                    } catch (e) {
+                        console.error(e);
+                        alert("Error loading analysis.");
+                        resetView();
+                    }
+                }
 
-        const card = document.createElement('div');
-        card.className = `glass-card rounded-3xl overflow-hidden flex flex-col h-full min-h-[300px] relative group`;
-        card.innerHTML = `
+                // --- RENDER FULL ANALYSIS ---
+                function renderFullAnalysis(data) {
+                    currentOpportunityId = data.id;
+                    const meta = data.metadata || {};
+                    const lockedModules = data.locked_content || {};
+                    const unlockedList = data.unlocked_modules || [];
+
+                    document.getElementById('metaIdDisplay').innerText = data.id ? `#${data.id}` : 'NEW_ANALYSIS';
+
+                    // IPM Score - Check if unlocked
+                    const score = meta.ipm_score || data.ipm_score || 0;
+                    const scoreDisplay = document.getElementById('ipmDisplay');
+                    const ipmUnlocked = unlockedList.includes('ipm_detalhado');
+                    const ipmOverlay = document.getElementById('ipmLockOverlay');
+
+                    if (ipmUnlocked) {
+                        // Reveal score with animation
+                        scoreDisplay.classList.remove('blur-lg', 'select-none');
+                        if (ipmOverlay) ipmOverlay.remove();
+
+                        let start = 0;
+                        const interval = setInterval(() => {
+                            start += 1;
+                            if (start >= score) {
+                                start = score;
+                                clearInterval(interval);
+                            }
+                            scoreDisplay.innerText = start;
+                        }, 20);
+                    } else {
+                        // Keep blurred
+                        scoreDisplay.classList.add('blur-lg', 'select-none');
+                        scoreDisplay.innerText = 'XX';
+                    }
+
+                    // Classification with neuroscientific gradient
+                    const classification = meta.classificacao || 'ANÁLISE EM ANDAMENTO';
+                    const classDisplay = document.getElementById('classificacaoDisplay');
+                    classDisplay.innerText = classification;
+
+                    // Apply color gradient based on classification
+                    const gradientClass = classificationColors[classification] || 'from-white to-starlight';
+                    classDisplay.className = `text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r ${gradientClass} uppercase leading-none mb-6`;
+
+                    document.getElementById('resumoDisplay').innerText = meta.resumo_glitch || meta.resumo_poderoso || 'Gerando relatório de inteligência... O cruzamento de dados pode levar alguns minutos, analisaremos todo o histórico da prefeitura, dos itens, dos fornecedores... Você pode sair dessa página, notificaremos quando estiver pronto.';
+
+                    const tagsBox = document.getElementById('tagsDisplay');
+                    tagsBox.innerHTML = '';
+                    (meta.tags_visuais || meta.tags_elite || []).forEach(tag => {
+                        tagsBox.innerHTML += `<span class="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-wider text-starlight hover:bg-neon-blue/20 hover:border-neon-blue/50 transition-colors">${tag}</span>`;
+                    });
+
+                    const grid = document.getElementById('modulesGrid');
+                    grid.innerHTML = '';
+
+                    Object.keys(lockedModules).forEach(key => {
+                        const moduleData = lockedModules[key];
+                        const isUnlocked = unlockedList.includes(key);
+                        renderModuleCard(key, moduleData, isUnlocked, grid);
+                    });
+
+                    // Setup Sniper Form
+                    document.getElementById('sniperName').value = meta.edital_numero || 'Oracle Mission';
+                    document.getElementById('sniperMetadata').value = JSON.stringify(meta);
+                    if (data.file_path) document.getElementById('sniperExistingFilePath').value = data.file_path;
+                    document.getElementById('sniperGridData').value = "ID;Descricao;valor_venda;quantidade\n";
+                }
+
+                function renderModuleCard(key, data, isUnlocked, container) {
+                    const cost = data.custo_watts || 100;
+                    const isBlur = !isUnlocked;
+
+                    let innerHtml = '';
+                    // Content rendering logic with markdown support
+                    if (data.taticas) {
+                        innerHtml = data.taticas.map(t => `<div class="mb-3 p-3 rounded bg-white/5 border-l-2 border-neon-blue"><div class="font-bold text-neon-blue text-sm mb-1">${t.titulo}</div><div class="text-xs opacity-70">${t.texto}</div></div>`).join('');
+                    } else if (data.dados) {
+                        innerHtml = `<table class="w-full text-sm"><tbody>` +
+                            data.dados.map(d => `<tr class="border-b border-white/5"><td class="py-2 opacity-70">${d.label}</td><td class="text-right font-bold ${d.alerta === 'ALTO RISCO' ? 'text-error' : 'text-success'}">${d.valor}</td></tr>`).join('') +
+                            `</tbody></table>`;
+                    } else if (data.lista_riscos) {
+                        innerHtml = `<ul class="space-y-2 text-sm">` +
+                            data.lista_riscos.map(r => `<li class="flex gap-2 text-error"><i class="fas fa-exclamation-triangle mt-1"></i> <span>${r}</span></li>`).join('') +
+                            `</ul>`;
+                    } else if (data.conteudo_oculto) {
+                        // Markdown content - wrap in special class for styling
+                        if (Array.isArray(data.conteudo_oculto)) {
+                            const md = data.conteudo_oculto.map(item => `- ${item}`).join('\n');
+                            innerHtml = `<div class="markdown-content">${marked.parse(md)}</div>`;
+                        } else if (typeof data.conteudo_oculto === 'string') {
+                            innerHtml = `<div class="markdown-content">${marked.parse(data.conteudo_oculto)}</div>`;
+                        }
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `glass-card rounded-3xl overflow-hidden flex flex-col h-full min-h-[300px] relative group`;
+                    card.innerHTML = `
             <div class="px-6 py-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
                 <h3 class="font-bold text-white uppercase tracking-widest text-xs flex items-center gap-2">
                     <i class="fas fa-cube text-neon-purple"></i> ${data.titulo || key}
@@ -552,232 +651,247 @@
                 ${!isUnlocked ? `<span class="text-[10px] font-bold text-warning"><i class="fas fa-bolt"></i> ${cost}</span>` : `<span class="text-success"><i class="fas fa-check"></i></span>`}
             </div>
             
-            <div class="p-6 flex-1 relative overflow-auto">
-                <div class="transition-all duration-500 h-full ${isBlur ? 'blur-md opacity-30 select-none' : ''}" id="content-${key}">
+            <div class="p-6 flex-1 relative overflow-hidden flex flex-col h-full">
+                <!-- Content Wrapper (Scrollable) -->
+                <div class="overflow-auto h-full scrollbar-thin relative z-0 transition-all duration-500 ${isBlur ? 'blur-md opacity-30 select-none' : ''}" id="content-${key}">
                     ${innerHtml}
                 </div>
 
+                <!-- Sticky Overlay (Absolute centered in card) -->
                 ${isBlur ? `
                 <div class="absolute inset-0 flex flex-col items-center justify-center z-20 text-center p-6 bg-black/40 backdrop-blur-sm transition-opacity duration-300" id="overlay-${key}">
-                    <div class="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform cursor-pointer" onclick="unlockModule('${key}', ${cost})">
-                        <i class="fas fa-lock text-2xl text-starlight group-hover:text-neon-blue transition-colors"></i>
+                    
+                    <!-- Pulsing Lock Icon -->
+                    <div class="relative mb-6 group cursor-pointer" onclick="unlockModule('${key}', ${cost})">
+                        <div class="absolute inset-0 bg-neon-blue/20 rounded-full blur-xl animate-pulse"></div>
+                        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-base-300 to-base-100 border border-white/10 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_30px_rgba(0,240,255,0.15)] group-hover:shadow-[0_0_50px_rgba(0,240,255,0.3)]">
+                            <i class="fas fa-lock text-3xl text-starlight group-hover:text-neon-blue transition-colors"></i>
+                        </div>
+                        <div class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-black border border-warning text-warning flex items-center justify-center text-xs font-bold animate-bounce hidden">
+                            <i class="fas fa-bolt"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-white mb-2">DADOS ENCRIPTADOS</h4>
-                    <button onclick="unlockModule('${key}', ${cost})" class="btn btn-sm rounded-full bg-neon-blue/20 border-neon-blue/40 text-neon-blue hover:bg-neon-blue/40 gap-2 px-6 tracking-widest text-[10px]">
-                        ACESSAR <span class="opacity-50">|</span> ${cost} W
+
+                    <h4 class="font-bold text-white text-lg mb-1 tracking-wider">DADOS SIGILOSOS</h4>
+                    <p class="text-xs text-starlight/60 mb-6 max-w-[200px]">Desbloqueie para ter acesso à inteligência tática completa.</p>
+                    
+                    <button onclick="unlockModule('${key}', ${cost})" class="btn btn-sm h-10 rounded-full bg-neon-blue/10 border-neon-blue/50 text-neon-blue hover:bg-neon-blue hover:text-black hover:border-neon-blue gap-3 px-8 tracking-widest text-xs font-bold transition-all group shadow-[0_0_20px_rgba(0,240,255,0.1)] hover:shadow-[0_0_30px_rgba(0,240,255,0.4)]">
+                        <span>DESBLOQUEAR</span>
+                        <div class="w-px h-4 bg-current opacity-20"></div>
+                        <span class="flex items-center gap-1"><i class="fas fa-bolt text-[10px]"></i> ${cost}</span>
                     </button>
                 </div>
                 ` : ''}
             </div>
         `;
-        container.appendChild(card);
-    }
+                    container.appendChild(card);
+                }
 
-    async function unlockModule(key, cost) {
-        if (!currentOpportunityId) return;
-        if(!confirm(`Unlock module for ${cost} Watts?`)) return;
+                async function unlockModule(key, cost) {
+                    if (!currentOpportunityId) return;
+                    if (!confirm(`Unlock module for ${cost} Watts?`)) return;
 
-        const overlay = document.getElementById(`overlay-${key}`);
-        const content = document.getElementById(`content-${key}`);
-        const btn = overlay.querySelector('button');
-        if(btn) { btn.innerHTML = 'DECRYPTING...'; btn.disabled = true; }
+                    const overlay = document.getElementById(`overlay-${key}`);
+                    const content = document.getElementById(`content-${key}`);
+                    const btn = overlay.querySelector('button');
+                    if (btn) { btn.innerHTML = 'DECRYPTING...'; btn.disabled = true; }
 
-        try {
-            const res = await fetch('/api/oracle/unlock-module', {
-                headers: { 'Content-Type': 'application/json' },
-                method: 'POST',
-                body: JSON.stringify({ opportunityId: currentOpportunityId, moduleKey: key, cost: cost })
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || "Unlock failed");
+                    try {
+                        const res = await fetch('/api/oracle/unlock-module', {
+                            headers: { 'Content-Type': 'application/json' },
+                            method: 'POST',
+                            body: JSON.stringify({ opportunityId: currentOpportunityId, moduleKey: key, cost: cost })
+                        });
+                        const json = await res.json();
+                        if (!res.ok) throw new Error(json.error || "Unlock failed");
 
-            currentUserCredits = json.newBalance;
-            if(userCreditsEl) userCreditsEl.innerText = currentUserCredits; // Update header info if present
+                        currentUserCredits = json.newBalance;
+                        if (userCreditsEl) userCreditsEl.innerText = currentUserCredits; // Update header info if present
 
-            // Animate Unlock
-            overlay.style.opacity = '0';
-            setTimeout(() => overlay.remove(), 300);
-            content.classList.remove('blur-md', 'opacity-30', 'select-none');
+                        // Animate Unlock
+                        overlay.style.opacity = '0';
+                        setTimeout(() => overlay.remove(), 300);
+                        content.classList.remove('blur-md', 'opacity-30', 'select-none');
 
-        } catch (e) {
-            alert(e.message);
-            if(btn) { btn.innerHTML = `UNLOCK | ${cost} W`; btn.disabled = false; }
-        }
-    }
-
-    // --- UPLOAD LOGIC ---
-    const uploadForm = document.getElementById('uploadForm');
-    const fileInput = document.getElementById('pdfFiles');
-    const dropZone = document.getElementById('dropZoneArea');
-    
-    fileInput.addEventListener('change', handleUpload);
-    document.addEventListener('dragover', e => e.preventDefault());
-    document.addEventListener('drop', e => e.preventDefault());
-    
-    // Simple drag effects
-    dropZone.addEventListener('dragenter', () => dropZone.classList.add('border-neon-blue'));
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-neon-blue'));
-    dropZone.addEventListener('drop', (e) => {
-        dropZone.classList.remove('border-neon-blue');
-        fileInput.files = e.dataTransfer.files;
-        handleUpload();
-    });
-
-    async function handleUpload() {
-        if (fileInput.files.length === 0) return;
-        
-        document.getElementById('uploadContainer').style.display = 'none';
-        document.getElementById('loader').classList.remove('hidden');
-        
-        // Check notification permission state
-        setTimeout(() => checkNotificationPermission(), 500);
-        
-        // Init Canvas Animation
-        if(window.NeuralLoader) new NeuralLoader('neuralCanvas'); // Assuming lib exists
-
-        const formData = new FormData(uploadForm);
-        let currentData = {};
-
-        try {
-            const response = await fetch('/api/process-tr', { method: 'POST', body: formData });
-            if (!response.ok) throw new Error("Upload Error");
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let buffer = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop(); // Keep incomplete
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const eventData = JSON.parse(line.substring(6));
-                            if (eventData.metadata || eventData.ipm_score) {
-                                currentData = eventData;
-                                if(eventData.id) currentOpportunityId = eventData.id;
-                            }
-                            // Update Status Text
-                            const loaderText = document.getElementById('loaderText');
-                            if(eventData.status) loaderText.innerText = eventData.status.toUpperCase();
-                        } catch(e) {}
+                    } catch (e) {
+                        alert(e.message);
+                        if (btn) { btn.innerHTML = `UNLOCK | ${cost} W`; btn.disabled = false; }
                     }
                 }
-            }
 
-            // Finish
-            showResult({ ...currentData, id: currentOpportunityId, unlocked_modules: [] });
-            fetchHistoryDeck();
-            
-            // Send completion notification
-            if (currentOpportunityId) {
-                sendCompletionNotification(currentOpportunityId);
-            }
+                // --- UPLOAD LOGIC ---
+                const uploadForm = document.getElementById('uploadForm');
+                const fileInput = document.getElementById('pdfFiles');
+                const dropZone = document.getElementById('dropZoneArea');
 
-        } catch (error) {
-            console.error(error);
-            alert("Process Failed: " + error.message);
-            resetView();
-        }
-    }
+                fileInput.addEventListener('change', handleUpload);
+                document.addEventListener('dragover', e => e.preventDefault());
+                document.addEventListener('drop', e => e.preventDefault());
 
-    async function fetchHistoryDeck() {
-        try {
-            const res = await fetch('/api/oracle/history');
-            if(res.ok) {
-                const items = await res.json();
-                renderHistoryDeck(items);
-            }
-        } catch(e) {}
-    }
-
-    // --- NOTIFICATION SYSTEM ---
-    let notificationEnabled = false;
-    
-    function checkNotificationPermission() {
-        if (!('Notification' in window)) {
-            console.log('Browser does not support notifications');
-            return;
-        }
-        
-        const notifyBtn = document.getElementById('notifyButton');
-        const notifyText = document.getElementById('notifyText');
-        const notifyIcon = document.getElementById('notifyIcon');
-        
-        if (!notifyBtn) return; // Loader not visible yet
-        
-        if (Notification.permission === 'granted') {
-            notificationEnabled = true;
-            notifyText.innerText = 'NOTIFICAÇÃO ATIVADA';
-            notifyIcon.className = 'fas fa-check-circle';
-            notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue', 'hover:bg-neon-blue', 'hover:text-black');
-            notifyBtn.classList.add('border-success/40', 'text-success', 'bg-success/10');
-            notifyBtn.disabled = true;
-        } else if (Notification.permission === 'denied') {
-            notifyText.innerText = 'NOTIFICAÇÃO BLOQUEADA';
-            notifyIcon.className = 'fas fa-ban';
-            notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue');
-            notifyBtn.classList.add('border-error/40', 'text-error');
-            notifyBtn.disabled = true;
-        }
-    }
-    
-    async function enableNotifications() {
-        if (!('Notification' in window)) {
-            alert('Seu navegador não suporta notificações.');
-            return;
-        }
-        
-        const notifyBtn = document.getElementById('notifyButton');
-        const notifyText = document.getElementById('notifyText');
-        const notifyIcon = document.getElementById('notifyIcon');
-        
-        try {
-            const permission = await Notification.requestPermission();
-            
-            if (permission === 'granted') {
-                notificationEnabled = true;
-                notifyText.innerText = 'NOTIFICAÇÃO ATIVADA';
-                notifyIcon.className = 'fas fa-check-circle';
-                notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue', 'hover:bg-neon-blue', 'hover:text-black');
-                notifyBtn.classList.add('border-success/40', 'text-success', 'bg-success/10');
-                notifyBtn.disabled = true;
-                
-                // Show test notification
-                new Notification('🧠 Oracle System', {
-                    body: 'Notificações ativadas! Você será alertado quando a análise terminar.',
-                    icon: '/favicon.ico',
-                    tag: 'oracle-enabled'
+                // Simple drag effects
+                dropZone.addEventListener('dragenter', () => dropZone.classList.add('border-neon-blue'));
+                dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-neon-blue'));
+                dropZone.addEventListener('drop', (e) => {
+                    dropZone.classList.remove('border-neon-blue');
+                    fileInput.files = e.dataTransfer.files;
+                    handleUpload();
                 });
-            } else {
-                notifyText.innerText = 'NOTIFICAÇÃO NEGADA';
-                notifyIcon.className = 'fas fa-ban';
-                notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue');
-                notifyBtn.classList.add('border-error/40', 'text-error');
-                notifyBtn.disabled = true;
-            }
-        } catch(e) {
-            console.error('Error requesting notification permission:', e);
-        }
-    }
-    
-    function sendCompletionNotification(analysisId) {
-        if (!notificationEnabled || Notification.permission !== 'granted') return;
-        
-        const notification = new Notification('✅ Análise Concluída!', {
-            body: 'Sua análise do edital está pronta. Clique para visualizar.',
-            icon: '/favicon.ico',
-            tag: `oracle-${analysisId}`,
-            requireInteraction: true
-        });
-        
-        notification.onclick = function() {
-            window.focus();
-            notification.close();
-        };
-    }
-</script>
+
+                async function handleUpload() {
+                    if (fileInput.files.length === 0) return;
+
+                    document.getElementById('uploadContainer').style.display = 'none';
+                    document.getElementById('loader').classList.remove('hidden');
+
+                    // Check notification permission state
+                    setTimeout(() => checkNotificationPermission(), 500);
+
+                    // Init Canvas Animation
+                    if (window.NeuralLoader) new NeuralLoader('neuralCanvas'); // Assuming lib exists
+
+                    const formData = new FormData(uploadForm);
+                    let currentData = {};
+
+                    try {
+                        const response = await fetch('/api/process-tr', { method: 'POST', body: formData });
+                        if (!response.ok) throw new Error("Upload Error");
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder("utf-8");
+                        let buffer = "";
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop(); // Keep incomplete
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const eventData = JSON.parse(line.substring(6));
+                                        if (eventData.metadata || eventData.ipm_score) {
+                                            currentData = eventData;
+                                            if (eventData.id) currentOpportunityId = eventData.id;
+                                        }
+                                        // Update Status Text
+                                        const loaderText = document.getElementById('loaderText');
+                                        if (eventData.status) loaderText.innerText = eventData.status.toUpperCase();
+                                    } catch (e) { }
+                                }
+                            }
+                        }
+
+                        // Finish
+                        showResult({ ...currentData, id: currentOpportunityId, unlocked_modules: [] });
+                        fetchHistoryDeck();
+
+                        // Send completion notification
+                        if (currentOpportunityId) {
+                            sendCompletionNotification(currentOpportunityId);
+                        }
+
+                    } catch (error) {
+                        console.error(error);
+                        alert("Process Failed: " + error.message);
+                        resetView();
+                    }
+                }
+
+                async function fetchHistoryDeck() {
+                    try {
+                        const res = await fetch('/api/oracle/history');
+                        if (res.ok) {
+                            const items = await res.json();
+                            renderHistoryDeck(items);
+                        }
+                    } catch (e) { }
+                }
+
+                // --- NOTIFICATION SYSTEM ---
+                let notificationEnabled = false;
+
+                function checkNotificationPermission() {
+                    if (!('Notification' in window)) {
+                        console.log('Browser does not support notifications');
+                        return;
+                    }
+
+                    const notifyBtn = document.getElementById('notifyButton');
+                    const notifyText = document.getElementById('notifyText');
+                    const notifyIcon = document.getElementById('notifyIcon');
+
+                    if (!notifyBtn) return; // Loader not visible yet
+
+                    if (Notification.permission === 'granted') {
+                        notificationEnabled = true;
+                        notifyText.innerText = 'NOTIFICAÇÃO ATIVADA';
+                        notifyIcon.className = 'fas fa-check-circle';
+                        notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue', 'hover:bg-neon-blue', 'hover:text-black');
+                        notifyBtn.classList.add('border-success/40', 'text-success', 'bg-success/10');
+                        notifyBtn.disabled = true;
+                    } else if (Notification.permission === 'denied') {
+                        notifyText.innerText = 'NOTIFICAÇÃO BLOQUEADA';
+                        notifyIcon.className = 'fas fa-ban';
+                        notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue');
+                        notifyBtn.classList.add('border-error/40', 'text-error');
+                        notifyBtn.disabled = true;
+                    }
+                }
+
+                async function enableNotifications() {
+                    if (!('Notification' in window)) {
+                        alert('Seu navegador não suporta notificações.');
+                        return;
+                    }
+
+                    const notifyBtn = document.getElementById('notifyButton');
+                    const notifyText = document.getElementById('notifyText');
+                    const notifyIcon = document.getElementById('notifyIcon');
+
+                    try {
+                        const permission = await Notification.requestPermission();
+
+                        if (permission === 'granted') {
+                            notificationEnabled = true;
+                            notifyText.innerText = 'NOTIFICAÇÃO ATIVADA';
+                            notifyIcon.className = 'fas fa-check-circle';
+                            notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue', 'hover:bg-neon-blue', 'hover:text-black');
+                            notifyBtn.classList.add('border-success/40', 'text-success', 'bg-success/10');
+                            notifyBtn.disabled = true;
+
+                            // Show test notification
+                            new Notification('🧠 Oracle System', {
+                                body: 'Notificações ativadas! Você será alertado quando a análise terminar.',
+                                icon: '/favicon.ico',
+                                tag: 'oracle-enabled'
+                            });
+                        } else {
+                            notifyText.innerText = 'NOTIFICAÇÃO NEGADA';
+                            notifyIcon.className = 'fas fa-ban';
+                            notifyBtn.classList.remove('border-neon-blue/40', 'text-neon-blue');
+                            notifyBtn.classList.add('border-error/40', 'text-error');
+                            notifyBtn.disabled = true;
+                        }
+                    } catch (e) {
+                        console.error('Error requesting notification permission:', e);
+                    }
+                }
+
+                function sendCompletionNotification(analysisId) {
+                    if (!notificationEnabled || Notification.permission !== 'granted') return;
+
+                    const notification = new Notification('✅ Análise Concluída!', {
+                        body: 'Sua análise do edital está pronta. Clique para visualizar.',
+                        icon: '/favicon.ico',
+                        tag: `oracle-${analysisId}`,
+                        requireInteraction: true
+                    });
+
+                    notification.onclick = function () {
+                        window.focus();
+                        notification.close();
+                    };
+                }
+            </script>

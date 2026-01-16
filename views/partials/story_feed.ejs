@@ -15,8 +15,8 @@
                         <div class="story-card <%= index === 0 ? 'active' : '' %>" data-index="<%= index %>"
                             data-id="<%= lic.id %>">
 
-                            <!-- Relevance Score Badge -->
-                            <div class="absolute top-4 right-4 z-10">
+                            <!-- Relevance Score Badge (Outside inner wrapper to overlap) -->
+                            <div class="absolute -top-4 -right-4 z-50">
                                 <% const score=lic.relevance_score || 0; %>
                                     <div
                                         class="score-badge <%= score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low' %>">
@@ -27,100 +27,105 @@
                                     </div>
                             </div>
 
-                            <!-- Card Header -->
-                            <div class="story-card-header">
-                                <div class="flex items-center gap-3 flex-1">
-                                    <div class="org-avatar">
-                                        <%= (lic.razao_social_orgao || 'X' ).charAt(0).toUpperCase() %>
+                            <!-- Inner Wrapper for Content (Calculated Height + Hidden Overflow) -->
+                            <div class="story-content-inner flex flex-col h-full overflow-hidden">
+                                <!-- Card Header -->
+                                <div class="story-card-header flex-none">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <div class="org-avatar">
+                                            <%= (lic.razao_social_orgao || 'X' ).charAt(0).toUpperCase() %>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="font-bold text-lg truncate pr-16">
+                                                <!-- Padding right for badge clearance -->
+                                                <%= lic.razao_social_orgao || 'Órgão não informado' %>
+                                            </h3>
+                                            <p class="text-sm opacity-70">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                <%= lic.municipio_nome || 'N/D' %> - <%= lic.uf_sigla || 'N/D' %>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="font-bold text-lg truncate">
-                                            <%= lic.razao_social_orgao || 'Órgão não informado' %>
-                                        </h3>
-                                        <p class="text-sm opacity-70">
-                                            <i class="fas fa-map-marker-alt"></i>
-                                            <%= lic.municipio_nome || 'N/D' %> - <%= lic.uf_sigla || 'N/D' %>
-                                        </p>
-                                    </div>
+                                    <span class="badge badge-lg badge-primary pulse-animation">
+                                        <%= lic.modalidade_licitacao || 'N/D' %>
+                                    </span>
                                 </div>
-                                <span class="badge badge-lg badge-primary pulse-animation">
-                                    <%= lic.modalidade_licitacao || 'N/D' %>
-                                </span>
+
+                                <!-- Value Spotlight -->
+                                <% if (lic.valor_estimado_total && lic.valor_estimado_total> 0) { %>
+                                    <div class="value-spotlight flex-none">
+                                        <div class="value-label">Valor Estimado</div>
+                                        <div class="value-amount animate-count-up">
+                                            R$ <%= parseFloat(lic.valor_estimado_total).toLocaleString('pt-BR',
+                                                {minimumFractionDigits: 2, maximumFractionDigits: 2}) %>
+                                        </div>
+                                    </div>
+                                    <% } %>
+
+                                        <!-- Object Description with Keyword Highlights -->
+                                        <div class="object-description flex-1 overflow-y-auto min-h-0 scrollbar-thin">
+                                            <h4
+                                                class="font-semibold mb-2 flex items-center gap-2 sticky top-0 bg-base-100/95 backdrop-blur z-9 py-2">
+                                                <i class="fas fa-file-alt text-primary"></i>
+                                                Objeto
+                                            </h4>
+                                            <p class="text-base leading-relaxed p-1"
+                                                data-keywords="<%= lic.matched_keywords || '' %>">
+                                                <%= lic.objeto_compra || 'Não informado' %>
+                                            </p>
+                                        </div>
+
+                                        <!-- Quick Info Pills -->
+                                        <div class="info-pills flex-none">
+                                            <% if (lic.data_publicacao_pncp) { %>
+                                                <div class="pill">
+                                                    <i class="fas fa-calendar"></i>
+                                                    <%= new Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
+                                                        %>
+                                                </div>
+                                                <% } %>
+                                                    <% if (lic.data_abertura_proposta) { %>
+                                                        <div class="pill">
+                                                            <i class="fas fa-clock"></i>
+                                                            Abertura: <%= new
+                                                                Date(lic.data_abertura_proposta).toLocaleDateString('pt-BR')
+                                                                %>
+                                                        </div>
+                                                        <% } %>
+                                                            <% if (lic.srp) { %>
+                                                                <div class="pill">
+                                                                    <i class="fas fa-box-open"></i>
+                                                                    SRP
+                                                                </div>
+                                                                <% } %>
+                                        </div>
+
+                                        <!-- Action Buttons -->
+                                        <div class="story-actions flex-none">
+                                            <button class="action-btn skip-btn" onclick="skipCard()"
+                                                title="Pular esta licitação">
+                                                <i class="fas fa-forward"></i>
+                                                <span>Pular</span>
+                                            </button>
+                                            <a href="/licitacoes/<%= lic.id %>" class="action-btn details-btn"
+                                                title="Ver todos os detalhes">
+                                                <i class="fas fa-eye"></i>
+                                                <span>Detalhes</span>
+                                            </a>
+                                            <button class="action-btn save-btn" onclick="saveOpportunity(<%= lic.id %>)"
+                                                title="Salvar para depois">
+                                                <i class="fas fa-heart"></i>
+                                                <span>Salvar</span>
+                                            </button>
+                                        </div>
                             </div>
 
-                            <!-- Value Spotlight -->
-                            <% if (lic.valor_estimado_total && lic.valor_estimado_total> 0) { %>
-                                <div class="value-spotlight">
-                                    <div class="value-label">Valor Estimado</div>
-                                    <div class="value-amount animate-count-up">
-                                        R$ <%= parseFloat(lic.valor_estimado_total).toLocaleString('pt-BR',
-                                            {minimumFractionDigits: 2, maximumFractionDigits: 2}) %>
-                                    </div>
-                                </div>
-                                <% } %>
-
-                                    <!-- Object Description with Keyword Highlights -->
-                                    <div class="object-description">
-                                        <h4 class="font-semibold mb-2 flex items-center gap-2">
-                                            <i class="fas fa-file-alt text-primary"></i>
-                                            Objeto
-                                        </h4>
-                                        <p class="text-base leading-relaxed"
-                                            data-keywords="<%= lic.matched_keywords || '' %>">
-                                            <%= (lic.objeto_compra || 'Não informado' ).substring(0, 300) %>
-                                                <%= (lic.objeto_compra || '' ).length> 300 ? '...' : '' %>
-                                        </p>
-                                    </div>
-
-                                    <!-- Quick Info Pills -->
-                                    <div class="info-pills">
-                                        <% if (lic.data_publicacao_pncp) { %>
-                                            <div class="pill">
-                                                <i class="fas fa-calendar"></i>
-                                                <%= new Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR') %>
-                                            </div>
-                                            <% } %>
-                                                <% if (lic.data_abertura_proposta) { %>
-                                                    <div class="pill">
-                                                        <i class="fas fa-clock"></i>
-                                                        Abertura: <%= new
-                                                            Date(lic.data_abertura_proposta).toLocaleDateString('pt-BR')
-                                                            %>
-                                                    </div>
-                                                    <% } %>
-                                                        <% if (lic.srp) { %>
-                                                            <div class="pill">
-                                                                <i class="fas fa-box-open"></i>
-                                                                SRP
-                                                            </div>
-                                                            <% } %>
-                                    </div>
-
-                                    <!-- Action Buttons -->
-                                    <div class="story-actions">
-                                        <button class="action-btn skip-btn" onclick="skipCard()"
-                                            title="Pular esta licitação">
-                                            <i class="fas fa-forward"></i>
-                                            <span>Pular</span>
-                                        </button>
-                                        <a href="/licitacoes/<%= lic.id %>" class="action-btn details-btn"
-                                            title="Ver todos os detalhes">
-                                            <i class="fas fa-eye"></i>
-                                            <span>Detalhes</span>
-                                        </a>
-                                        <button class="action-btn save-btn" onclick="saveOpportunity(<%= lic.id %>)"
-                                            title="Salvar para depois">
-                                            <i class="fas fa-heart"></i>
-                                            <span>Salvar</span>
-                                        </button>
-                                    </div>
-
-                                    <!-- Progress Indicator -->
-                                    <div class="progress-indicator">
-                                        <span class="font-bold">
-                                            <%= index + 1 %>
-                                        </span> de <%= licitacoes.length %>
-                                    </div>
+                            <!-- Progress Indicator -->
+                            <div class="progress-indicator">
+                                <span class="font-bold">
+                                    <%= index + 1 %>
+                                </span> de <%= licitacoes.length %>
+                            </div>
                         </div>
                         <% }) %>
                 </div>
