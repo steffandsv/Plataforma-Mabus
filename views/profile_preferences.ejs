@@ -59,28 +59,33 @@
                         <div id="ai-thinking" class="hidden text-center py-8">
                             <div class="flex flex-col items-center">
                                 <div class="thinking-orb mb-6"></div>
-                                <h3 class="text-2xl font-bold mb-4">🧠 Analisando com Inteligência Artificial...</h3>
+                                <h3 class="text-2xl font-bold mb-4">🧠 Processando...</h3>
                                 <div class="thinking-steps space-y-3 text-left max-w-md">
-                                    <div class="step flex items-center gap-3">
+                                    <div class="step flex items-center gap-3" data-step="0">
                                         <div class="step-icon">⏳</div>
-                                        <div>Consultando dados do CNPJ</div>
+                                        <div>Buscando CNPJ na Receita Federal</div>
                                     </div>
-                                    <div class="step flex items-center gap-3">
+                                    <div class="step flex items-center gap-3" data-step="1">
                                         <div class="step-icon">⏳</div>
-                                        <div>Analisando CNAEs e ramo de atividade</div>
+                                        <div>Obtendo dados da empresa</div>
                                     </div>
-                                    <div class="step flex items-center gap-3">
+                                    <div class="step flex items-center gap-3" data-step="2">
                                         <div class="step-icon">⏳</div>
-                                        <div>Gerando palavras-chave inteligentes</div>
+                                        <div>Enviando para Inteligência Artificial</div>
                                     </div>
-                                    <div class="step flex items-center gap-3">
+                                    <div class="step flex items-center gap-3" data-step="3">
                                         <div class="step-icon">⏳</div>
-                                        <div>Selecionando localização e estados</div>
+                                        <div class="font-semibold text-yellow-300">Raciocinando com IA (pode demorar até
+                                            30s)</div>
                                     </div>
-                                    <div class="step flex items-center gap-3">
+                                    <div class="step flex items-center gap-3" data-step="4">
                                         <div class="step-icon">⏳</div>
-                                        <div>Configurando modalidades e valores</div>
+                                        <div>Recebendo e processando resposta</div>
                                     </div>
+                                </div>
+                                <div class="mt-4 text-sm opacity-70">
+                                    <span class="loading loading-dots loading-md"></span>
+                                    Por favor, aguarde...
                                 </div>
                             </div>
                         </div>
@@ -192,8 +197,62 @@
                                 Exemplos: notebook, computador, software, mobiliário, material escolar
                             </div>
                         </div>
+
+                        <!-- AI Refinement Banner -->
+                        <div id="ai-refine-banner" class="alert alert-info mt-4 hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="stroke-current shrink-0 w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <h4 class="font-bold">✨ Não gostou das palavras-chave?</h4>
+                                <p class="text-sm">Explique para a IA o que você prefere e vamos refinar as sugestões!
+                                </p>
+                            </div>
+                            <button type="button" onclick="openRefineModal()" class="btn btn-sm btn-primary">
+                                Refinar com IA
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Refine Modal -->
+                <dialog id="refine-modal" class="modal">
+                    <div class="modal-box">
+                        <h3 class="font-bold text-lg mb-4">🤖 Refinar Palavras-chave com IA</h3>
+
+                        <div id="refine-form">
+                            <p class="text-sm opacity-70 mb-3">
+                                Explique o que você quer mudar nas palavras-chave. Por exemplo:
+                            </p>
+                            <div class="bg-base-200 p-3 rounded-lg text-sm mb-4">
+                                "Tenho CNAE para vender leite e açúcar mas não gosto de trabalhar com material de
+                                consumo"
+                            </div>
+
+                            <textarea id="refine-feedback" class="textarea textarea-bordered w-full h-24"
+                                placeholder="Digite suas preferências aqui..."></textarea>
+
+                            <div class="modal-action">
+                                <button type="button" onclick="closeRefineModal()"
+                                    class="btn btn-ghost">Cancelar</button>
+                                <button type="button" onclick="refineWithAI()" class="btn btn-primary">
+                                    ✨ Refinar com IA
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="refine-loading" class="hidden text-center py-8">
+                            <div class="thinking-orb mb-4 mx-auto" style="width: 60px; height: 60px;"></div>
+                            <p class="font-semibold">Processando com IA...</p>
+                            <p class="text-sm opacity-70">Aguarde alguns segundos</p>
+                        </div>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
 
                 <!-- Localizações -->
                 <div class="card bg-base-200">
@@ -803,7 +862,7 @@
                     });
                 }
 
-                // Analyze with AI
+                // Analyze with AI - with realistic progress updates
                 async function analyzeWithAI() {
                     const cnpj = document.getElementById('magic-cnpj-input').value;
                     const btn = document.getElementById('btn-analyze-magic');
@@ -817,15 +876,27 @@
                     document.getElementById('magic-input-area').classList.add('hidden');
                     document.getElementById('ai-thinking').classList.remove('hidden');
 
-                    //Animate steps
-                    animateThinkingSteps();
-
                     try {
+                        // Step 0: Buscando CNPJ
+                        updateThinkingStep(0);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
+                        // Step 1: Obtendo dados
+                        updateThinkingStep(1);
+
+                        // Make API call
                         const response = await fetch('/api/cnpj/analyze-magic', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ cnpj })
                         });
+
+                        // Step 2: Enviando para IA
+                        updateThinkingStep(2);
+                        await new Promise(resolve => setTimeout(resolve, 300));
+
+                        // Step 3: Raciocinando (happening on server)
+                        updateThinkingStep(3);
 
                         const result = await response.json();
 
@@ -833,8 +904,18 @@
                             throw new Error(result.erro || 'Erro ao analisar CNPJ');
                         }
 
-                        // Wait for animations to complete
-                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        // Step 4: Recebendo resposta
+                        updateThinkingStep(4);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
+                        // Mark all as done
+                        document.querySelectorAll('.step').forEach(step => {
+                            step.classList.remove('active');
+                            step.classList.add('done');
+                            step.querySelector('.step-icon').textContent = '✓';
+                        });
+
+                        await new Promise(resolve => setTimeout(resolve, 500));
 
                         // Store preferences
                         aiGeneratedPrefs = result.preferences;
@@ -852,29 +933,24 @@
                     }
                 }
 
-                function animateThinkingSteps() {
+                function updateThinkingStep(stepIndex) {
                     const steps = document.querySelectorAll('.step');
-                    let currentStep = 0;
 
-                    const interval = setInterval(() => {
-                        if (currentStep > 0) {
-                            const prevStep = steps[currentStep - 1];
-                            prevStep.classList.remove('active');
-                            prevStep.classList.add('done');
-                            prevStep.querySelector('.step-icon').textContent = '✓';
-                        }
+                    // Mark previous steps as done
+                    for (let i = 0; i < stepIndex; i++) {
+                        steps[i].classList.remove('active');
+                        steps[i].classList.add('done');
+                        steps[i].querySelector('.step-icon').textContent = '✓';
+                    }
 
-                        if (currentStep < steps.length) {
-                            steps[currentStep].classList.add('active');
-                            currentStep++;
-                        } else {
-                            clearInterval(interval);
-                        }
-                    }, 1200);
-
-                    // Store interval ID to clear if needed
-                    window.thinkingInterval = interval;
+                    // Mark current step as active
+                    if (stepIndex < steps.length) {
+                        steps[stepIndex].classList.add('active');
+                        steps[stepIndex].classList.remove('done');
+                    }
                 }
+
+                // Old animation function removed - now using updateThinkingStep
 
                 function showAIResult(result) {
                     const { cnpjData, preferences } = result;
@@ -970,6 +1046,109 @@
 
                     // Show toast
                     showToast('✨ Preferências aplicadas! Revise e salve quando estiver pronto.', 'success');
+
+                    // Show refine banner if not already refined
+                    if (!window.hasRefinedKeywords) {
+                        document.getElementById('ai-refine-banner').classList.remove('hidden');
+                    }
+                }
+
+                // ========== AI REFINEMENT FUNCTIONS ==========
+
+                let hasRefinedKeywords = false;
+
+                function openRefineModal() {
+                    if (hasRefinedKeywords) {
+                        showToast('Você já refinou as palavras-chave uma vez. Edite manualmente se precisar ajustar mais.', 'info');
+                        return;
+                    }
+                    document.getElementById('refine-modal').showModal();
+                }
+
+                function closeRefineModal() {
+                    document.getElementById('refine-modal').close();
+                    document.getElementById('refine-feedback').value = '';
+                }
+
+                async function refineWithAI() {
+                    const feedback = document.getElementById('refine-feedback').value.trim();
+
+                    if (!feedback) {
+                        alert('Por favor, descreva o que você gostaria de mudar');
+                        return;
+                    }
+
+                    // Get current keywords
+                    const currentKeywords = document.getElementById('keywords-hidden').value.split(',').filter(k => k);
+
+                    if (currentKeywords.length === 0) {
+                        alert('Não há palavras-chave para refinar. Use o modo mágico primeiro.');
+                        return;
+                    }
+
+                    // Show loading
+                    document.getElementById('refine-form').classList.add('hidden');
+                    document.getElementById('refine-loading').classList.remove('hidden');
+
+                    try {
+                        const response = await fetch('/api/cnpj/refine-keywords', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                current_keywords: currentKeywords,
+                                feedback: feedback
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok || !result.sucesso) {
+                            throw new Error(result.erro || 'Erro ao refinar palavras-chave');
+                        }
+
+                        // Update keywords
+                        const newKeywords = result.keywords;
+                        const hiddenInput = document.getElementById('keywords-hidden');
+                        const container = document.getElementById('keywords-container');
+
+                        hiddenInput.value = newKeywords.join(',');
+                        container.innerHTML = '';
+
+                        newKeywords.forEach(keyword => {
+                            const tag = document.createElement('span');
+                            tag.className = 'badge badge-lg gap-2 keyword-tag';
+                            tag.innerHTML = `
+                                ${keyword}
+                                <button type="button" onclick="removeKeyword(this, '${keyword}')" 
+                                    class="btn btn-ghost btn-xs btn-circle">×</button>
+                            `;
+                            container.appendChild(tag);
+                        });
+
+                        // Mark as refined
+                        hasRefinedKeywords = true;
+                        window.hasRefinedKeywords = true;
+
+                        // Hide banner
+                        document.getElementById('ai-refine-banner').classList.add('hidden');
+
+                        // Close modal
+                        closeRefineModal();
+
+                        // Reset UI
+                        document.getElementById('refine-form').classList.remove('hidden');
+                        document.getElementById('refine-loading').classList.add('hidden');
+
+                        showToast('✨ Palavras-chave refinadas com sucesso!', 'success');
+
+                    } catch (erro) {
+                        console.error('[Refine Error]:', erro);
+                        showError('Erro ao refinar: ' + erro.message);
+
+                        // Reset UI
+                        document.getElementById('refine-form').classList.remove('hidden');
+                        document.getElementById('refine-loading').classList.add('hidden');
+                    }
                 }
 
                 function showError(message) {
