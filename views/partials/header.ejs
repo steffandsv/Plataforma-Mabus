@@ -1,14 +1,13 @@
 <header
     class="navbar fixed top-4 left-4 right-4 z-50 rounded-2xl border border-glass-border glass-panel h-16 shadow-lg shadow-purple-900/10 transition-all duration-300">
-    <div class="flex-1">
+    <div class="flex-1 flex items-center">
         <!-- Mobile Toggle -->
-        <button class="btn btn-square btn-ghost btn-sm md:hidden text-neon-blue" onclick="toggleSidebar()">
+        <button class="btn btn-square btn-ghost btn-sm md:hidden text-neon-blue mr-2" onclick="toggleSidebar()">
             <i class="fas fa-bars"></i>
         </button>
 
-        <!-- Logo for Mobile -->
-        <span
-            class="md:hidden ml-2 font-bold text-lg tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">MABUS</span>
+        <!-- Logo -->
+        <img src="/logo.svg" alt="MABUS" class="h-8 w-auto logo-adaptive" />
     </div>
 
     <div class="flex-none gap-4">
