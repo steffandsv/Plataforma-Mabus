@@ -254,6 +254,37 @@ app.get('/licitacoes', isAuthenticated, async (req, res) => {
     }
 });
 
+// Helper functions for licitacao_detail view
+function formatCNPJ(cnpj) {
+    if (!cnpj) return 'N/D';
+    // Remove all non-numeric characters
+    const cleaned = String(cnpj).replace(/\D/g, '');
+    // Check if it's a valid CNPJ length (14 digits)
+    if (cleaned.length !== 14) return cnpj; // Return as-is if invalid
+    // Format: XX.XXX.XXX/XXXX-XX
+    return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
+function convertPoder(poder) {
+    if (!poder) return 'N/D';
+    const poderes = {
+        'E': 'Executivo',
+        'L': 'Legislativo',
+        'J': 'Judiciário'
+    };
+    return poderes[poder.toUpperCase()] || poder;
+}
+
+function convertEsfera(esfera) {
+    if (!esfera) return 'N/D';
+    const esferas = {
+        'M': 'Municipal',
+        'E': 'Estadual',
+        'F': 'Federal'
+    };
+    return esferas[esfera.toUpperCase()] || esfera;
+}
+
 app.get('/licitacoes/:id', isAuthenticated, async (req, res) => {
     try {
         const licitacao = await getLicitacaoById(req.params.id);
@@ -271,7 +302,17 @@ app.get('/licitacoes/:id', isAuthenticated, async (req, res) => {
             licitacao.raw_data = licitacao.raw_data_json;
         }
 
-        res.render('licitacao_detail', { licitacao, itens, arquivos, isSaved, isDisliked });
+        res.render('licitacao_detail', {
+            licitacao,
+            itens,
+            arquivos,
+            isSaved,
+            isDisliked,
+            // Pass helper functions to template
+            formatCNPJ,
+            convertPoder,
+            convertEsfera
+        });
     } catch (e) {
         console.error('[Licitação Detail Error]:', e);
         res.status(500).send(e.message);
