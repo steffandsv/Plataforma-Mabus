@@ -7,7 +7,150 @@
                 <a href="/licitacoes" class="btn btn-ghost">← Voltar</a>
             </div>
 
-            <form method="POST" class="space-y-6">
+            <!-- Mode Toggle -->
+            <div class="tabs tabs-boxed mb-6 flex justify-center sticky top-4 z-10 bg-base-100 shadow-lg">
+                <a id="tab-magic" class="tab tab-lg tab-active flex items-center gap-2" onclick="switchMode('magic')">
+                    <span class="text-2xl">🪄</span>
+                    <span>Modo Mágico</span>
+                </a>
+                <a id="tab-manual" class="tab tab-lg flex items-center gap-2" onclick="switchMode('manual')">
+                    <span class="text-2xl">✋</span>
+                    <span>Modo Manual</span>
+                </a>
+            </div>
+
+            <!-- MAGIC MODE -->
+            <div id="magic-mode" class="mb-8">
+                <div class="card bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 text-white shadow-2xl">
+                    <div class="card-body p-8">
+                        <div id="magic-input-area">
+                            <h2 class="card-title text-3xl mb-4 justify-center">
+                                ✨ Configure tudo automaticamente com IA
+                            </h2>
+                            <p class="text-center opacity-90 mb-6 text-lg">
+                                Digite o CNPJ da sua empresa e deixe a inteligência artificial gerar
+                                automaticamente todas as preferências personalizadas para você!
+                            </p>
+
+                            <div class="form-control max-w-2xl mx-auto">
+                                <label class="label">
+                                    <span class="label-text text-white font-semibold text-lg">
+                                        CNPJ da Empresa
+                                    </span>
+                                </label>
+                                <div class="join w-full">
+                                    <input type="text" id="magic-cnpj-input"
+                                        class="input input-bordered input-lg join-item flex-1 text-black font-mono"
+                                        placeholder="00.000.000/0000-00" maxlength="18">
+                                    <button type="button" onclick="analyzeWithAI()" id="btn-analyze-magic"
+                                        class="btn btn-success btn-lg join-item gap-2 px-8 magic-button">
+                                        <span class="sparkle text-2xl">✨</span>
+                                        <span class="font-bold">Analisar com IA</span>
+                                    </button>
+                                </div>
+                                <div class="text-xs opacity-80 mt-2 text-center">
+                                    A IA irá analisar seus CNAEs e gerar palavras-chave, selecionar estados e muito
+                                    mais!
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Thinking Animation -->
+                        <div id="ai-thinking" class="hidden text-center py-8">
+                            <div class="flex flex-col items-center">
+                                <div class="thinking-orb mb-6"></div>
+                                <h3 class="text-2xl font-bold mb-4">🧠 Analisando com Inteligência Artificial...</h3>
+                                <div class="thinking-steps space-y-3 text-left max-w-md">
+                                    <div class="step flex items-center gap-3">
+                                        <div class="step-icon">⏳</div>
+                                        <div>Consultando dados do CNPJ</div>
+                                    </div>
+                                    <div class="step flex items-center gap-3">
+                                        <div class="step-icon">⏳</div>
+                                        <div>Analisando CNAEs e ramo de atividade</div>
+                                    </div>
+                                    <div class="step flex items-center gap-3">
+                                        <div class="step-icon">⏳</div>
+                                        <div>Gerando palavras-chave inteligentes</div>
+                                    </div>
+                                    <div class="step flex items-center gap-3">
+                                        <div class="step-icon">⏳</div>
+                                        <div>Selecionando localização e estados</div>
+                                    </div>
+                                    <div class="step flex items-center gap-3">
+                                        <div class="step-icon">⏳</div>
+                                        <div>Configurando modalidades e valores</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Result Preview -->
+                        <div id="ai-result" class="hidden text-center py-8">
+                            <div class="success-checkmark mb-4">✓</div>
+                            <h3 class="text-3xl font-bold mb-4">🎯 Análise Concluída!</h3>
+
+                            <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 mb-6 text-left">
+                                <h4 class="font-bold text-xl mb-3 flex items-center gap-2">
+                                    <span>🏢</span>
+                                    <span id="result-company-name">Empresa</span>
+                                </h4>
+                                <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+                                    <div>
+                                        <span class="opacity-70">CNAE Principal:</span>
+                                        <div class="font-semibold" id="result-cnae">-</div>
+                                    </div>
+                                    <div>
+                                        <span class="opacity-70">Localização:</span>
+                                        <div class="font-semibold" id="result-location">-</div>
+                                    </div>
+                                </div>
+
+                                <div class="divider"></div>
+
+                                <h5 class="font-bold mb-2">💡 Raciocínio da IA:</h5>
+                                <p id="ai-reasoning" class="opacity-90 italic"></p>
+
+                                <div class="divider"></div>
+
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="opacity-70">Palavras-chave geradas:</span>
+                                        <div class="font-bold text-2xl text-green-300" id="result-keywords-count">0
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="opacity-70">Estados selecionados:</span>
+                                        <div class="font-bold text-2xl text-blue-300" id="result-states-count">0</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" onclick="applyAndShowManual()"
+                                class="btn btn-success btn-lg gap-2 px-12">
+                                <span class="text-2xl">✓</span>
+                                <span class="font-bold">Aplicar e Revisar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        class="stroke-current shrink-0 w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <strong>Dica:</strong> O Modo Mágico usa IA para analisar seu CNPJ e criar preferências
+                        personalizadas automaticamente.
+                        Você ainda poderá revisar e ajustar tudo antes de salvar!
+                    </div>
+                </div>
+            </div>
+
+            <!-- MANUAL MODE (hidden by default) -->
+            <form method="POST" id="manual-mode" class="space-y-6 hidden">
                 <!-- Palavras-chave -->
                 <div class="card bg-base-200">
                     <div class="card-body">
@@ -290,133 +433,463 @@
                         oportunidade para voc\u00ea!</div>
                 </div>
             </div>
-        </div>
 
-        <script>
-            // Máscara de CNPJ
-            const cnpjInput = document.getElementById('cnpj-input');
-            if (cnpjInput) {
-                cnpjInput.addEventListener('input', (e) => {
-                    let valor = e.target.value.replace(/\D/g, '');
-
-                    if (valor.length <= 14) {
-                        valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
-                        valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-                        valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
-                        valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
-                    }
-
-                    e.target.value = valor;
-                });
-            }
-
-            // Função para importar CNPJ
-            async function importarCNPJ() {
-                const cnpj = document.getElementById('cnpj-input').value;
-                const btn = document.getElementById('btn-importar-cnpj');
-
-                if (!cnpj || cnpj.replace(/\D/g, '').length !== 14) {
-                    alert('⚠️ Digite um CNPJ válido (14 dígitos)');
-                    return;
+            <style>
+                /* Magic Mode Animations */
+                .magic-button {
+                    animation: pulse-glow 2s ease-in-out infinite;
+                    position: relative;
+                    overflow: hidden;
                 }
 
-                // Loading state
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Consultando...';
+                .magic-button::before {
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+                    animation: shine 3s infinite;
+                }
 
-                try {
-                    const response = await fetch('/api/cnpj/consultar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cnpj })
-                    });
+                @keyframes pulse-glow {
 
-                    const result = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(result.erro || 'Erro ao consultar CNPJ');
+                    0%,
+                    100% {
+                        box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
                     }
 
-                    if (result.sucesso) {
-                        // Salvar no banco
-                        const saveResponse = await fetch('/api/cnpj/salvar', {
+                    50% {
+                        box-shadow: 0 0 40px rgba(74, 222, 128, 0.8);
+                    }
+                }
+
+                @keyframes shine {
+                    0% {
+                        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+                    }
+
+                    100% {
+                        transform: translateX(100%) translateY(100%) rotate(45deg);
+                    }
+                }
+
+                .sparkle {
+                    display: inline-block;
+                    animation: sparkle-rotate 2s linear infinite;
+                }
+
+                @keyframes sparkle-rotate {
+
+                    0%,
+                    100% {
+                        transform: rotate(0deg) scale(1);
+                    }
+
+                    25% {
+                        transform: rotate(-15deg) scale(1.2);
+                    }
+
+                    50% {
+                        transform: rotate(15deg) scale(1);
+                    }
+
+                    75% {
+                        transform: rotate(-10deg) scale(1.1);
+                    }
+                }
+
+                .thinking-orb {
+                    width: 100px;
+                    height: 100px;
+                    border-radius: 50%;
+                    background: radial-gradient(circle at 30% 30%, #00f0ff, #7000ff, #ff00ea);
+                    animation: orb-float 3s ease-in-out infinite, orb-pulse 2s ease-in-out infinite;
+                    box-shadow: 0 0 80px rgba(0, 240, 255, 0.9);
+                }
+
+                @keyframes orb-float {
+
+                    0%,
+                    100% {
+                        transform: translateY(0) scale(1);
+                    }
+
+                    50% {
+                        transform: translateY(-30px) scale(1.1);
+                    }
+                }
+
+                @keyframes orb-pulse {
+
+                    0%,
+                    100% {
+                        opacity: 0.9;
+                    }
+
+                    50% {
+                        opacity: 1;
+                    }
+                }
+
+                .step {
+                    opacity: 0.4;
+                    transition: all 0.5s ease;
+                }
+
+                .step.active {
+                    opacity: 1;
+                }
+
+                .step.done {
+                    opacity: 1;
+                    color: #4ade80;
+                }
+
+                .step.active .step-icon {
+                    animation: pulse 1s infinite;
+                }
+
+                .step.done .step-icon {
+                    animation: none;
+                }
+
+                @keyframes pulse {
+
+                    0%,
+                    100% {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+
+                    50% {
+                        opacity: 0.5;
+                        transform: scale(1.2);
+                    }
+                }
+
+                .success-checkmark {
+                    font-size: 100px;
+                    color: #4ade80;
+                    animation: checkmark-pop 0.5s ease-out;
+                }
+
+                @keyframes checkmark-pop {
+                    0% {
+                        transform: scale(0);
+                        opacity: 0;
+                    }
+
+                    50% {
+                        transform: scale(1.2);
+                    }
+
+                    100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+            </style>
+
+            <script>
+                // State
+                let aiGeneratedPrefs = null;
+                let currentMode = 'magic';
+
+                // Switch between Magic and Manual modes
+                function switchMode(mode) {
+                    currentMode = mode;
+
+                    const magicTab = document.getElementById('tab-magic');
+                    const manualTab = document.getElementById('tab-manual');
+                    const magicMode = document.getElementById('magic-mode');
+                    const manualMode = document.getElementById('manual-mode');
+
+                    if (mode === 'magic') {
+                        magicTab.classList.add('tab-active');
+                        manualTab.classList.remove('tab-active');
+                        magicMode.classList.remove('hidden');
+                        manualMode.classList.add('hidden');
+                    } else {
+                        magicTab.classList.remove('tab-active');
+                        manualTab.classList.add('tab-active');
+                        magicMode.classList.add('hidden');
+                        manualMode.classList.remove('hidden');
+                    }
+
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                // CNPJ Mask (for magic mode)
+                const magicCnpjInput = document.getElementById('magic-cnpj-input');
+                if (magicCnpjInput) {
+                    magicCnpjInput.addEventListener('input', (e) => {
+                        let valor = e.target.value.replace(/\D/g, '');
+
+                        if (valor.length <= 14) {
+                            valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
+                            valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                            valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                            valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+                        }
+
+                        e.target.value = valor;
+                    });
+                }
+
+                // Analyze with AI
+                async function analyzeWithAI() {
+                    const cnpj = document.getElementById('magic-cnpj-input').value;
+                    const btn = document.getElementById('btn-analyze-magic');
+
+                    if (!cnpj || cnpj.replace(/\D/g, '').length !== 14) {
+                        alert('⚠️ Digite um CNPJ válido (14 dígitos)');
+                        return;
+                    }
+
+                    // Hide input, show thinking
+                    document.getElementById('magic-input-area').classList.add('hidden');
+                    document.getElementById('ai-thinking').classList.remove('hidden');
+
+                    //Animate steps
+                    animateThinkingSteps();
+
+                    try {
+                        const response = await fetch('/api/cnpj/analyze-magic', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ cnpj })
                         });
 
-                        const saveResult = await saveResponse.json();
+                        const result = await response.json();
 
-                        if (saveResult.sucesso) {
-                            // Atualizar preview
-                            atualizarPreview(saveResult.dados);
-
-                            // Show success message
-                            mostrarMensagem('✅ Dados do CNPJ importados e salvos com sucesso!', 'success');
-                        } else {
-                            throw new Error(saveResult.erro || 'Erro ao salvar dados');
+                        if (!response.ok || !result.sucesso) {
+                            throw new Error(result.erro || 'Erro ao analisar CNPJ');
                         }
+
+                        // Wait for animations to complete
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+
+                        // Store preferences
+                        aiGeneratedPrefs = result.preferences;
+
+                        // Show result
+                        showAIResult(result);
+
+                    } catch (erro) {
+                        console.error('[AI Analysis Error]:', erro);
+                        showError('Erro ao analisar com IA: ' + erro.message);
+
+                        // Reset UI
+                        document.getElementById('ai-thinking').classList.add('hidden');
+                        document.getElementById('magic-input-area').classList.remove('hidden');
                     }
-
-                } catch (erro) {
-                    console.error('[CNPJ Import Error]:', erro);
-
-                    let mensagemErro = '❌ Erro ao importar CNPJ: ';
-                    if (erro.message.includes('404') || erro.message.includes('não encontrado')) {
-                        mensagemErro += 'CNPJ não encontrado na Receita Federal';
-                    } else if (erro.message.includes('429') || erro.message.includes('limite')) {
-                        mensagemErro += 'Limite de requisições excedido. Aguarde alguns segundos.';
-                    } else if (erro.message.includes('timeout')) {
-                        mensagemErro += 'Tempo esgotado. Tente novamente.';
-                    } else {
-                        mensagemErro += erro.message;
-                    }
-
-                    mostrarMensagem(mensagemErro, 'error');
-                } finally {
-                    // Reset button
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-download"></i> Importar Dados';
                 }
-            }
 
-            // Atualizar preview com dados importados
-            function atualizarPreview(dados) {
-                const preview = document.getElementById('cnpj-preview');
-                preview.classList.remove('hidden');
+                function animateThinkingSteps() {
+                    const steps = document.querySelectorAll('.step');
+                    let currentStep = 0;
 
-                document.getElementById('preview-razao').textContent = dados.razaoSocial || '-';
-                document.getElementById('preview-fantasia').textContent = dados.nomeFantasia || '-';
-                document.getElementById('preview-cnae').textContent =
-                    dados.cnaePrincipal?.codigo
-                        ? `${dados.cnaePrincipal.codigo} - ${dados.cnaePrincipal.descricao}`
-                        : '-';
-                document.getElementById('preview-local').textContent =
-                    `${dados.endereco?.municipio || ''} / ${dados.endereco?.uf || ''}`.trim() || '-';
-                document.getElementById('preview-porte').textContent = dados.porteEmpresa || '-';
-                document.getElementById('preview-situacao').textContent = dados.situacaoCadastral || '-';
-            }
+                    const interval = setInterval(() => {
+                        if (currentStep > 0) {
+                            const prevStep = steps[currentStep - 1];
+                            prevStep.classList.remove('active');
+                            prevStep.classList.add('done');
+                            prevStep.querySelector('.step-icon').textContent = '✓';
+                        }
 
-            // Mostrar mensagem toast
-            function mostrarMensagem(texto, tipo) {
-                // Criar toast
-                const toast = document.createElement('div');
-                toast.className = `alert alert-${tipo} shadow-lg fixed top-4 right-4 w-auto max-w-md z-50 animate-bounce`;
-                toast.innerHTML = `
+                        if (currentStep < steps.length) {
+                            steps[currentStep].classList.add('active');
+                            currentStep++;
+                        } else {
+                            clearInterval(interval);
+                        }
+                    }, 1200);
+
+                    // Store interval ID to clear if needed
+                    window.thinkingInterval = interval;
+                }
+
+                function showAIResult(result) {
+                    const { cnpjData, preferences } = result;
+
+                    // Hide thinking, show result
+                    document.getElementById('ai-thinking').classList.add('hidden');
+                    document.getElementById('ai-result').classList.remove('hidden');
+
+                    // Populate result
+                    document.getElementById('result-company-name').textContent = cnpjData.razaoSocial || cnpjData.nomeFantasia;
+                    document.getElementById('result-cnae').textContent =
+                        `${cnpjData.cnaePrincipal?.codigo} - ${cnpjData.cnaePrincipal?.descricao}`;
+                    document.getElementById('result-location').textContent =
+                        `${cnpjData.municipio} / ${cnpjData.uf}`;
+                    document.getElementById('ai-reasoning').textContent = preferences.reasoning;
+                    document.getElementById('result-keywords-count').textContent = preferences.keywords.length;
+                    document.getElementById('result-states-count').textContent = preferences.preferred_ufs.length;
+                }
+
+                function applyAndShowManual() {
+                    if (!aiGeneratedPrefs) return;
+
+                    const prefs = aiGeneratedPrefs;
+
+                    // Fill keywords
+                    const keywordsInput = document.querySelector('[name="keywords"]');
+                    if (keywordsInput) {
+                        keywordsInput.value = prefs.keywords.join(', ');
+                    }
+
+                    // Check UF checkboxes
+                    document.querySelectorAll('[name="preferred_ufs"]').forEach(checkbox => {
+                        checkbox.checked = prefs.preferred_ufs.includes(checkbox.value);
+                    });
+
+                    // Fill municipios
+                    const municipiosInput = document.querySelector('[name="preferred_municipios"]');
+                    if (municipiosInput && prefs.preferred_municipios) {
+                        municipiosInput.value = prefs.preferred_municipios.join(', ');
+                    }
+
+                    // Check modalidades
+                    document.querySelectorAll('[name="preferred_modalidades"]').forEach(checkbox => {
+                        checkbox.checked = prefs.preferred_modalidades.includes(checkbox.value);
+                    });
+
+                    // Set values
+                    const minValueInput = document.querySelector('[name="min_value"]');
+                    if (minValueInput) minValueInput.value = prefs.min_value;
+
+                    const maxValueInput = document.querySelector('[name="max_value"]');
+                    if (maxValueInput) maxValueInput.value = prefs.max_value;
+
+                    // Switch to manual mode
+                    switchMode('manual');
+
+                    // Show toast
+                    showToast('✨ Preferências aplicadas! Revise e salve quando estiver pronto.', 'success');
+                }
+
+                function showError(message) {
+                    showToast(message, 'error');
+                }
+
+                function showToast(texto, tipo = 'info') {
+                    // Create toast
+                    const toast = document.createElement('div');
+                    toast.className = `alert alert-${tipo} shadow-lg fixed top-20 right-4 w-auto max-w-md z-50`;
+                    toast.style.animation = 'slideInRight 0.3s ease-out';
+                    toast.innerHTML = `
                     <div>
                         <span>${texto}</span>
                     </div>
                 `;
 
-                document.body.appendChild(toast);
+                    document.body.appendChild(toast);
 
-                // Remover após 5 segundos
-                setTimeout(() => {
-                    toast.style.opacity = '0';
-                    toast.style.transition = 'opacity 0.5s';
-                    setTimeout(() => toast.remove(), 500);
-                }, 5000);
-            }
-        </script>
+                    // Remove after 5 seconds
+                    setTimeout(() => {
+                        toast.style.animation = 'slideOutRight 0.3s ease-in';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 5000);
+                }
 
-        <%- include('partials/footer') %>
+                // Original CNPJ Section scripts
+                const cnpjInput = document.getElementById('cnpj-input');
+                if (cnpjInput) {
+                    cnpjInput.addEventListener('input', (e) => {
+                        let valor = e.target.value.replace(/\D/g, '');
+
+                        if (valor.length <= 14) {
+                            valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
+                            valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                            valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                            valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+                        }
+
+                        e.target.value = valor;
+                    });
+                }
+
+                async function importarCNPJ() {
+                    const cnpj = document.getElementById('cnpj-input').value;
+                    const btn = document.getElementById('btn-importar-cnpj');
+
+                    if (!cnpj || cnpj.replace(/\D/g, '').length !== 14) {
+                        alert('⚠️ Digite um CNPJ válido (14 dígitos)');
+                        return;
+                    }
+
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Consultando...';
+
+                    try {
+                        const response = await fetch('/api/cnpj/consultar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cnpj })
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(result.erro || 'Erro ao consultar CNPJ');
+                        }
+
+                        if (result.sucesso) {
+                            const saveResponse = await fetch('/api/cnpj/salvar', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ cnpj })
+                            });
+
+                            const saveResult = await saveResponse.json();
+
+                            if (saveResult.sucesso) {
+                                atualizarPreview(saveResult.dados);
+                                showToast('✅ Dados do CNPJ importados e salvos com sucesso!', 'success');
+                            } else {
+                                throw new Error(saveResult.erro || 'Erro ao salvar dados');
+                            }
+                        }
+
+                    } catch (erro) {
+                        console.error('[CNPJ Import Error]:', erro);
+
+                        let mensagemErro = '❌ Erro ao importar CNPJ: ';
+                        if (erro.message.includes('404') || erro.message.includes('não encontrado')) {
+                            mensagemErro += 'CNPJ não encontrado na Receita Federal';
+                        } else if (erro.message.includes('429') || erro.message.includes('limite')) {
+                            mensagemErro += 'Limite de requisições excedido. Aguarde alguns segundos.';
+                        } else if (erro.message.includes('timeout')) {
+                            mensagemErro += 'Tempo esgotado. Tente novamente.';
+                        } else {
+                            mensagemErro += erro.message;
+                        }
+
+                        showToast(mensagemErro, 'error');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-download"></i> Importar Dados';
+                    }
+                }
+
+                function atualizarPreview(dados) {
+                    const preview = document.getElementById('cnpj-preview');
+                    preview.classList.remove('hidden');
+
+                    document.getElementById('preview-razao').textContent = dados.razaoSocial || '-';
+                    document.getElementById('preview-fantasia').textContent = dados.nomeFantasia || '-';
+                    document.getElementById('preview-cnae').textContent =
+                        dados.cnaePrincipal?.codigo
+                            ? `${dados.cnaePrincipal.codigo} - ${dados.cnaePrincipal.descricao}`
+                            : '-';
+                    document.getElementById('preview-local').textContent =
+                        `${dados.endereco?.municipio || ''} / ${dados.endereco?.uf || ''}`.trim() || '-';
+                    document.getElementById('preview-porte').textContent = dados.porteEmpresa || '-';
+                    document.getElementById('preview-situacao').textContent = dados.situacaoCadastral || '-';
+                }
+            </script>
+
+            <%- include('partials/footer') %>

@@ -69,6 +69,7 @@ const { fetchModels } = require('./src/services/ai_manager');
 const { extractItemsFromPdf } = require('./src/services/pdf_parser');
 const licitacoesImporter = require('./src/services/licitacoes_importer');
 const cnpjService = require('./src/services/cnpj_service');
+const cnpjAIAnalyzer = require('./src/services/cnpj_ai_analyzer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -546,6 +547,68 @@ app.get('/api/cnpj/meus-dados', isAuthenticated, async (req, res) => {
         res.status(500).json({
             sucesso: false,
             erro: erro.message
+        });
+    }
+});
+
+// POST /api/cnpj/analyze-magic - Modo Mágico: Analisa CNPJ com IA e gera preferências (autenticado)
+app.post('/api/cnpj/analyze-magic', isAuthenticated, async (req, res) => {
+    try {
+        const { cnpj } = req.body;
+
+        if (!cnpj) {
+            return res.status(400).json({
+                sucesso: false,
+                erro: 'CNPJ é obrigatório'
+            });
+        }
+
+        console.log(`[Magic Mode] Iniciando análise para CNPJ: ${cnpj}`);
+
+        // 1. Consultar dados do CNPJ
+        const cnpjData = await cnpjService.consultarCNPJ(cnpj);
+
+        // 2. Salvar dados do CNPJ no perfil do usuário
+        const dadosExistentes = await getUserCNPJData(req.session.userId);
+        if (dadosExistentes) {
+            await updateUserCNPJData(req.session.userId, cnpjData);
+        } else {
+            await createUserCNPJData(req.session.userId, cnpjData);
+        }
+
+        // 3. Obter API key para IA (DeepSeek)
+        let apiKey = process.env.DEEPSEEK_API_KEY;
+        if (!apiKey) {
+            // Fallback: tentar buscar do settings
+            apiKey = await getSetting('sniper_api_key'); // Reutilizar key do Sniper se configurada
+        }
+
+        // 4. Analisar com IA e gerar preferências
+        const preferences = await cnpjAIAnalyzer.analyzeCNPJForPreferences(cnpjData, apiKey);
+
+        console.log(`[Magic Mode] ✅ Análise concluída - ${preferences.keywords.length} keywords geradas`);
+
+        res.json({
+            sucesso: true,
+            cnpjData: {
+                cnpj: cnpjData.cnpj,
+                razaoSocial: cnpjData.razaoSocial,
+                nomeFantasia: cnpjData.nomeFantasia,
+                cnaePrincipal: cnpjData.cnaePrincipal,
+                municipio: cnpjData.endereco?.municipio,
+                uf: cnpjData.endereco?.uf,
+                porte: cnpjData.porteEmpresa
+            },
+            preferences,
+            mensagem: 'Análise com IA concluída com sucesso!'
+        });
+
+    } catch (erro) {
+        console.error('[Magic Mode Error]:', erro);
+        res.status(erro.status || 500).json({
+            sucesso: false,
+            erro: erro.message,
+            codigo: erro.codigo || 'ERRO_GERAL'
         });
     }
 });
