@@ -811,135 +811,183 @@
 }
 
 /* ============================================
-   LOOT BOX - Gamification Dopamine
+   FLOATING ITEMS BUTTON - Right Side
    ============================================ */
 
-.loot-box-container {
-    margin: 12px 0;
-}
-
-.loot-box {
-    position: relative;
-    cursor: pointer;
+.floating-items-btn {
+    position: absolute;
+    top: 50%;
+    right: -20px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 12px;
     border-radius: 16px;
-    overflow: hidden;
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Closed State - Mystery & Anticipation */
-.loot-box-closed-state {
-    background: linear-gradient(135deg, #F6D365 0%, #FDA085 100%);
-    padding: 20px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    animation: lootbox-breathe 3s ease-in-out infinite;
-}
-
-.loot-box-closed-state::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg,
-            transparent 30%,
-            rgba(255, 255, 255, 0.4) 50%,
-            transparent 70%);
-    animation: shimmer 4s infinite;
-}
-
-.loot-box-closed-state::after {
-    content: '✨';
-    position: absolute;
-    font-size: 20px;
-    animation: particles-float 3s ease-in-out infinite;
-    opacity: 0.7;
-}
-
-.treasure-icon {
-    font-size: 36px;
-    margin-bottom: 8px;
-    position: relative;
-    z-index: 1;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
-}
-
-.treasure-icon i {
-    display: block;
-}
-
-.treasure-icon i:first-child {
-    display: none;
-}
-
-.loot-box-label {
-    font-weight: 700;
-    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 1;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 15;
+    backdrop-filter: blur(20px);
+    animation: button-float 3s ease-in-out infinite;
 }
 
-.shimmer {
-    display: inline-block;
-    animation: text-shimmer 2s ease-in-out infinite;
+.floating-items-btn .btn-icon {
+    font-size: 24px;
 }
 
-.loot-box:hover .loot-box-closed-state {
-    transform: scale(1.03);
-    animation: lootbox-breathe 3s ease-in-out infinite, shake 0.5s ease-in-out;
-}
-
-/* Open State - Reward Revealed */
-.loot-box-open-state {
-    background: oklch(var(--b2));
-    border: 2px solid oklch(var(--bc) / 0.1);
-    max-height: 350px;
-}
-
-.loot-box.open .loot-box-closed-state {
-    display: none;
-}
-
-.loot-box.open .loot-box-open-state {
-    display: block !important;
-    animation: lootbox-open 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-.loot-box-header {
-    background: var(--gradient-gold);
-    padding: 12px 16px;
+.floating-items-btn .btn-label {
+    font-size: 11px;
     font-weight: 700;
-    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.floating-items-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
+    right: -25px;
+}
+
+.floating-items-btn:active {
+    transform: translateY(-50%) scale(1.05);
+}
+
+@keyframes button-float {
+
+    0%,
+    100% {
+        transform: translateY(-50%) translateX(0);
+    }
+
+    50% {
+        transform: translateY(-50%) translateX(-5px);
+    }
+}
+
+/* ============================================
+   ITEMS MODAL - Tech Overlay
+   ============================================ */
+
+.items-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
     display: flex;
     align-items: center;
-    gap: 8px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    justify-content: center;
 }
 
-.loot-box-content {
-    padding: 16px;
-    max-height: 300px;
+.items-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    animation: modal-fade-in 0.3s ease-out;
+}
+
+.items-modal-container {
+    position: relative;
+    width: 90%;
+    max-width: 900px;
+    max-height: 80vh;
+    background: oklch(var(--b1));
+    border-radius: 24px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    animation: modal-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 2px solid oklch(var(--bc) / 0.1);
+}
+
+.items-modal-header {
+    padding: 24px;
+    border-bottom: 2px solid oklch(var(--bc) / 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 22px 22px 0 0;
+}
+
+.items-modal-header h3 {
+    font-size: 20px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: white;
+    font-size: 18px;
+}
+
+.modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.items-modal-body {
+    padding: 24px;
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
 }
 
-.loading-items {
-    text-align: center;
-    padding: 20px;
-    color: oklch(var(--bc) / 0.5);
+/* Modal Animations */
+@keyframes modal-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
+@keyframes modal-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Items Table (reused from previous) */
 .items-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .items-table thead {
-    background: var(--gradient-sunset);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     position: sticky;
     top: 0;
@@ -947,7 +995,7 @@
 }
 
 .items-table th {
-    padding: 10px 8px;
+    padding: 12px 10px;
     text-align: left;
     font-weight: 700;
     font-size: 11px;
@@ -961,7 +1009,7 @@
 }
 
 .items-table tbody tr:nth-child(odd) {
-    background: oklch(var(--b1) / 0.5);
+    background: oklch(var(--b2) / 0.3);
 }
 
 .items-table tbody tr:hover {
@@ -970,7 +1018,7 @@
 }
 
 .items-table td {
-    padding: 10px 8px;
+    padding: 12px 10px;
 }
 
 .item-number {
@@ -979,7 +1027,7 @@
 }
 
 .item-description {
-    max-width: 300px;
+    max-width: 400px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -992,92 +1040,63 @@
 
 .item-value {
     font-weight: 700;
-    color: #F6D365;
-    text-shadow: 0 0 10px rgba(246, 211, 101, 0.3);
+    color: #667eea;
+    text-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
     white-space: nowrap;
 }
 
 .no-items-message {
     text-align: center;
-    padding: 30px;
+    padding: 40px;
     color: oklch(var(--bc) / 0.5);
     font-style: italic;
 }
 
-/* Loot Box Animations */
-@keyframes lootbox-breathe {
+/* ============================================
+   CATEGORY TAGS
+   ============================================ */
 
-    0%,
-    100% {
-        box-shadow: 0 5px 25px rgba(246, 211, 101, 0.4);
-        transform: scale(1);
-    }
-
-    50% {
-        box-shadow: 0 10px 40px rgba(246, 211, 101, 0.6);
-        transform: scale(1.02);
-    }
+.category-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    margin-bottom: 8px;
 }
 
-@keyframes lootbox-open {
-    0% {
-        transform: rotateX(90deg) scale(0.8);
-        opacity: 0;
-    }
-
-    50% {
-        transform: rotateX(-10deg) scale(1.05);
-    }
-
-    100% {
-        transform: rotateX(0deg) scale(1);
-        opacity: 1;
-    }
+.category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: oklch(var(--b2));
+    color: oklch(var(--bc));
+    border: 1px solid oklch(var(--bc) / 0.2);
+    transition: all 0.2s;
 }
 
-@keyframes particles-float {
-
-    0%,
-    100% {
-        top: 10%;
-        left: 10%;
-        opacity: 0;
-    }
-
-    50% {
-        top: -20%;
-        left: 90%;
-        opacity: 1;
-    }
+.category-tag:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-@keyframes text-shimmer {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.8;
-        text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
-    }
+.category-tag i {
+    font-size: 12px;
 }
 
-@keyframes shake {
+.category-tag.tag-primary {
+    background: linear-gradient(135deg, oklch(var(--p)) 0%, oklch(var(--s)) 100%);
+    color: white;
+    border: none;
+}
 
-    0%,
-    100% {
-        transform: translateX(0) scale(1.03);
-    }
-
-    25% {
-        transform: translateX(-5px) scale(1.03) rotate(-2deg);
-    }
-
-    75% {
-        transform: translateX(5px) scale(1.03) rotate(2deg);
-    }
+.category-tag.tag-success {
+    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+    color: white;
+    border: none;
 }
 
 /* ============================================
@@ -1133,12 +1152,30 @@
         font-size: 13px;
     }
 
-    .loot-box-closed-state {
+    .floating-items-btn {
+        right: -15px;
+        padding: 12px 10px;
+    }
+
+    .floating-items-btn .btn-icon {
+        font-size: 20px;
+    }
+
+    .floating-items-btn .btn-label {
+        font-size: 10px;
+    }
+
+    .items-modal-container {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .items-modal-header {
         padding: 16px;
     }
 
-    .treasure-icon {
-        font-size: 28px;
+    .items-modal-body {
+        padding: 16px;
     }
 
     .items-table {
@@ -1148,5 +1185,14 @@
     .items-table th,
     .items-table td {
         padding: 8px 6px;
+    }
+
+    .category-tags {
+        gap: 6px;
+    }
+
+    .category-tag {
+        font-size: 10px;
+        padding: 5px 10px;
     }
 }

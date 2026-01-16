@@ -194,50 +194,62 @@ function skipCard() {
 }
 
 /* ============================================
-   LOOT BOX CONTROLLER - Gamification System
+   ITEMS MODAL CONTROLLER
    ============================================ */
 
-const lootBoxCache = new Map();
+const itemsCache = new Map();
+let currentModalLicitacaoId = null;
 
-async function toggleLootBox(element) {
-    const lootBox = element;
-    const licitacaoId = lootBox.dataset.licitacaoId;
-    const isOpen = lootBox.classList.contains('open');
+async function openItemsModal(licitacaoId) {
+    currentModalLicitacaoId = licitacaoId;
+    const modal = document.getElementById('itemsModal');
+    const modalBody = modal.querySelector('.items-modal-body');
 
-    if (isOpen) {
-        // Close the loot box
-        lootBox.classList.remove('open');
+    // Show modal
+    modal.style.display = 'flex';
+
+    // Check cache
+    if (itemsCache.has(licitacaoId)) {
+        renderModalItems(modalBody, itemsCache.get(licitacaoId));
         return;
     }
 
-    // Open the loot box
-    lootBox.classList.add('open');
+    // Show loading
+    modalBody.innerHTML = `
+        <div class="loading-items">
+            <i class="fas fa-spinner fa-spin"></i>
+            Carregando itens...
+        </div>
+    `;
 
-    // Check if items are already loaded
-    if (lootBoxCache.has(licitacaoId)) {
-        renderItems(lootBox, lootBoxCache.get(licitacaoId));
-        return;
-    }
-
-    // Fetch items from API
+    // Fetch items
     try {
         const response = await fetch(`/api/licitacoes/${licitacaoId}/items`);
         if (!response.ok) throw new Error('Failed to fetch items');
 
         const data = await response.json();
-        lootBoxCache.set(licitacaoId, data.items || []);
-        renderItems(lootBox, data.items || []);
+        itemsCache.set(licitacaoId, data.items || []);
+        renderModalItems(modalBody, data.items || []);
     } catch (error) {
-        console.error('Error fetching loot box items:', error);
-        renderError(lootBox);
+        console.error('Error fetching items:', error);
+        modalBody.innerHTML = `
+            <div class="no-items-message">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #EF4444; opacity: 0.5; margin-bottom: 12px;"></i>
+                <p>Erro ao carregar itens. Tente novamente.</p>
+            </div>
+        `;
     }
 }
 
-function renderItems(lootBox, items) {
-    const content = lootBox.querySelector('.loot-box-content');
+function closeItemsModal() {
+    const modal = document.getElementById('itemsModal');
+    modal.style.display = 'none';
+    currentModalLicitacaoId = null;
+}
 
+function renderModalItems(container, items) {
     if (!items || items.length === 0) {
-        content.innerHTML = `
+        container.innerHTML = `
             <div class="no-items-message">
                 <i class="fas fa-inbox" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
                 <p>Nenhum item encontrado para esta licitação.</p>
@@ -273,18 +285,15 @@ function renderItems(lootBox, items) {
         </table>
     `;
 
-    content.innerHTML = tableHTML;
+    container.innerHTML = tableHTML;
 }
 
-function renderError(lootBox) {
-    const content = lootBox.querySelector('.loot-box-content');
-    content.innerHTML = `
-        <div class="no-items-message">
-            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #EF4444; opacity: 0.5; margin-bottom: 12px;"></i>
-            <p>Erro ao carregar itens. Tente novamente.</p>
-        </div>
-    `;
-}
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentModalLicitacaoId) {
+        closeItemsModal();
+    }
+});
 
 // Helper functions
 function formatCurrency(value) {

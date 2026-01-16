@@ -26,9 +26,18 @@
                                     </div>
                             </div>
 
+                            <!-- Floating Items Button (Right Side) -->
+                            <button class="floating-items-btn" onclick="openItemsModal('<%= lic.id %>')"
+                                title="Ver itens da licitação">
+                                <div class="btn-icon">
+                                    <i class="fas fa-box-open"></i>
+                                </div>
+                                <span class="btn-label">Itens</span>
+                            </button>
+
                             <!-- Inner Wrapper for Content (Calculated Height + Hidden Overflow) -->
                             <div class="story-content-inner flex flex-col h-full overflow-hidden">
-                                <!-- Card Header - Compact -->
+                                <!-- Card Header - Compact (sem badge de modalidade) -->
                                 <div class="story-card-header flex-none">
                                     <div class="flex items-center gap-2 flex-1">
                                         <div class="org-avatar w-10 h-10 text-sm">
@@ -44,9 +53,6 @@
                                             </p>
                                         </div>
                                     </div>
-                                    <span class="badge badge-sm badge-primary pulse-animation text-xs">
-                                        <%= lic.modalidade_licitacao || 'N/D' %>
-                                    </span>
                                 </div>
 
                                 <!-- Value Spotlight - Compact -->
@@ -60,7 +66,23 @@
                                     </div>
                                     <% } %>
 
-                                        <!-- Deadline Banner - Neurociência da Urgência -->
+                                        <!-- Object Description with Keyword Highlights - PRIORIDADE MÁXIMA -->
+                                        <div
+                                            class="object-section flex-1 flex flex-col min-h-0 my-3 p-4 rounded-xl bg-base-200/50 border-l-4 border-primary">
+                                            <h4
+                                                class="font-semibold mb-2 flex-none flex items-center gap-2 text-primary text-sm">
+                                                <i class="fas fa-file-alt"></i>
+                                                Objeto
+                                            </h4>
+                                            <div class="object-content overflow-y-auto scrollbar-thin min-h-0 flex-1">
+                                                <p class="text-sm leading-relaxed"
+                                                    data-keywords="<%= lic.matched_keywords || '' %>">
+                                                    <%= lic.objeto_compra || 'Não informado' %>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Deadline Banner - Depois do Objeto -->
                                         <% if (lic.data_encerramento_proposta) { %>
                                             <div class="deadline-banner flex-none"
                                                 data-deadline="<%= lic.data_encerramento_proposta %>">
@@ -77,69 +99,29 @@
                                             </div>
                                             <% } %>
 
-                                                <!-- Loot Box de Itens - Gamificação Dopaminérgica -->
-                                                <div class="loot-box-container flex-none">
-                                                    <div class="loot-box closed" data-licitacao-id="<%= lic.id %>"
-                                                        onclick="toggleLootBox(this)">
-                                                        <div class="loot-box-closed-state">
-                                                            <div class="treasure-icon">
-                                                                <i class="fas fa-treasure-chest"></i>
-                                                                <i class="fas fa-gift"></i>
-                                                            </div>
-                                                            <div class="loot-box-label">
-                                                                <span class="shimmer">✨ Ver Itens da Licitação</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="loot-box-open-state" style="display: none;">
-                                                            <div class="loot-box-header">
-                                                                <i class="fas fa-box-open"></i>
-                                                                <span>Itens da Licitação</span>
-                                                            </div>
-                                                            <div class="loot-box-content">
-                                                                <div class="loading-items">
-                                                                    <i class="fas fa-spinner fa-spin"></i>
-                                                                    Carregando itens...
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                <!-- Tags de Categoria - Por último -->
+                                                <div class="category-tags flex-none">
+                                                    <% if (lic.modalidade_licitacao) { %>
+                                                        <span class="category-tag tag-primary">
+                                                            <i class="fas fa-gavel"></i>
+                                                            <%= lic.modalidade_licitacao %>
+                                                        </span>
+                                                        <% } %>
+                                                            <% if (lic.data_publicacao_pncp) { %>
+                                                                <span class="category-tag">
+                                                                    <i class="fas fa-calendar"></i>
+                                                                    Publicado: <%= new
+                                                                        Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
+                                                                        %>
+                                                                </span>
+                                                                <% } %>
+                                                                    <% if (lic.srp) { %>
+                                                                        <span class="category-tag tag-success">
+                                                                            <i class="fas fa-box-open"></i>
+                                                                            SRP
+                                                                        </span>
+                                                                        <% } %>
                                                 </div>
-
-                                                <!-- Object Description with Keyword Highlights -->
-                                                <div
-                                                    class="object-section flex-1 flex flex-col min-h-0 my-4 p-4 rounded-xl bg-base-200/50 border-l-4 border-primary">
-                                                    <h4
-                                                        class="font-semibold mb-2 flex-none flex items-center gap-2 text-primary">
-                                                        <i class="fas fa-file-alt"></i>
-                                                        Objeto
-                                                    </h4>
-                                                    <div class="object-content overflow-y-auto scrollbar-thin min-h-0">
-                                                        <p class="text-base leading-relaxed"
-                                                            data-keywords="<%= lic.matched_keywords || '' %>">
-                                                            <%= lic.objeto_compra || 'Não informado' %>
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Quick Info Pills - Mantidos para informações adicionais -->
-                                                <% if (lic.srp || lic.data_publicacao_pncp) { %>
-                                                    <div class="info-pills flex-none">
-                                                        <% if (lic.data_publicacao_pncp) { %>
-                                                            <div class="pill">
-                                                                <i class="fas fa-calendar"></i>
-                                                                Publicado: <%= new
-                                                                    Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
-                                                                    %>
-                                                            </div>
-                                                            <% } %>
-                                                                <% if (lic.srp) { %>
-                                                                    <div class="pill">
-                                                                        <i class="fas fa-box-open"></i>
-                                                                        Sistema de Registro de Preços
-                                                                    </div>
-                                                                    <% } %>
-                                                    </div>
-                                                    <% } %>
                             </div>
 
                             <!-- Action Buttons - EXTERNAL with Overlap Effect -->
@@ -183,6 +165,28 @@
                     <div class="hint-down">👇 Deslize para baixo ou ↓</div>
                 </div>
                 <% } %>
+    </div>
+
+    <!-- Items Modal Overlay -->
+    <div id="itemsModal" class="items-modal" style="display: none;">
+        <div class="items-modal-backdrop" onclick="closeItemsModal()"></div>
+        <div class="items-modal-container">
+            <div class="items-modal-header">
+                <h3>
+                    <i class="fas fa-box-open"></i>
+                    Itens da Licitação
+                </h3>
+                <button class="modal-close-btn" onclick="closeItemsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="items-modal-body">
+                <div class="loading-items">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Carregando itens...
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Load Story Feed JS -->
