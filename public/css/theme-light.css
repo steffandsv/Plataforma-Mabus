@@ -1,0 +1,406 @@
+/* ============================================
+   TEMA CLARO "LUMINA" - OVERRIDES DOPAMINÉRGICOS
+   ============================================ */
+
+/* ===== GLOBAL VARIABLES ===== */
+[data-theme="lumina"] {
+    --glass-surface: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --text-primary: #1A202C;
+    --text-secondary: #4A5568;
+    --text-muted: #718096;
+}
+
+/* ===== BODY & BACKGROUNDS ===== */
+[data-theme="lumina"] body {
+    background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 50%, #F0F9FF 100%);
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .bg-cosmic-void {
+    background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 50%, #F0F9FF 100%);
+}
+
+/* Ambient blobs for light theme */
+[data-theme="lumina"] .fixed.inset-0.pointer-events-none .bg-neon-purple\/10 {
+    background: rgba(121, 40, 202, 0.03);
+}
+
+[data-theme="lumina"] .fixed.inset-0.pointer-events-none .bg-neon-blue\/10 {
+    background: rgba(0, 112, 243, 0.03);
+}
+
+/* ===== TEXT COLORS ===== */
+[data-theme="lumina"] .text-starlight {
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .text-starlight\/60 {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .text-starlight\/80 {
+    color: #2D3748;
+}
+
+[data-theme="lumina"] .text-white {
+    color: #1A202C;
+}
+
+/* Preserve bright colors on light theme */
+[data-theme="lumina"] .text-neon-blue {
+    color: #0070F3;
+}
+
+[data-theme="lumina"] .text-neon-purple {
+    color: #7928CA;
+}
+
+[data-theme="lumina"] .text-primary {
+    color: #0070F3 !important;
+}
+
+/* ===== GLASS CARDS ===== */
+[data-theme="lumina"] .glass-card,
+[data-theme="lumina"] .glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(20px);
+}
+
+[data-theme="lumina"] .glass-card:hover {
+    border-color: rgba(0, 112, 243, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 112, 243, 0.1);
+}
+
+[data-theme="lumina"] .glass-studio {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== HEADER & NAVIGATION ===== */
+[data-theme="lumina"] header.navbar {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="lumina"] aside {
+    background: rgba(255, 255, 255, 0.98);
+    border-right-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="lumina"] aside .menu a {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] aside .menu a:hover {
+    background: rgba(0, 112, 243, 0.08);
+    color: #0070F3;
+}
+
+[data-theme="lumina"] .active-nav {
+    background: rgba(0, 112, 243, 0.12) !important;
+    color: #0070F3 !important;
+    border-right-color: #0070F3 !important;
+}
+
+/* ===== CARDS & OPPORTUNITY CARDS ===== */
+[data-theme="lumina"] .card {
+    background: #FFFFFF;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="lumina"] .card:hover {
+    box-shadow: 0 8px 24px rgba(0, 112, 243, 0.1);
+}
+
+[data-theme="lumina"] .border-base-200,
+[data-theme="lumina"] .border-base-300 {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="lumina"] .bg-base-200 {
+    background-color: #F1F5F9;
+}
+
+[data-theme="lumina"] .bg-base-300 {
+    background-color: #E2E8F0;
+}
+
+/* ===== BUTTONS ===== */
+[data-theme="lumina"] .btn {
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .btn-primary {
+    background-color: #0070F3;
+    border-color: #0070F3;
+    color: #FFFFFF;
+}
+
+[data-theme="lumina"] .btn-primary:hover {
+    background-color: #0061D5;
+}
+
+[data-theme="lumina"] .btn-ghost {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .btn-ghost:hover {
+    background: rgba(0, 112, 243, 0.08);
+    color: #0070F3;
+}
+
+/* ===== BADGES ===== */
+[data-theme="lumina"] .badge {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="lumina"] .badge-warning {
+    background-color: #FEF3C7;
+    color: #92400E;
+    border-color: #FCD34D;
+}
+
+[data-theme="lumina"] .badge-success {
+    background-color: #D1FAE5;
+    color: #065F46;
+    border-color: #34D399;
+}
+
+[data-theme="lumina"] .badge-error {
+    background-color: #FEE2E2;
+    color: #991B1B;
+    border-color: #F87171;
+}
+
+/* ===== NOTIFICATIONS DROPDOWN ===== */
+[data-theme="lumina"] .dropdown-content {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="lumina"] #notificationList .hover\:bg-base-200:hover {
+    background-color: #F1F5F9;
+}
+
+/* ===== DIVIDERS ===== */
+[data-theme="lumina"] .divider {
+    color: #CBD5E0;
+}
+
+[data-theme="lumina"] .divider::before,
+[data-theme="lumina"] .divider::after {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ===== BORDERS ===== */
+[data-theme="lumina"] .border-white\/5,
+[data-theme="lumina"] .border-white\/10,
+[data-theme="lumina"] .border-white\/20 {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ===== BACKGROUNDS ===== */
+[data-theme="lumina"] .bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="lumina"] .bg-white\/10 {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="lumina"] .bg-black\/40,
+[data-theme="lumina"] .bg-black\/50,
+[data-theme="lumina"] .bg-black\/60 {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ===== OPACITY ADJUSTMENTS ===== */
+[data-theme="lumina"] .opacity-50,
+[data-theme="lumina"] .opacity-60,
+[data-theme="lumina"] .opacity-70 {
+    opacity: 0.8;
+}
+
+/* ===== SHADOWS & GLOWS ===== */
+[data-theme="lumina"] .shadow-lg {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="lumina"] .shadow-xl {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="lumina"] .shadow-2xl {
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+}
+
+/* Remove neon glows on light theme */
+[data-theme="lumina"] .drop-shadow-\[0_0_5px_rgba\(0\,240\,255\,0\.5\)\],
+[data-theme="lumina"] .drop-shadow-\[0_0_20px_rgba\(0\,240\,255\,0\.8\)\],
+[data-theme="lumina"] .neon-text-glow {
+    filter: none;
+    text-shadow: none;
+}
+
+/* ===== HOVERS & INTERACTIONS ===== */
+[data-theme="lumina"] .hover\:bg-white\/5:hover {
+    background-color: rgba(0, 112, 243, 0.05);
+}
+
+[data-theme="lumina"] .hover\:text-neon-blue:hover {
+    color: #0070F3;
+}
+
+[data-theme="lumina"] .hover\:text-neon-purple:hover {
+    color: #7928CA;
+}
+
+/* ===== SCROLLBAR ===== */
+[data-theme="lumina"] .card-body > div::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="lumina"] .card-body > div::-webkit-scrollbar-thumb {
+    background: rgba(0, 112, 243, 0.2);
+}
+
+[data-theme="lumina"] .card-body > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 112, 243, 0.4);
+}
+
+[data-theme="lumina"] .card-body > div {
+    scrollbar-color: rgba(0, 112, 243, 0.2) rgba(0, 0, 0, 0.03);
+}
+
+/* ===== CREDITS DISPLAY ===== */
+[data-theme="lumina"] .bg-black\/40.px-3 {
+    background: rgba(0, 112, 243, 0.08);
+    border-color: rgba(0, 112, 243, 0.2);
+}
+
+/* ===== SELECTION ===== */
+[data-theme="lumina"]::selection {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+/* ===== SPECIFIC COMPONENT FIXES ===== */
+[data-theme="lumina"] .text-base-content\/60 {
+    color: #718096;
+}
+
+[data-theme="lumina"] .menu-title {
+    color: #94A3B8;
+}
+
+[data-theme="lumina"] .progress-warning {
+    background-color: #FCD34D;
+}
+
+/* Sidebar brand glow - remove for light */
+[data-theme="lumina"] aside .text-transparent.bg-clip-text {
+    background-image: linear-gradient(to right, #0070F3, #7928CA);
+}
+
+/* Remove blur effects on locked content in light theme */
+[data-theme="lumina"] .blur-lg {
+    filter: blur(8px) brightness(0.7);
+}
+
+/* ===== MARKDOWN CONTENT ===== */
+[data-theme="lumina"] .markdown-content h2 {
+    background: linear-gradient(to right, #0070F3, #7928CA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+[data-theme="lumina"] .markdown-content h3,
+[data-theme="lumina"] .markdown-content h4,
+[data-theme="lumina"] .markdown-content p,
+[data-theme="lumina"] .markdown-content li {
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .markdown-content th {
+    color: #0070F3;
+    border-bottom-color: rgba(0, 112, 243, 0.3);
+}
+
+[data-theme="lumina"] .markdown-content thead {
+    background: rgba(0, 112, 243, 0.05);
+}
+
+[data-theme="lumina"] .markdown-content table {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="lumina"] .markdown-content td {
+    color: #4A5568;
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="lumina"] .markdown-content li::before {
+    color: #0070F3;
+}
+
+/* ===== ORACLE SPECIFIC ===== */
+[data-theme="lumina"] .bg-neon-blue\/5 {
+    background: rgba(0, 112, 243, 0.05);
+}
+
+[data-theme="lumina"] .bg-neon-blue\/10 {
+    background: rgba(0, 112, 243, 0.1);
+}
+
+[data-theme="lumina"] .bg-neon-purple\/10 {
+    background: rgba(121, 40, 202, 0.1);
+}
+
+[data-theme="lumina"] .border-neon-blue\/20,
+[data-theme="lumina"] .border-neon-blue\/30,
+[data-theme="lumina"] .border-neon-blue\/40 {
+    border-color: rgba(0, 112, 243, 0.2);
+}
+
+[data-theme="lumina"] .text-neon-blue.font-bold,
+[data-theme="lumina"] .text-success {
+    font-weight: 700;
+}
+
+/* Avatar in light theme */
+[data-theme="lumina"] .avatar .bg-black\/50 {
+    background-color: #E2E8F0;
+    color: #1A202C;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ===== ANIMATIONS - Keep vibrant ===== */
+[data-theme="lumina"] .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Grid lines and borders - subtle in light */
+[data-theme="lumina"] .border-t.border-white\/5 {
+    border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Scanner effect on light theme */
+[data-theme="lumina"] .scanner-line {
+    background: linear-gradient(to right, transparent, rgba(0, 112, 243, 0.6), transparent);
+}
+
+/* Toast & Alerts */
+[data-theme="lumina"] .toast {
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #1A202C;
+}

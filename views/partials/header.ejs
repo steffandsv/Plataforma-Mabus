@@ -113,10 +113,10 @@
 
 <script>
     function toggleTheme() {
-        const body = document.body;
-        const current = body.getAttribute('data-theme');
-        const next = current === 'neuro' ? 'dark' : 'neuro'; // Defaulting to 'neuro' as light mode replacement
-        body.setAttribute('data-theme', next);
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        const next = current === 'neuro' ? 'lumina' : 'neuro';
+        html.setAttribute('data-theme', next);
         localStorage.setItem('theme', next);
 
         const icon = document.querySelector('#themeToggle i');
@@ -132,7 +132,7 @@
     // Init Theme
     (function () {
         const saved = localStorage.getItem('theme') || 'neuro';
-        document.body.setAttribute('data-theme', saved);
+        document.documentElement.setAttribute('data-theme', saved);
         document.addEventListener('DOMContentLoaded', () => {
             const icon = document.querySelector('#themeToggle i');
             if (icon) icon.className = saved === 'neuro' ? 'fas fa-moon' : 'fas fa-sun';
