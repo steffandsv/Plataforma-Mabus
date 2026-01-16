@@ -181,3 +181,29 @@
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
+
+/* CUSTOM SCROLLBAR FOR CARDS */
+.card-body > div::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-body > div::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.card-body > div::-webkit-scrollbar-thumb {
+    background: rgba(0, 240, 255, 0.3);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.card-body > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 240, 255, 0.5);
+}
+
+/* Firefox scrollbar */
+.card-body > div {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 240, 255, 0.3) rgba(255, 255, 255, 0.05);
+}

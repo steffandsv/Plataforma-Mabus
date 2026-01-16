@@ -1,4 +1,4 @@
-<%
+<% 
 function getBadgeClass(score) {
     if (score >= 80) return 'badge-warning';
     if (score >= 50) return 'badge-success text-white';
@@ -11,22 +11,22 @@ function getTierName(score) {
 }
 %>
 
-<div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-200 h-full">
+<div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-200 h-[480px] flex flex-col">
     <div class="card-body p-5 flex flex-col h-full">
-        <!-- Header -->
-        <div class="flex flex-col gap-1 mb-2">
+        <!-- Header (fixed) -->
+        <div class="flex flex-col gap-1 mb-2 flex-shrink-0">
             <h3 class="card-title text-base leading-tight"><%= opp.municipality || 'Município Desconhecido' %></h3>
             <span class="text-xs text-base-content/60 font-mono"><%= opp.title || 'Edital Sem Número' %></span>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-4 flex-shrink-0">
             <div class="badge <%= getBadgeClass(opp.ipm_score) %> text-xs font-bold"><%= getTierName(opp.ipm_score) %></div>
         </div>
 
-        <div class="divider my-0"></div>
+        <div class="divider my-0 flex-shrink-0"></div>
 
-        <!-- Body -->
-        <div class="flex-1 py-2 relative">
+        <!-- Body (scrollable) -->
+        <div class="flex-1 py-2 relative overflow-y-auto min-h-0">
             <% if (isLocked) { %>
                 <!-- LOCKED CONTENT -->
                 <div class="space-y-3 opacity-50 select-none">
@@ -50,7 +50,7 @@ function getTierName(score) {
                 <div class="space-y-3">
                     <div>
                         <span class="text-xs uppercase font-bold opacity-60 block">Resumo</span>
-                        <span class="text-sm line-clamp-3"><%= opp.metadata_json && opp.metadata_json.resumo_teaser ? opp.metadata_json.resumo_teaser : 'Sem resumo disponível.' %></span>
+                        <span class="text-sm"><%= opp.metadata_json && opp.metadata_json.resumo_teaser ? opp.metadata_json.resumo_teaser : 'Sem resumo disponível.' %></span>
                     </div>
 
                     <% if (opp.metadata_json && opp.metadata_json.tags_estrategicas) { %>
@@ -69,8 +69,8 @@ function getTierName(score) {
             <% } %>
         </div>
 
-        <!-- Footer -->
-        <div class="card-actions justify-end mt-4 pt-2 border-t border-base-200">
+        <!-- Footer (fixed) -->
+        <div class="card-actions justify-end mt-4 pt-2 border-t border-base-200 flex-shrink-0">
             <% if (!isLocked) { %>
                 <button class="btn btn-ghost btn-sm">Comparar</button>
                 <button class="btn btn-primary btn-sm text-white" onclick="openOpportunityDetails(<%= opp.id %>)">Ver Detalhes</button>
