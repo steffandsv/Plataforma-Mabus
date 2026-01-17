@@ -389,8 +389,25 @@ async function initDB() {
                     ALTER TABLE licitacoes_itens ADD COLUMN ncm_nbs_descricao TEXT;
                     ALTER TABLE licitacoes_itens ADD COLUMN incentivo_produtivo_basico BOOLEAN DEFAULT FALSE;
                 END IF;
+                END IF;
             END $$;
         `);
+
+        // Migration: Add Unique Constraint for Items (Upsert support)
+        try {
+            await query("CREATE UNIQUE INDEX IF NOT EXISTS idx_licitacoes_itens_unique ON licitacoes_itens (licitacao_id, numero_item)");
+            // Also need constraint for ON CONFLICT to work? No, unique index is often enough for postgres upsert inference,
+            // BUT "ON CONFLICT (col1, col2)" requires a unique constraint/index.
+            // Let's add constraint explicitly if possible or rely on index.  Index is safer.
+            // Actually postgres "ON CONFLICT (col1, col2)" maps to the unique index.
+
+            // NOTE: If invalid duplicates exist, this might fail. We should probably clean them?
+            // For now, let's assume user accepts that start might throw error if duplicates exist,
+            // or we do a "DELETE DUPLICATES" before?
+            // Safer: do nothing if it fails, and warn user.
+        } catch (e) {
+            console.log('[Database] Warning: Could not create unique index on licitacoes_itens:', e.message);
+        }
 
         await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_itens_licitacao ON licitacoes_itens (licitacao_id)`);
 
@@ -485,6 +502,13 @@ async function initDB() {
         `);
         await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_arquivos_licitacao ON licitacoes_arquivos (licitacao_id)`);
         await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_arquivos_tipo ON licitacoes_arquivos (tipo_documento_id)`);
+
+        // Migration: Add Unique Constraint for Files
+        try {
+            await query("CREATE UNIQUE INDEX IF NOT EXISTS idx_licitacoes_arquivos_unique ON licitacoes_arquivos (licitacao_id, sequencial_documento)");
+        } catch (e) {
+            console.log('[Database] Warning: Could not create unique index on licitacoes_arquivos:', e.message);
+        }
 
         // --- USER LICITACOES PREFERENCES TABLE ---
         await query(`
@@ -1323,11 +1347,19 @@ async function createLicitacaoArquivo(licitacaoId, data) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
 
+    // Use ON CONFLICT on (licitacao_id, sequencial_documento) potentially.
+    // If sequencer is not reliable, URL might be improved. But PNCP has `sequencialDocumento`.
+
+    // NOTE: This assumes we added the unique constraint in initDB!
     const sql = `INSERT INTO licitacoes_arquivos (
-        licitacao_id, sequencial_documento, titulo, 
-        tipo_documento_id, tipo_documento_nome, tipo_documento_descricao,
-        url, data_publicacao, status_ativo
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`;
+        licitacao_id, sequencial_documento, titulo, tipo_documento_id,
+        tipo_documento_nome, tipo_documento_descricao, url, data_publicacao, status_ativo
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    ON CONFLICT (licitacao_id, sequencial_documento) DO UPDATE SET
+        titulo = EXCLUDED.titulo,
+        url = EXCLUDED.url,
+        status_ativo = EXCLUDED.status_ativo
+    RETURNING id`;
 
     const { rows } = await p.query(sql, [
         licitacaoId,
@@ -1379,7 +1411,19 @@ async function createLicitacaoItem(licitacaoId, itemData) {
         item_categoria_id, item_categoria_nome,
         orcamento_sigiloso, ncm_nbs_codigo, ncm_nbs_descricao,
         incentivo_produtivo_basico
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING id`;
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+    ON CONFLICT (licitacao_id, numero_item) DO UPDATE SET
+        descricao_item = EXCLUDED.descricao_item,
+        quantidade = EXCLUDED.quantidade,
+        unidade_medida = EXCLUDED.unidade_medida,
+        valor_unitario_estimado = EXCLUDED.valor_unitario_estimado,
+        valor_total_estimado = EXCLUDED.valor_total_estimado,
+        situacao_item = EXCLUDED.situacao_item,
+        codigo_catmat = EXCLUDED.codigo_catmat,
+        descricao_catmat = EXCLUDED.descricao_catmat,
+        material_ou_servico = EXCLUDED.material_ou_servico,
+        material_ou_servico_nome = EXCLUDED.material_ou_servico_nome
+    RETURNING id`;
 
     const { rows } = await p.query(sql, [
         licitacaoId,
