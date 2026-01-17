@@ -2089,6 +2089,7 @@ module.exports = {
     updateSyncControl,
     getActiveSyncControl,
     getLatestSyncControl,
+    getBatchStatus,
     // Preferences & Personalization
     getUserLicitacoesPreferences,
     updateUserLicitacoesPreferences,
