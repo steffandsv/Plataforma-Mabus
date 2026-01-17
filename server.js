@@ -343,32 +343,71 @@ app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
             return res.redirect('/admin/licitacoes/import');
         }
 
-        // 1. Create Sync Record first
-        const syncId = await createSyncControl({
-            syncType: 'bullmq',
-            dataInicial,
-            dataFinal,
-            status: 'queued', // New initial status
-            totalPages: parseInt(maxPages) || 10,
-            itemsPerPage: 50
-        });
+        const start = new Date(dataInicial);
+        const end = new Date(dataFinal);
+        const daysDiff = (end - start) / (1000 * 60 * 60 * 24);
 
-        // 2. Add to Queue
-        await licitacoesQueue.add('import-job', {
-            syncId,
-            dataInicial,
-            dataFinal,
-            maxPages: parseInt(maxPages) || 10,
-            codigoModalidadeContratacao: parseInt(codigoModalidadeContratacao) || 8,
-            cursor: 1
-        }, {
-            jobId: `sync-${syncId}` // Deduplication ID
-        });
+        if (daysDiff < 0) {
+            req.flash('error', 'Data final deve ser maior que data inicial');
+            return res.redirect('/admin/licitacoes/import');
+        }
 
-        // 3. Update Sync Record with Job ID (optional but good practice)
-        await updateSyncControl(syncId, { job_id: `sync-${syncId}` });
+        console.log(`[Import] Requested Range: ${daysDiff} days (${dataInicial} to ${dataFinal})`);
 
-        req.flash('success', 'Importação agendada! O worker processará em breve.');
+        // DIVIDE AND CONQUER STRATEGY
+        // Instead of 1 massive job, we queue 1 job PER DAY.
+        // This avoids "Page 500" limits and makes it robust.
+
+        let queuedCount = 0;
+        let currentDate = new Date(start);
+
+        // Limit maximum range to prevent abuse? e.g. 1 year
+        if (daysDiff > 365) {
+            req.flash('error', 'Máximo de 1 ano por vez.');
+            return res.redirect('/admin/licitacoes/import');
+        }
+
+        // Loop through each day inclusive
+        while (currentDate <= end) {
+            const yyyy = currentDate.getFullYear();
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`; // YYYY-MM-DD
+
+            // 1. Create Sync Record for THIS DAY
+            const syncId = await createSyncControl({
+                syncType: 'bullmq',
+                dataInicial: dateStr,
+                dataFinal: dateStr, // Single Day Range
+                status: 'queued',
+                totalPages: parseInt(maxPages) || 10,
+                itemsPerPage: 50
+            });
+
+            // 2. Add to Queue
+            await licitacoesQueue.add('import-job', {
+                syncId,
+                dataInicial: dateStr,
+                dataFinal: dateStr,
+                maxPages: parseInt(maxPages) || 500, // Per day, usually < 500 pages
+                codigoModalidadeContratacao: parseInt(codigoModalidadeContratacao) || 8,
+                cursor: 1
+            }, {
+                jobId: `sync-${syncId}`, // Deduplication ID
+                delay: queuedCount * 2000 // Stagger starts by 2s to not hammer Redis instantly
+            });
+
+            console.log(`[Import] Queued job for ${dateStr} (SyncID: ${syncId})`);
+
+            // Update Sync with Job ID
+            await updateSyncControl(syncId, { job_id: `sync-${syncId}` });
+
+            // Next day
+            currentDate.setDate(currentDate.getDate() + 1);
+            queuedCount++;
+        }
+
+        req.flash('success', `Sucesso! Agendados ${queuedCount} jobs de importação (um por dia). Acompanhe nos logs.`);
         res.redirect('/admin/licitacoes/import');
 
     } catch (e) {

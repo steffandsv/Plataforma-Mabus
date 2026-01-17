@@ -73,6 +73,31 @@
                     </div>
                 </div>
 
+                <!-- Live Logs Console -->
+                <div class="card bg-base-900 text-gray-300 shadow-xl mb-6 font-mono text-xs">
+                    <div class="card-body p-4">
+                        <h3 class="card-title text-sm opacity-70 mb-2">Console de Logs (Live)</h3>
+                        <div class="h-64 overflow-y-auto bg-black rounded p-2 space-y-1" id="log-console">
+                            <% if (activeSync.logs && activeSync.logs.length> 0) { %>
+                                <% activeSync.logs.reverse().forEach(log=> { %>
+                                    <div
+                                        class="<%= log.type === 'ERROR' ? 'text-error' : log.type === 'WARN' ? 'text-warning' : 'text-success' %>">
+                                        <span class="opacity-50">[<%= new Date(log.ts).toLocaleTimeString() %>]</span>
+                                        <span class="font-bold">
+                                            <%= log.type %>:
+                                        </span>
+                                        <%= log.msg %>
+                                            <% if(log.detail) { %> <span class="opacity-70">- <%= log.detail %></span>
+                                                <% } %>
+                                    </div>
+                                    <% }); %>
+                                        <% } else { %>
+                                            <div class="text-gray-600 italic">Nenhum log registrado ainda...</div>
+                                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
                 <script>
                     // Auto-refresh a cada 3 segundos
                     setTimeout(() => {

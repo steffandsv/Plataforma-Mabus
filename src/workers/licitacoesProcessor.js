@@ -82,6 +82,8 @@ module.exports = async (job) => {
 
                 totalProcessed += result.data.length;
 
+                const pageLogs = [];
+
                 // 2. Process Items in Parallel
                 // "Deep Fetch": Parse Licitacao -> Fetch Items -> Fetch Files
                 // Use p-limit to control concurrency (e.g. 16 simultaneous "Deep Fetches")
@@ -96,8 +98,14 @@ module.exports = async (job) => {
                             if (licitacaoInfo) {
                                 // B & C. Fetch Items and Files in Parallel
                                 await Promise.all([
-                                    licitacoesImporter.storeItens(licitacaoInfo).catch(err => console.warn(`Item error ${lic.numeroControlePNCP}: ${err.message}`)),
-                                    licitacoesImporter.storeArquivos(licitacaoInfo).catch(err => console.warn(`File error ${lic.numeroControlePNCP}: ${err.message}`))
+                                    licitacoesImporter.storeItens(licitacaoInfo).catch(err => {
+                                        console.warn`Item error ${lic.numeroControlePNCP}: ${err.message}`;
+                                        pageLogs.push({ type: 'WARN', msg: `Item error ${lic.numeroControlePNCP}`, detail: err.message, ts: new Date() });
+                                    }),
+                                    licitacoesImporter.storeArquivos(licitacaoInfo).catch(err => {
+                                        console.warn`File error ${lic.numeroControlePNCP}: ${err.message}`;
+                                        // Optional: don't log file errors to DB to avoid spam if it's just 404s
+                                    })
                                 ]);
                                 return 'imported';
                             } else {
@@ -109,6 +117,13 @@ module.exports = async (job) => {
                                 return 'duplicate';
                             }
                             console.error(`Error processing ${lic.numeroControlePNCP}: ${err.message}`);
+
+                            // Log Rate Limits explicitly
+                            if (err.message.includes('429') || err.message.includes('Too Many Requests')) {
+                                pageLogs.push({ type: 'ERROR', msg: 'RATE LIMIT HIT (429)', detail: `Paused on ${lic.numeroControlePNCP}`, ts: new Date() });
+                            } else {
+                                pageLogs.push({ type: 'ERROR', msg: `Failed ${lic.numeroControlePNCP}`, detail: err.message, ts: new Date() });
+                            }
                             return 'error';
                         }
                     })
@@ -137,13 +152,20 @@ module.exports = async (job) => {
                 });
 
                 // 4. Update DB Control (User Feedback)
-                await updateSyncControl(syncId, {
+                // Send logs if we have them
+                const updateData = {
                     current_page: page,
                     total_pages: totalPages || 0,
                     total_imported: imported,
                     total_duplicates: duplicates,
                     total_errors: errors
-                });
+                };
+
+                if (pageLogs.length > 0) {
+                    updateData.logs = pageLogs;
+                }
+
+                await updateSyncControl(syncId, updateData);
 
                 // Update BullMQ progress
                 if (totalPages) {

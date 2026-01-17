@@ -437,12 +437,15 @@ async function initDB() {
             END $$;
         `);
 
-        // Ensure job_id exists in licitacoes_sync_control
+        // Ensure job_id and logs exist in licitacoes_sync_control
         await query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_sync_control' AND column_name='job_id') THEN
                     ALTER TABLE licitacoes_sync_control ADD COLUMN job_id VARCHAR(100);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_sync_control' AND column_name='logs') THEN
+                    ALTER TABLE licitacoes_sync_control ADD COLUMN logs JSONB DEFAULT '[]'::jsonb;
                 END IF;
             END $$;
         `);
@@ -1410,6 +1413,13 @@ async function updateSyncControl(id, updates) {
     if (updates.total_duplicates !== undefined) { fields.push(`total_duplicates = $${paramIndex++}`); values.push(updates.total_duplicates); }
     if (updates.total_errors !== undefined) { fields.push(`total_errors = $${paramIndex++}`); values.push(updates.total_errors); }
     if (updates.error_message) { fields.push(`error_message = $${paramIndex++}`); values.push(updates.error_message); }
+    if (updates.logs) {
+        fields.push(`logs = COALESCE(logs, '[]'::jsonb) || $${paramIndex++}::jsonb`);
+        values.push(JSON.stringify(updates.logs));
+    }
+    if (updates.total_pages !== undefined) { fields.push(`total_pages = $${paramIndex++}`); values.push(updates.total_pages); }
+    if (updates.job_id) { fields.push(`job_id = $${paramIndex++}`); values.push(updates.job_id); }
+
     if (updates.finished_at) { fields.push('finished_at = NOW()'); }
 
     if (fields.length === 0) return;
