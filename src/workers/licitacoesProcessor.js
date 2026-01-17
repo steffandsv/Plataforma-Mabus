@@ -7,7 +7,7 @@ const { updateSyncControl } = database;
 
 // Concurrency control helper (same as in importer)
 const pLimit = require('p-limit');
-const limiter = pLimit(16); // 16 parallel requests max for details
+const limiter = pLimit(6); // 6 parallel requests max for details
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
