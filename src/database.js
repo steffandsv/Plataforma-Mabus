@@ -339,12 +339,43 @@ async function initDB() {
                 situacao_item VARCHAR(100),
                 material_ou_servico CHAR(1),
                 material_ou_servico_nome VARCHAR(50),
+
+                -- Novos campos expandidos
+                criterio_julgamento_id INT,
+                criterio_julgamento_nome VARCHAR(255),
+                tipo_beneficio_id INT,
+                tipo_beneficio_nome VARCHAR(255),
+                item_categoria_id INT,
+                item_categoria_nome VARCHAR(255),
+                orcamento_sigiloso BOOLEAN DEFAULT FALSE,
+                ncm_nbs_codigo VARCHAR(50),
+                ncm_nbs_descricao TEXT,
+                incentivo_produtivo_basico BOOLEAN DEFAULT FALSE,
                 
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE
             )
         `);
+        // Migration safe-check
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_itens' AND column_name='criterio_julgamento_id') THEN
+                    ALTER TABLE licitacoes_itens ADD COLUMN criterio_julgamento_id INT;
+                    ALTER TABLE licitacoes_itens ADD COLUMN criterio_julgamento_nome VARCHAR(255);
+                    ALTER TABLE licitacoes_itens ADD COLUMN tipo_beneficio_id INT;
+                    ALTER TABLE licitacoes_itens ADD COLUMN tipo_beneficio_nome VARCHAR(255);
+                    ALTER TABLE licitacoes_itens ADD COLUMN item_categoria_id INT;
+                    ALTER TABLE licitacoes_itens ADD COLUMN item_categoria_nome VARCHAR(255);
+                    ALTER TABLE licitacoes_itens ADD COLUMN orcamento_sigiloso BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE licitacoes_itens ADD COLUMN ncm_nbs_codigo VARCHAR(50);
+                    ALTER TABLE licitacoes_itens ADD COLUMN ncm_nbs_descricao TEXT;
+                    ALTER TABLE licitacoes_itens ADD COLUMN incentivo_produtivo_basico BOOLEAN DEFAULT FALSE;
+                END IF;
+            END $$;
+        `);
+
         await query(`CREATE INDEX IF NOT EXISTS idx_licitacoes_itens_licitacao ON licitacoes_itens (licitacao_id)`);
 
         await query(`
@@ -1291,8 +1322,14 @@ async function createLicitacaoItem(licitacaoId, itemData) {
     const sql = `INSERT INTO licitacoes_itens (
         licitacao_id, numero_item, descricao_item, quantidade,
         unidade_medida, valor_unitario_estimado, valor_total_estimado,
-        codigo_catmat, descricao_catmat, situacao_item
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
+        codigo_catmat, descricao_catmat, situacao_item,
+        material_ou_servico, material_ou_servico_nome,
+        criterio_julgamento_id, criterio_julgamento_nome,
+        tipo_beneficio_id, tipo_beneficio_nome,
+        item_categoria_id, item_categoria_nome,
+        orcamento_sigiloso, ncm_nbs_codigo, ncm_nbs_descricao,
+        incentivo_produtivo_basico
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING id`;
 
     const { rows } = await p.query(sql, [
         licitacaoId,
@@ -1304,7 +1341,19 @@ async function createLicitacaoItem(licitacaoId, itemData) {
         itemData.valorTotalEstimado,
         itemData.codigoCatmat,
         itemData.descricaoCatmat,
-        itemData.situacaoItem
+        itemData.situacaoItem,
+        itemData.materialOuServico,
+        itemData.materialOuServicoNome,
+        itemData.criterioJulgamentoId,
+        itemData.criterioJulgamentoNome,
+        itemData.tipoBeneficioId,
+        itemData.tipoBeneficioNome,
+        itemData.itemCategoriaId,
+        itemData.itemCategoriaNome,
+        itemData.orcamentoSigiloso,
+        itemData.ncmNbsCodigo,
+        itemData.ncmNbsDescricao,
+        itemData.incentivoProdutivoBasico
     ]);
 
     return rows[0].id;

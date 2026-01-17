@@ -326,8 +326,19 @@ class LicitacoesImporter {
                         valorTotalEstimado: item.valorTotal || (item.quantidade * (item.valorUnitarioEstimado || 0)),
                         codigoCatmat: item.catalogoSelecionado?.codigo || item.itemCatalogo || item.codigoCatmat,
                         descricaoCatmat: item.catalogoSelecionado?.descricao || item.descricaoCatmat,
+                        situacaoItem: item.situacaoCompraItemNome,
                         materialOuServico: item.materialOuServico,
-                        materialOuServicoNome: item.materialOuServicoNome
+                        materialOuServicoNome: item.materialOuServicoNome,
+                        criterioJulgamentoId: item.criterioJulgamentoId,
+                        criterioJulgamentoNome: item.criterioJulgamentoNome,
+                        tipoBeneficioId: item.tipoBeneficio,
+                        tipoBeneficioNome: item.tipoBeneficioNome,
+                        itemCategoriaId: item.itemCategoriaId,
+                        itemCategoriaNome: item.itemCategoriaNome,
+                        orcamentoSigiloso: item.orcamentoSigiloso || false,
+                        ncmNbsCodigo: item.ncmNbsCodigo,
+                        ncmNbsDescricao: item.ncmNbsDescricao,
+                        incentivoProdutivoBasico: item.incentivoProdutivoBasico || false
                     });
                     savedItems++;
                 } catch (itemErr) {
