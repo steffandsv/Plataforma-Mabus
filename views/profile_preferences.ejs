@@ -350,52 +350,7 @@
                     </div>
                 </div>
 
-                <!-- View Preferences -->
-                <div class="card bg-base-200">
-                    <div class="card-body">
-                        <h3 class="card-title">👁️ Preferências de Visualização</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text font-semibold">Modo de Visualização
-                                        Padrão</span>
-                                </label>
-                                <select name="default_view_mode" class="select select-bordered w-full">
-                                    <option value="story" <%=preferences && preferences.default_view_mode==='story'
-                                        ? 'selected' : '' %>>
-                                        📱 Story Feed (Vertical)
-                                    </option>
-                                    <option value="grid" <%=preferences && preferences.default_view_mode==='grid'
-                                        ? 'selected' : '' %>>
-                                        📊 Grid View (Cards)
-                                    </option>
-                                </select>
-                                <div class="text-xs opacity-60 mt-1">Escolha como prefere visualizar as
-                                    licitações</div>
-                            </div>
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text font-semibold">Cards por linha (Grid Mode)</span>
-                                </label>
-                                <% const cardsPerRow=preferences && preferences.cards_per_row ?
-                                    preferences.cards_per_row : 3; %>
-                                    <input type="range" name="cards_per_row" min="2" max="4" value="<%= cardsPerRow %>"
-                                        class="range range-primary" step="1"
-                                        oninput="document.getElementById('cards-value').textContent = this.value">
-                                    <div class="w-full flex justify-between text-xs px-2 mt-1">
-                                        <span>2</span>
-                                        <span>3</span>
-                                        <span>4</span>
-                                    </div>
-                                    <div class="text-center text-sm mt-2">
-                                        Selecionado: <strong id="cards-value">
-                                            <%= cardsPerRow %>
-                                        </strong> cards
-                                    </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- View Preferences removed as requested -->
 
                 <!-- Dados da Empresa (CNPJ) removed as requested -->
 
@@ -1199,9 +1154,7 @@
                         const minValue = document.querySelector('input[name="min_value"]').value;
                         const maxValue = document.querySelector('input[name="max_value"]').value;
 
-                        // Get view prefs
-                        const viewMode = document.querySelector('select[name="default_view_mode"]').value;
-                        const cardsPerRow = document.querySelector('input[name="cards_per_row"]').value;
+                        // View preferences removed
 
                         const payload = {
                             keywords,
@@ -1209,9 +1162,7 @@
                             preferred_ufs: ufs,
                             preferred_modalidades: modalidades,
                             min_value: minValue,
-                            max_value: maxValue,
-                            default_view_mode: viewMode,
-                            cards_per_row: cardsPerRow
+                            max_value: maxValue
                         };
 
                         const response = await fetch('/profile/preferences', {
