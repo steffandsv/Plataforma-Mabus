@@ -40,7 +40,7 @@
                                 </label>
                                 <div class="join w-full">
                                     <input type="text" id="magic-cnpj-input"
-                                        class="input input-bordered input-lg join-item flex-1 text-black font-mono"
+                                        class="input input-bordered input-lg join-item flex-1 font-mono"
                                         placeholder="00.000.000/0000-00" maxlength="18">
                                     <button type="button" onclick="analyzeWithAI()" id="btn-analyze-magic"
                                         class="btn btn-success btn-lg join-item gap-2 px-8 magic-button">
@@ -397,110 +397,11 @@
                     </div>
                 </div>
 
-                <!-- Dados da Empresa (CNPJ) -->
-                <div class="card bg-base-200">
-                    <div class="card-body">
-                        <h3 class="card-title">🏢 Dados da Empresa (CNPJ)</h3>
-                        <p class="text-sm opacity-70 mb-3">
-                            Importe os dados do seu CNPJ para personalizar melhor as recomendações de licitações
-                            baseadas no seu ramo de atividade (CNAE) e localização.
-                        </p>
+                <!-- Dados da Empresa (CNPJ) removed as requested -->
 
-                        <!-- Formulário de importação -->
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">CNPJ da Empresa</span>
-                            </label>
-                            <div class="join w-full">
-                                <input type="text" id="cnpj-input" class="input input-bordered join-item flex-1"
-                                    placeholder="00.000.000/0000-00" value="<%= cnpjData ? cnpjData.cnpj : '' %>"
-                                    maxlength="18">
-                                <button type="button" onclick="importarCNPJ()" id="btn-importar-cnpj"
-                                    class="btn btn-primary join-item">
-                                    <i class="fas fa-download"></i>
-                                    Importar Dados
-                                </button>
-                            </div>
-                            <div class="text-xs opacity-60 mt-1">
-                                Digite o CNPJ e clique em "Importar Dados" para buscar automaticamente
-                            </div>
-                        </div>
-
-                        <!-- Preview dos dados atuais (se existir) -->
-                        <div id="cnpj-preview" class="<%= cnpjData ? '' : 'hidden' %>">
-                            <div class="bg-base-300 p-4 rounded-lg mt-4">
-                                <h4 class="font-bold mb-3 flex items-center gap-2">
-                                    <i class="fas fa-building text-primary"></i>
-                                    📋 Dados Cadastrados:
-                                </h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                    <div class="flex flex-col">
-                                        <span class="text-xs opacity-60">Razão Social</span>
-                                        <strong id="preview-razao">
-                                            <%= cnpjData ? cnpjData.razao_social : '-' %>
-                                        </strong>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-xs opacity-60">Nome Fantasia</span>
-                                        <strong id="preview-fantasia">
-                                            <%= cnpjData ? (cnpjData.nome_fantasia || '-' ) : '-' %>
-                                        </strong>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-xs opacity-60">CNAE Principal</span>
-                                        <strong id="preview-cnae">
-                                            <%= cnpjData ? (cnpjData.cnae_principal || '-' ) : '-' %>
-                                        </strong>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-xs opacity-60">Localização</span>
-                                        <strong id="preview-local">
-                                            <%= cnpjData ? `${cnpjData.municipio || '' } / ${cnpjData.uf || '' }`.trim()
-                                                : '-' %>
-                                        </strong>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-xs opacity-60">Porte</span>
-                                        <strong id="preview-porte">
-                                            <%= cnpjData ? (cnpjData.porte_empresa || '-' ) : '-' %>
-                                        </strong>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-xs opacity-60">Situação</span>
-                                        <strong id="preview-situacao">
-                                            <%= cnpjData ? (cnpjData.situacao_cadastral || '-' ) : '-' %>
-                                        </strong>
-                                    </div>
-                                </div>
-                                <% if (cnpjData) { %>
-                                    <div class="text-xs opacity-60 mt-3 pt-3 border-t border-base-content/10">
-                                        <i class="fas fa-clock mr-1"></i>
-                                        Última atualização: <%= new
-                                            Date(cnpjData.updated_at).toLocaleDateString('pt-BR') %>
-                                    </div>
-                                    <% } %>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-info mt-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                class="stroke-current shrink-0 w-6 h-6">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <div class="text-sm">
-                                <strong>Personalização inteligente:</strong> Os dados do CNPJ serão usados para
-                                recomendar
-                                licitações relacionadas ao seu ramo de atividade (CNAE) e localização, aumentando suas
-                                chances de encontrar oportunidades relevantes!
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-3 justify-end">
+                <div class="flex gap-3 justify-end mt-6">
                     <a href="/licitacoes" class="btn btn-ghost">Cancelar</a>
-                    <button type="submit" class="btn btn-primary gap-2">
+                    <button type="button" onclick="savePreferences()" id="btn-save-prefs" class="btn btn-primary gap-2">
                         <i class="fas fa-save"></i>
                         Salvar Preferências
                     </button>
@@ -1273,6 +1174,80 @@
                         `${dados.endereco?.municipio || ''} / ${dados.endereco?.uf || ''}`.trim() || '-';
                     document.getElementById('preview-porte').textContent = dados.porteEmpresa || '-';
                     document.getElementById('preview-situacao').textContent = dados.situacaoCadastral || '-';
+                }
+                async function savePreferences() {
+                    const btn = document.getElementById('btn-save-prefs');
+                    const originalText = btn.innerHTML;
+
+                    try {
+                        btn.disabled = true;
+                        btn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Salvando...';
+
+                        // Gather data manually to ensure everything is captured
+                        const keywords = document.getElementById('keywords-hidden').value;
+                        const municipios = document.getElementById('municipios-hidden')?.value || ''; // Add null check just in case
+
+                        // Get UFs
+                        const ufs = [];
+                        document.querySelectorAll('input[name="preferred_ufs"]:checked').forEach(cb => ufs.push(cb.value));
+
+                        // Get Modalidades
+                        const modalidades = [];
+                        document.querySelectorAll('input[name="preferred_modalidades"]:checked').forEach(cb => modalidades.push(cb.value));
+
+                        // Get values
+                        const minValue = document.querySelector('input[name="min_value"]').value;
+                        const maxValue = document.querySelector('input[name="max_value"]').value;
+
+                        // Get view prefs
+                        const viewMode = document.querySelector('select[name="default_view_mode"]').value;
+                        const cardsPerRow = document.querySelector('input[name="cards_per_row"]').value;
+
+                        const payload = {
+                            keywords,
+                            preferred_municipios: municipios,
+                            preferred_ufs: ufs,
+                            preferred_modalidades: modalidades,
+                            min_value: minValue,
+                            max_value: maxValue,
+                            default_view_mode: viewMode,
+                            cards_per_row: cardsPerRow
+                        };
+
+                        const response = await fetch('/profile/preferences', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                            return;
+                        }
+
+                        // If backend returns JSON success instead of redirect
+                        const result = await response.json().catch(() => ({}));
+
+                        if (response.ok) {
+                            showToast('✅ Preferências salvas com sucesso!', 'success');
+                            setTimeout(() => window.location.reload(), 1000);
+                        } else {
+                            throw new Error(result.error || 'Erro ao salvar');
+                        }
+
+                    } catch (error) {
+                        console.error('Save Error:', error);
+                        // If it's a redirect that looked like an error (sometimes happens with basic auth redirects), reload
+                        if (error.message.includes('Unexpected token')) {
+                            window.location.reload();
+                            return;
+                        }
+                        showToast('❌ Erro ao salvar: ' + error.message, 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }
                 }
             </script>
 
