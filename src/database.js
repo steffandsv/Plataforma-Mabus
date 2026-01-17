@@ -263,6 +263,9 @@ async function initDB() {
                 -- Dados completos em JSON (Event Sourcing)
                 raw_data_json JSONB,
                 
+                raw_data_itens JSONB,
+                raw_data_arquivos JSONB,
+                
                 -- Controle interno
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -293,6 +296,19 @@ async function initDB() {
                 numero_compra VARCHAR(100),
                 processo VARCHAR(255)
             )
+        `);
+
+        // Migration for new raw_data columns
+        await query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes' AND column_name='raw_data_itens') THEN
+                    ALTER TABLE licitacoes ADD COLUMN raw_data_itens JSONB;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes' AND column_name='raw_data_arquivos') THEN
+                    ALTER TABLE licitacoes ADD COLUMN raw_data_arquivos JSONB;
+                END IF;
+            END $$;
         `);
         // Trigger for licitacoes
         await query(`
@@ -1906,6 +1922,37 @@ async function deleteUserCNPJData(userId) {
     await p.query('DELETE FROM user_cnpj_data WHERE user_id = $1', [userId]);
 }
 
+async function updateLicitacaoRawData(id, rawItems, rawFiles) {
+    const p = await getPool();
+    if (!p) return;
+
+    // Build dynamic query to update only provided fields
+    const updates = [];
+    const params = [id];
+    let idx = 2;
+
+    if (rawItems !== undefined) {
+        updates.push(`raw_data_itens = $${idx}`);
+        params.push(JSON.stringify(rawItems));
+        idx++;
+    }
+    if (rawFiles !== undefined) {
+        updates.push(`raw_data_arquivos = $${idx}`);
+        params.push(JSON.stringify(rawFiles));
+        idx++;
+    }
+
+    if (updates.length === 0) return;
+
+    const sql = `UPDATE licitacoes SET ${updates.join(', ')} WHERE id = $1`;
+
+    try {
+        await p.query(sql, params);
+    } catch (e) {
+        console.warn(`[DB] Error saving raw data for licitacao ${id}: ${e.message}`);
+    }
+}
+
 module.exports = {
     initDB,
     createTask,
@@ -1979,7 +2026,8 @@ module.exports = {
     createUserCNPJData,
     getUserCNPJData,
     updateUserCNPJData,
-    deleteUserCNPJData
+    deleteUserCNPJData,
+    updateLicitacaoRawData
 };
 
 

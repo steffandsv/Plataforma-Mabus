@@ -5,7 +5,8 @@ const {
     createLicitacaoArquivo,
     createSyncControl,
     updateSyncControl,
-    getActiveSyncControl
+    getActiveSyncControl,
+    updateLicitacaoRawData
 } = require('../database');
 
 // Controle de concorrência: máx 16 operações paralelas
@@ -309,8 +310,12 @@ class LicitacoesImporter {
 
             if (!result.success || !result.data || result.data.length === 0) {
                 console.log(`[Importer] Sem itens publicados para esta licitação`);
+                // Even if empty, we might want to record that we checked? No, keep behavior.
                 return 0;
             }
+
+            // ZERO DATA LOSS: Save raw items response
+            await updateLicitacaoRawData(id, result.data, undefined);
 
             console.log(`[Importer] 📦 Encontrados ${result.data.length} itens, salvando...`);
             let savedItems = 0;
@@ -373,6 +378,9 @@ class LicitacoesImporter {
             if (!result.success || !result.data || result.data.length === 0) {
                 return 0;
             }
+
+            // ZERO DATA LOSS: Save raw files response
+            await updateLicitacaoRawData(id, undefined, result.data);
 
             console.log(`[Importer] 📎 ${result.data.length} arquivo(s), salvando...`);
             let savedFiles = 0;
