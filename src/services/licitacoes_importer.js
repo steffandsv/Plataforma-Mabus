@@ -417,8 +417,9 @@ class LicitacoesImporter {
      */
     formatDate(dateStr) {
         // Converter YYYY-MM-DD para YYYYMMDD
+        // Ou YYYY-MM-DD HH:mm:ss para YYYYMMDDHHmmss
         if (!dateStr) return null;
-        return dateStr.replace(/-/g, '');
+        return dateStr.replace(/[- :]/g, '');
     }
 
     parseDate(dateStr) {

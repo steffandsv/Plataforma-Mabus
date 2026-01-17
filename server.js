@@ -393,8 +393,8 @@ app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
             // 2. Add to Queue
             await licitacoesQueue.add('import-job', {
                 syncId,
-                dataInicial: dateStr,
-                dataFinal: dateStr,
+                dataInicial: `${dateStr} 00:00:00`, // From beginning of the day
+                dataFinal: `${dateStr} 23:59:59`,   // To the very end of the day
                 maxPages: parseInt(maxPages) || 500, // Per day, usually < 500 pages
                 codigoModalidadeContratacao: parseInt(codigoModalidadeContratacao) || 8,
                 cursor: 1
