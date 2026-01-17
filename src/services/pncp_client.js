@@ -12,7 +12,7 @@ class PNCPClient {
     constructor() {
         this.baseURL = 'https://pncp.gov.br/api/consulta/v1';
         this.lastRequestTime = 0;
-        this.minRequestInterval = 250; // 4 req/s para segurança (limite é 5/s)
+        this.minRequestInterval = 1000; // 1 req/s para segurança (com 6 workers = ~6 rejs/s, which is slightly over 5, but tolerable with retry)
     }
 
     /**
@@ -189,6 +189,14 @@ class PNCPClient {
                 return { success: false, data: [] };
             }
 
+            // Retry for rate limit or server error
+            if (error.response?.status === 429 || error.response?.status === 503) {
+                const delay = error.response?.status === 429 ? 3000 : 5000;
+                console.warn(`[PNCP Client] Rate limited/Error (${error.response.status}) fetching items for ${sequencial}. Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.buscarItens(cnpj, ano, sequencial);
+            }
+
             console.warn(`[PNCP Client] Erro ao buscar itens: ${error.message}`);
             return { success: false, data: [] };
         }
@@ -231,6 +239,14 @@ class PNCPClient {
                 // Sem arquivos publicados (comum em licitações antigas)
                 console.log(`[PNCP Client] Sem arquivos publicados`);
                 return { success: false, data: [] };
+            }
+
+            // Retry for rate limit or server error
+            if (error.response?.status === 429 || error.response?.status === 503) {
+                const delay = error.response?.status === 429 ? 3000 : 5000;
+                console.warn(`[PNCP Client] Rate limited/Error (${error.response.status}) fetching files for ${sequencial}. Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.buscarArquivos(cnpj, ano, sequencial);
             }
 
             console.warn(`[PNCP Client] Erro ao buscar arquivos: ${error.message}`);

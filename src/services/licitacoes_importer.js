@@ -11,7 +11,7 @@ const {
 
 // Controle de concorrência: máx 16 operações paralelas
 const pLimit = require('p-limit');
-const CONCURRENCY_LIMIT = 16;
+const CONCURRENCY_LIMIT = 1; // Com 6 workers externos, interno deve ser serial
 
 // Classe personalizada para limite de concorrência (evita dep externa)
 class ConcurrencyLimiter {
@@ -37,7 +37,7 @@ class ConcurrencyLimiter {
     }
 }
 
-const limiter = new ConcurrencyLimiter(16);
+const limiter = new ConcurrencyLimiter(CONCURRENCY_LIMIT);
 
 /**
  * Serviço para importação em lote de licitações do PNCP
@@ -198,7 +198,7 @@ class LicitacoesImporter {
         // Extrair dados para buscar itens depois
         const cnpj = raw.orgaoEntidade?.cnpj;
         const ano = raw.anoCompra;
-        const sequencial = raw.sequencialCompra;
+        const sequencial = parseInt(raw.sequencialCompra);
 
         // Preparar metadata JSON com campos não-estruturados
         const metadata = {
