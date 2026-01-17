@@ -99,11 +99,11 @@ module.exports = async (job) => {
                                 // B & C. Fetch Items and Files in Parallel
                                 await Promise.all([
                                     licitacoesImporter.storeItens(licitacaoInfo).catch(err => {
-                                        console.warn`Item error ${lic.numeroControlePNCP}: ${err.message}`;
+                                        console.warn(`Item error ${lic.numeroControlePNCP}: ${err.message}`);
                                         pageLogs.push({ type: 'WARN', msg: `Item error ${lic.numeroControlePNCP}`, detail: err.message, ts: new Date() });
                                     }),
                                     licitacoesImporter.storeArquivos(licitacaoInfo).catch(err => {
-                                        console.warn`File error ${lic.numeroControlePNCP}: ${err.message}`;
+                                        console.warn(`File error ${lic.numeroControlePNCP}: ${err.message}`);
                                         // Optional: don't log file errors to DB to avoid spam if it's just 404s
                                     })
                                 ]);

@@ -438,17 +438,24 @@ async function initDB() {
         `);
 
         // Ensure job_id and logs exist in licitacoes_sync_control
-        await query(`
-            DO $$
-            BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_sync_control' AND column_name='job_id') THEN
-                    ALTER TABLE licitacoes_sync_control ADD COLUMN job_id VARCHAR(100);
-                END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_sync_control' AND column_name='logs') THEN
-                    ALTER TABLE licitacoes_sync_control ADD COLUMN logs JSONB DEFAULT '[]'::jsonb;
-                END IF;
-            END $$;
-        `);
+        // Ensure job_id and logs exist in licitacoes_sync_control
+        console.log('[Database] Checking/Running migration for job_id and logs columns...');
+        try {
+            await query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_sync_control' AND column_name='job_id') THEN
+                        ALTER TABLE licitacoes_sync_control ADD COLUMN job_id VARCHAR(100);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='licitacoes_sync_control' AND column_name='logs') THEN
+                        ALTER TABLE licitacoes_sync_control ADD COLUMN logs JSONB DEFAULT '[]'::jsonb;
+                    END IF;
+                END $$;
+            `);
+            console.log('[Database] Migration for job_id/logs completed (or skipped).');
+        } catch (migErr) {
+            console.error('[Database] Warning: Failed to run schema migration (job_id/logs):', migErr.message);
+        }
 
         // --- LICITACOES ARQUIVOS TABLE (PDFs e anexos) ---
         await query(`

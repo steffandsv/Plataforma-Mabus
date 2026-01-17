@@ -144,6 +144,12 @@ app.use(async (req, res, next) => {
     next();
 });
 
+// Global Error Handler (Debug)
+app.use((err, req, res, next) => {
+    console.error('SERVER ERROR:', err);
+    res.status(500).send(`<h1>Erro 500</h1><pre>${err.stack}</pre>`);
+});
+
 // Auth Middlewares
 const isAuthenticated = (req, res, next) => {
     if (req.session.userId) return next();
@@ -1501,6 +1507,15 @@ app.post('/api/notifications/read/:id', isAuthenticated, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// Global Error Handler (MUST BE LAST)
+app.use((err, req, res, next) => {
+    console.error('SERVER ERROR STACK:', err);
+    if (res.headersSent) {
+        return next(err);
+    }
+    res.status(500).send(`<h1>Erro 500</h1><pre>${err.stack}</pre>`);
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
