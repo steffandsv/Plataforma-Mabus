@@ -48,6 +48,7 @@ const {
     updateSyncControl,
     getActiveSyncControl,
     getLatestSyncControl,
+    getBatchStatus, // NEW
     // Preferences & Personalization
     getUserLicitacoesPreferences,
     updateUserLicitacoesPreferences,
@@ -364,17 +365,18 @@ app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
         // Instead of 1 massive job, we queue 1 job PER DAY.
         // This avoids "Page 500" limits and makes it robust.
 
-        let queuedCount = 0;
-        let currentDate = new Date(start);
-
         // Limit maximum range to prevent abuse? e.g. 1 year
         if (daysDiff > 365) {
             req.flash('error', 'Máximo de 1 ano por vez.');
             return res.redirect('/admin/licitacoes/import');
         }
 
-        // Loop through each day inclusive
+        let queuedCount = 0;
+        let currentDate = new Date(start);
+        const batchId = uuidv4(); // Generate unique batch ID
+
         while (currentDate <= end) {
+            // "YYYY-MM-DD"
             const yyyy = currentDate.getFullYear();
             const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
             const dd = String(currentDate.getDate()).padStart(2, '0');
@@ -382,12 +384,13 @@ app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
 
             // 1. Create Sync Record for THIS DAY
             const syncId = await createSyncControl({
-                syncType: 'bullmq',
+                syncType: 'manual',
                 dataInicial: dateStr,
                 dataFinal: dateStr, // Single Day Range
                 status: 'queued',
                 totalPages: parseInt(maxPages) || 10,
-                itemsPerPage: 50
+                itemsPerPage: 50,
+                batchId: batchId
             });
 
             // 2. Add to Queue
@@ -413,13 +416,35 @@ app.post('/admin/licitacoes/import', isAdmin, async (req, res) => {
             queuedCount++;
         }
 
-        req.flash('success', `Sucesso! Agendados ${queuedCount} jobs de importação (um por dia). Acompanhe nos logs.`);
+        // Return JSON response for AJAX UI, or redirect if form submit (we will change UI to AJAX)
+        // For now, if request accepts JSON, return JSON.
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.json({ success: true, message: `Sucesso! Agendados ${queuedCount} jobs.`, batchId });
+        }
+
+        req.flash('success', `Sucesso! Agendados ${queuedCount} jobs de importação (Lote: ${batchId}).`);
         res.redirect('/admin/licitacoes/import');
 
     } catch (e) {
         console.error('[Admin Import POST Error]:', e);
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.status(500).json({ success: false, message: e.message });
+        }
         req.flash('error', e.message);
         res.redirect('/admin/licitacoes/import');
+    }
+});
+
+// GET Batch Status
+app.get('/api/licitacoes/batch-status/:batchId', isAdmin, async (req, res) => {
+    try {
+        const { batchId } = req.params;
+        const status = await getBatchStatus(batchId);
+        if (!status) return res.status(404).json({ success: false, message: 'Lote não encontrado' });
+        res.json({ success: true, data: status });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, message: 'Erro ao buscar status do lote' });
     }
 });
 

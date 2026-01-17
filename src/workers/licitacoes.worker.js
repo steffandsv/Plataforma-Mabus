@@ -8,7 +8,7 @@ const processorPath = path.join(__dirname, 'licitacoesProcessor.js');
 const licitacoesWorker = new Worker('licitacoes-import', processorPath, {
     connection,
     useWorkerThreads: true,
-    concurrency: 1, // Run 1 page/job in parallel (Total up to 1 * 6 = 6 sub-requests)
+    concurrency: 6, // Run 6 jobs in parallel
     limiter: {
         max: 60,
         duration: 60000 // Global limit: 60 jobs (pages) per minute? 

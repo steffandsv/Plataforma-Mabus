@@ -420,10 +420,18 @@ async function initDB() {
                 
                 started_at TIMESTAMP,
                 finished_at TIMESTAMP,
+                batch_id VARCHAR(50), -- Grouping ID
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Migration: Ensure batch_id exists
+        try {
+            await query("ALTER TABLE licitacoes_sync_control ADD COLUMN IF NOT EXISTS batch_id VARCHAR(50)");
+        } catch (e) {
+            console.log('[Database] Note: batch_id column check failed (might exist or permissions):', e.message);
+        }
         // Trigger for sync_control
         await query(`
             DO $$
@@ -1206,7 +1214,23 @@ async function createLicitacao(data) {
         uf_sigla, uf_nome, municipio_nome, codigo_ibge, codigo_unidade, nome_unidade,
         amparo_legal_codigo, amparo_legal_nome, amparo_legal_descricao,
         raw_data_json, metadata_json
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43) RETURNING id`;
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43)
+    ON CONFLICT (numero_sequencial_pncp) DO UPDATE SET
+        situacao_compra = EXCLUDED.situacao_compra,
+        modalidade_licitacao = EXCLUDED.modalidade_licitacao,
+        valor_estimado_total = EXCLUDED.valor_estimado_total,
+        valor_total_homologado = EXCLUDED.valor_total_homologado,
+        data_abertura_proposta = EXCLUDED.data_abertura_proposta,
+        data_encerramento_proposta = EXCLUDED.data_encerramento_proposta,
+        data_atualizacao = EXCLUDED.data_atualizacao,
+        data_atualizacao_global = EXCLUDED.data_atualizacao_global,
+        informacao_complementar = EXCLUDED.informacao_complementar,
+        objeto_compra = EXCLUDED.objeto_compra,
+        link_processo_eletronico = EXCLUDED.link_processo_eletronico,
+        updated_at = NOW(),
+        raw_data_json = EXCLUDED.raw_data_json,
+        metadata_json = EXCLUDED.metadata_json
+    RETURNING id`;
 
     const { rows } = await p.query(sql, [
         data.numeroSequencial,
@@ -1389,9 +1413,12 @@ async function createSyncControl(params) {
     const p = await getPool();
     if (!p) throw new Error("DB not ready");
 
+    // Ensure batch_id column exists (Migrate on the fly if needed - simple check)
+    // In production, use proper migrations. Here we rely on initDB or manual ALTER.
+
     const sql = `INSERT INTO licitacoes_sync_control 
-        (sync_type, status, data_inicial, data_final, cnpj_orgao, total_pages, items_per_page, started_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id`;
+        (sync_type, status, data_inicial, data_final, cnpj_orgao, total_pages, items_per_page, started_at, batch_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8) RETURNING id`;
 
     const { rows } = await p.query(sql, [
         params.syncType,
@@ -1400,7 +1427,8 @@ async function createSyncControl(params) {
         params.dataFinal,
         params.cnpjOrgao || null,
         params.totalPages || 0,
-        params.itemsPerPage || 500
+        params.itemsPerPage || 500,
+        params.batchId || null // New Batch ID
     ]);
 
     return rows[0].id;
@@ -1435,6 +1463,40 @@ async function updateSyncControl(id, updates) {
 
     const sql = `UPDATE licitacoes_sync_control SET ${fields.join(', ')} WHERE id = $${paramIndex}`;
     await p.query(sql, values);
+}
+
+async function getBatchStatus(batchId) {
+    const p = await getPool();
+    if (!p) return null;
+
+    // Aggregate stats
+    const sql = `
+        SELECT 
+            COUNT(*) as total_jobs,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_jobs,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_jobs,
+            SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running_jobs,
+            SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) as queued_jobs,
+            SUM(total_imported) as total_imported,
+            SUM(total_duplicates) as total_duplicates,
+            SUM(total_errors) as total_errors,
+            MIN(started_at) as started_at,
+            MAX(finished_at) as finished_at,
+            json_agg(json_build_object(
+                'id', id,
+                'data_inicial', data_inicial,
+                'data_final', data_final,
+                'status', status,
+                'current_page', current_page,
+                'total_pages', total_pages,
+                'total_imported', total_imported
+            ) ORDER BY data_inicial ASC) as jobs
+        FROM licitacoes_sync_control
+        WHERE batch_id = $1
+    `;
+
+    const { rows } = await p.query(sql, [batchId]);
+    return rows[0];
 }
 
 async function getActiveSyncControl() {
@@ -2044,7 +2106,8 @@ module.exports = {
     getUserCNPJData,
     updateUserCNPJData,
     deleteUserCNPJData,
-    updateLicitacaoRawData
+    updateLicitacaoRawData,
+    getPool
 };
 
 

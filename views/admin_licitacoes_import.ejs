@@ -2,246 +2,268 @@
     <%- include('partials/header') %>
 
         <div class="container mx-auto px-4 py-8">
-            <div class="mb-6">
+            <div class="mb-6 flex justify-between items-center">
                 <a href="/admin/dashboard" class="btn btn-ghost btn-sm">← Voltar para Admin</a>
+                <div class="text-xs text-gray-500 font-mono">Server Time: <%= new Date().toLocaleTimeString() %>
+                </div>
             </div>
 
-            <h1 class="text-3xl font-bold mb-6">⚙️ Importar Licitações do PNCP</h1>
+            <h1 class="text-3xl font-bold mb-6 flex items-center gap-2">
+                <span>⚙️</span>
+                Importar Licitações do PNCP
+                <span class="badge badge-primary badge-outline text-xs">Multi-Thread (6x)</span>
+            </h1>
 
-            <% if (activeSync && (activeSync.status==='running' || activeSync.status==='queued' )) { %>
-                <!-- Importação em Andamento -->
-                <div class="alert alert-info mb-6">
-                    <div class="flex-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            class="w-6 h-6 mx-2 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div>
-                            <h3 class="font-bold">
-                                <%= activeSync.status==='queued' ? 'Aguardando na fila...'
-                                    : 'Importação em Andamento...' %>
-                            </h3>
-                            <div class="text-sm">
-                                Período: <%= activeSync.data_inicial %> até <%= activeSync.data_final %>
-                            </div>
+            <!-- BATCH MONITOR CONTAINER -->
+            <div id="batch-monitor" class="hidden">
+                <div class="alert alert-info mb-6 shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        class="stroke-current shrink-0 w-6 h-6 animate-pulse">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold text-lg">Importação em Lote Iniciada!</h3>
+                        <div class="text-xs font-mono opacity-80" id="batch-id-display">ID: ...</div>
+                    </div>
+                </div>
+
+                <!-- AGGREGATED STATS -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="stats shadow bg-base-100">
+                        <div class="stat">
+                            <div class="stat-title text-xs uppercase tracking-wider">Jobs (Dias)</div>
+                            <div class="stat-value text-primary" id="stat-jobs">0/0</div>
+                            <div class="stat-desc" id="stat-jobs-desc">Carregando...</div>
+                        </div>
+                    </div>
+
+                    <div class="stats shadow bg-base-100">
+                        <div class="stat">
+                            <div class="stat-title text-xs uppercase tracking-wider">Total Importado</div>
+                            <div class="stat-value text-success" id="stat-imported">0</div>
+                            <div class="stat-desc">Novas licitações</div>
+                        </div>
+                    </div>
+
+                    <div class="stats shadow bg-base-100">
+                        <div class="stat">
+                            <div class="stat-title text-xs uppercase tracking-wider">Atualizadas</div>
+                            <div class="stat-value text-warning" id="stat-duplicates">0</div>
+                            <div class="stat-desc">Registros atualizados</div>
+                        </div>
+                    </div>
+
+                    <div class="stats shadow bg-base-100">
+                        <div class="stat">
+                            <div class="stat-title text-xs uppercase tracking-wider">Erros</div>
+                            <div class="stat-value text-error" id="stat-errors">0</div>
+                            <div class="stat-desc">Falhas na API</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- WORKER THREADS LIST -->
                 <div class="card bg-base-100 shadow-xl mb-6">
-                    <div class="card-body">
-                        <h2 class="card-title">Progresso</h2>
-
-                        <!-- Progress Bar -->
-                        <progress class="progress progress-primary w-full" value="<%= activeSync.current_page %>"
-                            max="<%= activeSync.total_pages %>"></progress>
-
-                        <div class="stats shadow mt-4">
-                            <div class="stat">
-                                <div class="stat-title">Página</div>
-                                <div class="stat-value text-primary">
-                                    <%= activeSync.current_page %> / <%= activeSync.total_pages %>
-                                </div>
-                            </div>
-
-                            <div class="stat">
-                                <div class="stat-title">Importadas</div>
-                                <div class="stat-value text-success">
-                                    <%= activeSync.total_imported %>
-                                </div>
-                            </div>
-
-                            <div class="stat">
-                                <div class="stat-title">Duplicadas</div>
-                                <div class="stat-value text-warning">
-                                    <%= activeSync.total_duplicates %>
-                                </div>
-                            </div>
-
-                            <div class="stat">
-                                <div class="stat-title">Erros</div>
-                                <div class="stat-value text-error">
-                                    <%= activeSync.total_errors %>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-sm text-gray-500 mt-4">
-                            Iniciado em: <%= new Date(activeSync.started_at).toLocaleString('pt-BR') %>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Live Logs Console -->
-                <div class="card bg-base-900 text-gray-300 shadow-xl mb-6 font-mono text-xs">
                     <div class="card-body p-4">
-                        <h3 class="card-title text-sm opacity-70 mb-2">Console de Logs (Live)</h3>
-                        <div class="h-64 overflow-y-auto bg-black rounded p-2 space-y-1" id="log-console">
-                            <% if (activeSync.logs && activeSync.logs.length> 0) { %>
-                                <% activeSync.logs.reverse().forEach(log=> { %>
-                                    <div
-                                        class="<%= log.type === 'ERROR' ? 'text-error' : log.type === 'WARN' ? 'text-warning' : 'text-success' %>">
-                                        <span class="opacity-50">[<%= new Date(log.ts).toLocaleTimeString() %>]</span>
-                                        <span class="font-bold">
-                                            <%= log.type %>:
-                                        </span>
-                                        <%= log.msg %>
-                                            <% if(log.detail) { %> <span class="opacity-70">- <%= log.detail %></span>
-                                                <% } %>
-                                    </div>
-                                    <% }); %>
-                                        <% } else { %>
-                                            <div class="text-gray-600 italic">Nenhum log registrado ainda...</div>
-                                            <% } %>
+                        <h3 class="card-title text-sm mb-4">Threads de Execução (Dias)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="table table-xs w-full">
+                                <thead>
+                                    <tr>
+                                        <th>Dia</th>
+                                        <th>Status</th>
+                                        <th>Progresso</th>
+                                        <th>Importados</th>
+                                        <th>Atualizados</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="workers-list-body">
+                                    <!-- Rows injected mainly by JS -->
+                                    <tr>
+                                        <td colspan="5" class="text-center text-gray-400 py-4">Iniciando workers...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <script>
-                    // Auto-refresh a cada 3 segundos
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                </script>
+            <!-- FORM CONTAINER (Hidden if monitoring) -->
+            <div id="import-form-container" class="<%= (activeSync && activeSync.batch_id) ? 'hidden' : '' %>">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card bg-base-100 shadow-xl border border-base-200">
+                        <div class="card-body">
+                            <h2 class="card-title text-2xl mb-4">Nova Importação</h2>
 
-                <% } else { %>
-                    <!-- Form de Importação -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="card bg-base-100 shadow-xl">
-                            <div class="card-body">
-                                <h2 class="card-title">Nova Importação</h2>
+                            <form id="start-import-form">
+                                <div class="form-control mb-4">
+                                    <label class="label"><span class="label-text font-semibold">Data
+                                            Inicial</span></label>
+                                    <input type="date" name="dataInicial" required
+                                        class="input input-bordered input-primary">
+                                </div>
 
-                                <form method="POST" action="/admin/licitacoes/import">
-                                    <div class="form-control mb-4">
-                                        <label class="label">
-                                            <span class="label-text">Data Inicial</span>
-                                        </label>
-                                        <input type="date" name="dataInicial" required class="input input-bordered">
-                                        <label class="label">
-                                            <span class="label-text-alt">Formato: YYYY-MM-DD</span>
-                                        </label>
-                                    </div>
+                                <div class="form-control mb-6">
+                                    <label class="label"><span class="label-text font-semibold">Data
+                                            Final</span></label>
+                                    <input type="date" name="dataFinal" required
+                                        class="input input-bordered input-primary">
+                                </div>
 
-                                    <div class="form-control mb-4">
-                                        <label class="label">
-                                            <span class="label-text">Data Final</span>
-                                        </label>
-                                        <input type="date" name="dataFinal" required class="input input-bordered">
-                                    </div>
-
-                                    <div class="alert alert-info mb-4">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                            class="stroke-current shrink-0 w-6 h-6">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <span>
-                                            <strong>Modo Genial Ativado:</strong> O sistema importará automaticamente
-                                            TODAS as licitações de
-                                            <span class="badge badge-neutral">Dispensa (8)</span> e
-                                            <span class="badge badge-neutral">Pregão Eletrônico (6)</span>.
-                                        </span>
-                                    </div>
-                                    <input type="hidden" name="massMode" value="true">
-
-                                    <div class="alert alert-warning mb-4">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6"
-                                            fill="none" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        <span>A importação é executada em background e pode demorar dependendo do volume
-                                            de dados.</span>
-                                    </div>
-
-                                    <button type="submit" class="btn btn-primary w-full">
-                                        🚀 Iniciar Importação
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Última Importação -->
-                        <div>
-                            <% if (latestSync) { %>
-                                <div class="card bg-base-100 shadow-xl">
-                                    <div class="card-body">
-                                        <h2 class="card-title">Última Importação</h2>
-
-                                        <div
-                                            class="badge badge-lg <%= latestSync.status === 'completed' ? 'badge-success' : latestSync.status === 'failed' ? 'badge-error' : 'badge-warning' %>">
-                                            <%= latestSync.status.toUpperCase() %>
-                                        </div>
-
-                                        <div class="divider"></div>
-
-                                        <div class="space-y-2 text-sm">
-                                            <div>
-                                                <strong>Período:</strong>
-                                                <%= latestSync.data_inicial %> até <%= latestSync.data_final %>
-                                            </div>
-                                            <div>
-                                                <strong>Importadas:</strong> <span class="text-success font-bold">
-                                                    <%= latestSync.total_imported %>
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <strong>Duplicadas:</strong> <span class="text-warning font-bold">
-                                                    <%= latestSync.total_duplicates %>
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <strong>Erros:</strong> <span class="text-error font-bold">
-                                                    <%= latestSync.total_errors %>
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <strong>Páginas processadas:</strong>
-                                                <%= latestSync.current_page %>/<%= latestSync.total_pages %>
-                                            </div>
-                                            <div class="text-xs text-gray-500 mt-4">
-                                                Iniciado: <%= new Date(latestSync.started_at).toLocaleString('pt-BR') %>
-                                                    <br>
-                                                    <% if (latestSync.finished_at) { %>
-                                                        Finalizado: <%= new
-                                                            Date(latestSync.finished_at).toLocaleString('pt-BR') %>
-                                                            <% } %>
-                                            </div>
-
-                                            <% if (latestSync.error_message) { %>
-                                                <div class="alert alert-error mt-4">
-                                                    <span class="text-xs">
-                                                        <%= latestSync.error_message %>
-                                                    </span>
-                                                </div>
-                                                <% } %>
-                                        </div>
+                                <div class="alert alert-warning mb-6 text-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6"
+                                        fill="none" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <div>
+                                        <span class="font-bold">Atenção:</span> O sistema usará <span
+                                            class="badge badge-sm badge-neutral">6 Workers</span> simultâneos.
+                                        Isso consumirá CPU e Memória significativamente.
                                     </div>
                                 </div>
-                                <% } else { %>
-                                    <div class="card bg-base-200">
-                                        <div class="card-body">
-                                            <p class="text-gray-500">Nenhuma importação realizada ainda.</p>
-                                        </div>
-                                    </div>
-                                    <% } %>
 
-                                        <!-- Dicas -->
-                                        <div class="card bg-base-100 shadow mt-4">
-                                            <div class="card-body">
-                                                <h3 class="font-bold">💡 Dicas</h3>
-                                                <ul class="text-sm space-y-1 list-disc list-inside">
-                                                    <li>Importe períodos pequenos (1-7 dias) para começar</li>
-                                                    <li>O sistema detecta duplicatas automaticamente</li>
-                                                    <li>Rate limit: ~4 requisições/segundo</li>
-                                                    <li>Máx. 500 licitações por página</li>
-                                                </ul>
-                                            </div>
-                                        </div>
+                                <button type="submit"
+                                    class="btn btn-primary w-full shadow-lg hover:shadow-xl transition-all normal-case text-lg gap-2"
+                                    id="btn-submit">
+                                    <span>🚀</span> Iniciar Importação em Lote
+                                </button>
+                            </form>
                         </div>
                     </div>
-                    <% } %>
+
+                    <!-- LAST SYNC INFO (Legacy/Reference) -->
+                    <% if (latestSync && !latestSync.batch_id) { %>
+                        <div class="card bg-base-100 shadow-xl opacity-75">
+                            <div class="card-body">
+                                <h3 class="card-title text-sm opacity-50">Última Importação (Legacy)</h3>
+                                <div class="text-xs font-mono">
+                                    <%= new Date(latestSync.started_at).toLocaleString() %> <br>
+                                        Status: <%= latestSync.status %>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+                </div>
+            </div>
         </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script>
+            const formContainer = document.getElementById('import-form-container');
+            const batchMonitor = document.getElementById('batch-monitor');
+            const form = document.getElementById('start-import-form');
+            let pollInterval = null;
+
+    // Initialize if active batch exists
+    <% if (activeSync && (activeSync.batch_id || activeSync.status === 'running')) { %>
+        const initialBatchId = "<%= activeSync.batch_id %>";
+                if (initialBatchId && initialBatchId !== 'null') {
+                    startMonitoring(initialBatchId);
+                } else {
+                    // Probably legacy job running or batch_id missing
+                    console.log("Legacy active sync found, no batch ID.");
+                }
+    <% } %>
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const btn = document.getElementById('btn-submit');
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="loading loading-spinner"></span> Iniciando...';
+
+                    try {
+                        const formData = new FormData(form);
+                        const data = Object.fromEntries(formData.entries());
+
+                        // Explicitly ask for JSON
+                        const response = await axios.post('/admin/licitacoes/import', data, {
+                            headers: { 'Accept': 'application/json' }
+                        });
+
+                        if (response.data.success && response.data.batchId) {
+                            startMonitoring(response.data.batchId);
+                        } else {
+                            alert('Erro: ' + (response.data.message || 'Resposta inválida do servidor'));
+                            btn.disabled = false;
+                            btn.innerHTML = '<span>🚀</span> Iniciar Importação em Lote';
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Falha na requisição: ' + (err.response?.data?.message || err.message));
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>🚀</span> Iniciar Importação em Lote';
+                    }
+                });
+
+            function startMonitoring(batchId) {
+                formContainer.classList.add('hidden');
+                batchMonitor.classList.remove('hidden');
+                document.getElementById('batch-id-display').textContent = 'ID: ' + batchId;
+
+                // Poll every 2 seconds
+                pollBatch(batchId);
+                pollInterval = setInterval(() => pollBatch(batchId), 2000);
+            }
+
+            async function pollBatch(batchId) {
+                try {
+                    const res = await axios.get(`/api/licitacoes/batch-status/${batchId}`);
+                    if (res.data.success) {
+                        updateUI(res.data.data);
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }
+
+            function updateUI(data) {
+                // Update Top Stats
+                const completed = parseInt(data.completed_jobs) || 0;
+                const total = parseInt(data.total_jobs) || 0;
+                const running = parseInt(data.running_jobs) || 0;
+
+                document.getElementById('stat-jobs').innerText = `${completed} / ${total}`;
+                document.getElementById('stat-jobs-desc').innerText = `${running} rodando`;
+
+                document.getElementById('stat-imported').innerText = data.total_imported || 0;
+                document.getElementById('stat-duplicates').innerText = data.total_duplicates || 0;
+                document.getElementById('stat-errors').innerText = data.total_errors || 0;
+
+                // Update Workers Table
+                const tbody = document.getElementById('workers-list-body');
+                tbody.innerHTML = ''; // Clear
+
+                if (data.jobs && data.jobs.length > 0) {
+                    data.jobs.forEach(job => {
+                        const tr = document.createElement('tr');
+
+                        // Status Badge
+                        let badgeClass = 'badge-ghost';
+                        if (job.status === 'running') badgeClass = 'badge-info animate-pulse';
+                        if (job.status === 'completed') badgeClass = 'badge-success';
+                        if (job.status === 'failed') badgeClass = 'badge-error';
+
+                        const percent = job.total_pages > 0 ? Math.round((job.current_page / job.total_pages) * 100) : 0;
+
+                        tr.innerHTML = `
+                    <td class="font-mono text-xs font-bold">${job.data_inicial}</td>
+                    <td><span class="badge badge-xs ${badgeClass}">${job.status}</span></td>
+                    <td>
+                        <div class="flex items-center gap-2">
+                            <progress class="progress progress-primary w-20" value="${job.current_page}" max="${job.total_pages || 100}"></progress>
+                            <span class="text-xs opacity-70">${job.current_page}/${job.total_pages}</span>
+                        </div>
+                    </td>
+                    <td class="font-mono text-success">+${job.total_imported}</td>
+                    <td class="font-mono text-warning">~${job.total_duplicates || '-'}</td>
+                `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+        </script>
 
         <%- include('partials/footer') %>
