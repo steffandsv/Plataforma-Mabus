@@ -18,9 +18,58 @@ class StoryFeedEngine {
 
         this.setupSwipeListeners();
         this.setupKeyboardNavigation();
+        this.truncateObjectDescriptions();
         this.highlightKeywords();
         this.showCard(0);
         this.hideHintsAfterDelay();
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => this.truncateObjectDescriptions(), 200);
+        });
+    }
+
+    truncateObjectDescriptions() {
+        this.cards.forEach(card => {
+            const p = card.querySelector('.object-description p');
+            if (!p) return;
+
+            const originalText = p.dataset.fullText;
+            if (!originalText) return;
+
+            // Use temp element to measure line height
+            p.innerHTML = 'A';
+            const lineHeight = p.clientHeight;
+            const maxHeight = lineHeight * 2; // Target: 2 lines
+
+            // Restore text
+            p.innerHTML = this.escapeHtml(originalText);
+
+            if (p.clientHeight > maxHeight + 5) { // +5 tolerance
+                let low = 0;
+                let high = originalText.length;
+                let bestFit = 0;
+                const ellipsis = '... ';
+                const moreLink = `<a href="#" class="text-primary hover:text-primary/80 font-medium hover:underline inline-block ml-1" onclick="event.preventDefault(); openObjetoModal('${card.getAttribute('data-index')}')">Ver mais</a>`;
+
+                // Binary search for optimal length
+                while (low <= high) {
+                    const mid = Math.floor((low + high) / 2);
+                    p.innerHTML = this.escapeHtml(originalText.slice(0, mid)) + ellipsis + moreLink;
+
+                    if (p.clientHeight <= maxHeight + 5) {
+                        bestFit = mid;
+                        low = mid + 1;
+                    } else {
+                        high = mid - 1;
+                    }
+                }
+
+                // Apply best fit
+                p.innerHTML = this.escapeHtml(originalText.slice(0, bestFit)) + ellipsis + moreLink;
+            }
+        });
     }
 
     setupSwipeListeners() {

@@ -1161,3 +1161,52 @@
 [data-theme="lumina"] aside > div.border-t a:hover {
     background: rgba(220, 38, 38, 0.1);
 }
+
+/* ============================================
+   DARK MODE FORCED OVERRIDES (NEURO)
+   Fix for broken dark mode regression
+   ============================================ */
+[data-theme="neuro"] .story-card {
+    background: #0A0A1E !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #E2E8F0 !important;
+}
+
+[data-theme="neuro"] .story-card-header h3 {
+    color: #FFFFFF !important;
+}
+
+[data-theme="neuro"] .story-card-header p {
+    color: #94A3B8 !important;
+}
+
+[data-theme="neuro"] .object-section {
+    background: rgba(0, 240, 255, 0.05) !important;
+    border-left-color: #00F0FF !important;
+}
+
+[data-theme="neuro"] .object-section h4 {
+    color: #00F0FF !important;
+}
+
+[data-theme="neuro"] .value-spotlight {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.05), rgba(112, 0, 255, 0.05)) !important;
+    border-color: rgba(0, 240, 255, 0.2) !important;
+}
+
+[data-theme="neuro"] .value-spotlight .value-label {
+    color: #94A3B8 !important;
+}
+
+[data-theme="neuro"] .value-spotlight .value-amount {
+    color: #FFFFFF !important;
+}
+
+/* Force Sidebar Inner Panels to Dark */
+[data-theme="neuro"] aside .bg-base-100 {
+    background-color: #030014 !important;
+}
+
+[data-theme="neuro"] aside .card {
+    background-color: #0A0A1E !important;
+}
