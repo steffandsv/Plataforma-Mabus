@@ -1,5 +1,5 @@
 /* ============================================
-   TEMA CLARO "LUMINA" - OVERRIDES DOPAMINÉRGICOS
+   TEMA CLARO "LUMINA" - COMPREHENSIVE OVERRIDES
    ============================================ */
 
 /* ===== GLOBAL VARIABLES ===== */
@@ -9,6 +9,7 @@
     --text-primary: #1A202C;
     --text-secondary: #4A5568;
     --text-muted: #718096;
+    --bg-subtle: rgba(0, 0, 0, 0.03);
 }
 
 /* ===== BODY & BACKGROUNDS ===== */
@@ -30,12 +31,37 @@
     background: rgba(0, 112, 243, 0.03);
 }
 
-/* ===== TEXT COLORS ===== */
+/* ============================================
+   TEXT COLORS - COMPREHENSIVE OVERRIDES
+   ============================================ */
+
+/* Primary text classes */
 [data-theme="lumina"] .text-starlight {
     color: #1A202C;
 }
 
+[data-theme="lumina"] .text-white {
+    color: #1A202C;
+}
+
+/* text-starlight with ALL opacity variants */
+[data-theme="lumina"] .text-starlight\/30 {
+    color: #64748B;
+}
+
+[data-theme="lumina"] .text-starlight\/40 {
+    color: #64748B;
+}
+
+[data-theme="lumina"] .text-starlight\/50 {
+    color: #64748B;
+}
+
 [data-theme="lumina"] .text-starlight\/60 {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .text-starlight\/70 {
     color: #4A5568;
 }
 
@@ -43,11 +69,32 @@
     color: #2D3748;
 }
 
-[data-theme="lumina"] .text-white {
+[data-theme="lumina"] .text-starlight\/90 {
+    color: #2D3748;
+}
+
+/* text-white with ALL opacity variants */
+[data-theme="lumina"] .text-white\/50 {
+    color: #64748B;
+}
+
+[data-theme="lumina"] .text-white\/60 {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .text-white\/70 {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .text-white\/80 {
+    color: #2D3748;
+}
+
+[data-theme="lumina"] .text-white\/90 {
     color: #1A202C;
 }
 
-/* Preserve bright colors on light theme */
+/* Preserve neon/accent colors (these should stay vibrant) */
 [data-theme="lumina"] .text-neon-blue {
     color: #0070F3;
 }
@@ -60,7 +107,33 @@
     color: #0070F3 !important;
 }
 
-/* ===== GLASS CARDS ===== */
+/* ============================================
+   GRADIENT TEXT FIXES
+   ============================================ */
+
+/* Fix gradient text (titles like "Admin Command Center") */
+[data-theme="lumina"] .text-transparent.bg-clip-text.bg-gradient-to-r.from-white,
+[data-theme="lumina"] .text-transparent.bg-clip-text.bg-gradient-to-r.from-white.to-starlight,
+[data-theme="lumina"] span.text-transparent.bg-clip-text {
+    background: linear-gradient(to right, #1A202C, #4A5568) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Page titles that use text-white directly */
+[data-theme="lumina"] h2.text-white,
+[data-theme="lumina"] h3.text-white,
+[data-theme="lumina"] h2.text-3xl.font-bold.text-white,
+[data-theme="lumina"] h2.text-4xl.font-black.text-white,
+[data-theme="lumina"] .text-lg.font-bold.text-white {
+    color: #1A202C !important;
+}
+
+/* ============================================
+   GLASS CARDS & PANELS
+   ============================================ */
+
 [data-theme="lumina"] .glass-card,
 [data-theme="lumina"] .glass-panel {
     background: rgba(255, 255, 255, 0.95);
@@ -80,19 +153,68 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
-/* ===== HEADER & NAVIGATION ===== */
+/* Glass card content */
+[data-theme="lumina"] .glass-card h3,
+[data-theme="lumina"] .glass-card h4,
+[data-theme="lumina"] .glass-card p {
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .glass-card .text-lg.font-bold,
+[data-theme="lumina"] .glass-card .font-bold.text-white {
+    color: #1A202C !important;
+}
+
+/* ============================================
+   HEADER & NAVIGATION
+   ============================================ */
+
 [data-theme="lumina"] header.navbar {
     background: rgba(255, 255, 255, 0.9);
     border-color: rgba(0, 0, 0, 0.08);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
+/* Header icons and buttons */
+[data-theme="lumina"] header .btn-ghost {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] header .btn-ghost:hover {
+    color: #0070F3;
+    background: rgba(0, 112, 243, 0.08);
+}
+
+/* Header text elements */
+[data-theme="lumina"] header .text-starlight,
+[data-theme="lumina"] header .text-starlight\/40,
+[data-theme="lumina"] header .text-starlight\/70 {
+    color: #4A5568;
+}
+
+/* Credits display in header */
+[data-theme="lumina"] .bg-black\/40.px-3,
+[data-theme="lumina"] header .bg-black\/40 {
+    background: rgba(0, 112, 243, 0.08);
+    border-color: rgba(0, 112, 243, 0.2);
+}
+
+/* ============================================
+   SIDEBAR - COMPREHENSIVE FIX
+   ============================================ */
+
 [data-theme="lumina"] aside {
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(255, 255, 255, 0.98) !important;
     border-right-color: rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(20px);
 }
 
+/* Sidebar background override (dark bg-[#030014]) */
+[data-theme="lumina"] aside.bg-\[\#030014\]\/95 {
+    background: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Sidebar menu links */
 [data-theme="lumina"] aside .menu a {
     color: #4A5568;
 }
@@ -102,13 +224,34 @@
     color: #0070F3;
 }
 
+/* Sidebar menu text */
+[data-theme="lumina"] aside .text-starlight\/80 {
+    color: #4A5568;
+}
+
+/* CRITICAL: Sidebar section labels (Gestão, Administração) */
+[data-theme="lumina"] aside .menu-title,
+[data-theme="lumina"] aside .text-starlight\/30,
+[data-theme="lumina"] aside li.menu-title {
+    color: #64748B !important;
+}
+
+/* Active nav state */
 [data-theme="lumina"] .active-nav {
     background: rgba(0, 112, 243, 0.12) !important;
     color: #0070F3 !important;
     border-right-color: #0070F3 !important;
 }
 
-/* ===== CARDS & OPPORTUNITY CARDS ===== */
+/* Sidebar decorative gradient line */
+[data-theme="lumina"] aside .bg-gradient-to-r.from-transparent.via-neon-blue\/20 {
+    background: linear-gradient(to right, transparent, rgba(0, 112, 243, 0.2), transparent);
+}
+
+/* ============================================
+   CARD & BASE BACKGROUNDS
+   ============================================ */
+
 [data-theme="lumina"] .card {
     background: #FFFFFF;
     border-color: rgba(0, 0, 0, 0.08);
@@ -124,7 +267,6 @@
     border-color: rgba(0, 0, 0, 0.08);
 }
 
-/* ===== BACKGROUNDS ===== */
 [data-theme="lumina"] .bg-base-100 {
     background-color: #F8FAFC !important;
 }
@@ -137,12 +279,63 @@
     background-color: #E2E8F0 !important;
 }
 
-/* Opacity variants */
 [data-theme="lumina"] .bg-base-200\/50 {
     background-color: rgba(241, 245, 249, 0.5) !important;
 }
 
-/* ===== BUTTONS ===== */
+/* ============================================
+   BACKGROUND OPACITY VARIANTS - ALL
+   ============================================ */
+
+/* bg-black variants (dark transparent) -> light subtle */
+[data-theme="lumina"] .bg-black\/5,
+[data-theme="lumina"] .bg-black\/10 {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="lumina"] .bg-black\/20 {
+    background-color: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="lumina"] .bg-black\/30 {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="lumina"] .bg-black\/40,
+[data-theme="lumina"] .bg-black\/50,
+[data-theme="lumina"] .bg-black\/60 {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* bg-white variants (light transparent) -> subtle gray */
+[data-theme="lumina"] .bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="lumina"] .bg-white\/10 {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="lumina"] .bg-white\/20 {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* ============================================
+   BORDER OPACITY VARIANTS - ALL
+   ============================================ */
+
+[data-theme="lumina"] .border-white\/5,
+[data-theme="lumina"] .border-white\/10,
+[data-theme="lumina"] .border-white\/20 {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
 [data-theme="lumina"] .btn {
     color: #1A202C;
 }
@@ -166,9 +359,28 @@
     color: #0070F3;
 }
 
-/* ===== BADGES ===== */
+[data-theme="lumina"] .btn-outline {
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .btn-outline:hover {
+    background: #0070F3;
+    border-color: #0070F3;
+    color: #FFFFFF;
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+
 [data-theme="lumina"] .badge {
     border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="lumina"] .badge-ghost {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #4A5568;
 }
 
 [data-theme="lumina"] .badge-warning {
@@ -189,18 +401,133 @@
     border-color: #F87171;
 }
 
-/* ===== NOTIFICATIONS DROPDOWN ===== */
+/* ============================================
+   FORM INPUTS - COMPREHENSIVE
+   ============================================ */
+
+[data-theme="lumina"] input,
+[data-theme="lumina"] textarea,
+[data-theme="lumina"] select,
+[data-theme="lumina"] .input,
+[data-theme="lumina"] .select,
+[data-theme="lumina"] .textarea {
+    color: #1A202C !important;
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme="lumina"] input::placeholder,
+[data-theme="lumina"] textarea::placeholder,
+[data-theme="lumina"] .input::placeholder {
+    color: #94A3B8 !important;
+}
+
+[data-theme="lumina"] input:focus,
+[data-theme="lumina"] textarea:focus,
+[data-theme="lumina"] select:focus,
+[data-theme="lumina"] .input:focus,
+[data-theme="lumina"] .select:focus {
+    background-color: #FFFFFF !important;
+    border-color: #0070F3 !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+}
+
+/* Select dropdown options */
+[data-theme="lumina"] select option {
+    color: #1A202C;
+    background: #FFFFFF;
+}
+
+/* Form labels */
+[data-theme="lumina"] label,
+[data-theme="lumina"] .label-text {
+    color: #4A5568;
+}
+
+/* Label text variations */
+[data-theme="lumina"] .text-\[10px\].font-bold.text-starlight\/50 {
+    color: #64748B !important;
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+
+[data-theme="lumina"] table {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="lumina"] table thead {
+    background: rgba(0, 112, 243, 0.05);
+}
+
+[data-theme="lumina"] table th {
+    color: #4A5568;
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="lumina"] table td {
+    color: #1A202C;
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="lumina"] table tbody tr {
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="lumina"] table tbody tr:hover {
+    background: rgba(0, 112, 243, 0.03);
+}
+
+/* Table cell specific */
+[data-theme="lumina"] td.font-bold.text-white {
+    color: #1A202C !important;
+}
+
+[data-theme="lumina"] td.text-starlight\/70 {
+    color: #4A5568;
+}
+
+/* Table header text */
+[data-theme="lumina"] .text-starlight\/50.border-b {
+    color: #64748B;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================
+   DROPDOWN & MODALS
+   ============================================ */
+
 [data-theme="lumina"] .dropdown-content {
     background: rgba(255, 255, 255, 0.98);
     border-color: rgba(0, 0, 0, 0.08);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
+[data-theme="lumina"] .dropdown-content .menu a {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .dropdown-content .menu a:hover {
+    background: rgba(0, 112, 243, 0.08);
+    color: #0070F3;
+}
+
 [data-theme="lumina"] #notificationList .hover\:bg-base-200:hover {
     background-color: #F1F5F9;
 }
 
-/* ===== DIVIDERS ===== */
+/* Modal backgrounds */
+[data-theme="lumina"] .modal-box {
+    background: #FFFFFF;
+    color: #1A202C;
+}
+
+/* ============================================
+   DIVIDERS
+   ============================================ */
+
 [data-theme="lumina"] .divider {
     color: #CBD5E0;
 }
@@ -210,37 +537,26 @@
     background-color: rgba(0, 0, 0, 0.08);
 }
 
-/* ===== BORDERS ===== */
-[data-theme="lumina"] .border-white\/5,
-[data-theme="lumina"] .border-white\/10,
-[data-theme="lumina"] .border-white\/20 {
-    border-color: rgba(0, 0, 0, 0.08);
+/* ============================================
+   OPACITY ADJUSTMENTS
+   ============================================ */
+
+[data-theme="lumina"] .opacity-50 {
+    opacity: 0.7;
 }
 
-/* ===== BACKGROUNDS ===== */
-[data-theme="lumina"] .bg-white\/5 {
-    background-color: rgba(0, 0, 0, 0.03);
-}
-
-[data-theme="lumina"] .bg-white\/10 {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-[data-theme="lumina"] .bg-black\/40,
-[data-theme="lumina"] .bg-black\/50,
-[data-theme="lumina"] .bg-black\/60 {
-    background-color: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-/* ===== OPACITY ADJUSTMENTS ===== */
-[data-theme="lumina"] .opacity-50,
-[data-theme="lumina"] .opacity-60,
-[data-theme="lumina"] .opacity-70 {
+[data-theme="lumina"] .opacity-60 {
     opacity: 0.8;
 }
 
-/* ===== SHADOWS & GLOWS ===== */
+[data-theme="lumina"] .opacity-70 {
+    opacity: 0.85;
+}
+
+/* ============================================
+   SHADOWS & GLOWS
+   ============================================ */
+
 [data-theme="lumina"] .shadow-lg {
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
 }
@@ -261,7 +577,10 @@
     text-shadow: none;
 }
 
-/* ===== HOVERS & INTERACTIONS ===== */
+/* ============================================
+   HOVER & INTERACTION STATES
+   ============================================ */
+
 [data-theme="lumina"] .hover\:bg-white\/5:hover {
     background-color: rgba(0, 112, 243, 0.05);
 }
@@ -274,59 +593,71 @@
     color: #7928CA;
 }
 
-/* ===== SCROLLBAR ===== */
-[data-theme="lumina"] .card-body>div::-webkit-scrollbar-track {
+[data-theme="lumina"] .hover\:bg-neon-blue\/10:hover {
+    background: rgba(0, 112, 243, 0.1);
+}
+
+[data-theme="lumina"] .hover\:bg-neon-purple\/10:hover {
+    background: rgba(121, 40, 202, 0.1);
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+[data-theme="lumina"] ::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.03);
 }
 
-[data-theme="lumina"] .card-body>div::-webkit-scrollbar-thumb {
+[data-theme="lumina"] ::-webkit-scrollbar-thumb {
     background: rgba(0, 112, 243, 0.2);
+    border-radius: 10px;
 }
 
-[data-theme="lumina"] .card-body>div::-webkit-scrollbar-thumb:hover {
+[data-theme="lumina"] ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 112, 243, 0.4);
 }
 
-[data-theme="lumina"] .card-body>div {
-    scrollbar-color: rgba(0, 112, 243, 0.2) rgba(0, 0, 0, 0.03);
-}
+/* ============================================
+   SELECTION
+   ============================================ */
 
-/* ===== CREDITS DISPLAY ===== */
-[data-theme="lumina"] .bg-black\/40.px-3 {
-    background: rgba(0, 112, 243, 0.08);
-    border-color: rgba(0, 112, 243, 0.2);
-}
-
-/* ===== SELECTION ===== */
 [data-theme="lumina"]::selection {
     background-color: #DBEAFE;
     color: #1E40AF;
 }
 
-/* ===== SPECIFIC COMPONENT FIXES ===== */
+/* ============================================
+   SPECIFIC COMPONENT FIXES
+   ============================================ */
+
 [data-theme="lumina"] .text-base-content\/60 {
     color: #718096;
 }
 
 [data-theme="lumina"] .menu-title {
-    color: #94A3B8;
+    color: #64748B;
 }
 
 [data-theme="lumina"] .progress-warning {
     background-color: #FCD34D;
 }
 
-/* Sidebar brand glow - remove for light */
+/* Sidebar brand glow - solid for light */
 [data-theme="lumina"] aside .text-transparent.bg-clip-text {
     background-image: linear-gradient(to right, #0070F3, #7928CA);
 }
 
-/* Remove blur effects on locked content in light theme */
+/* Remove blur effects brightness adjustment */
 [data-theme="lumina"] .blur-lg {
     filter: blur(8px) brightness(0.7);
 }
 
-/* ===== MARKDOWN CONTENT ===== */
+/* ============================================
+   MARKDOWN CONTENT
+   ============================================ */
+
+[data-theme="lumina"] .markdown-content h1,
 [data-theme="lumina"] .markdown-content h2 {
     background: linear-gradient(to right, #0070F3, #7928CA);
     -webkit-background-clip: text;
@@ -337,7 +668,8 @@
 [data-theme="lumina"] .markdown-content h3,
 [data-theme="lumina"] .markdown-content h4,
 [data-theme="lumina"] .markdown-content p,
-[data-theme="lumina"] .markdown-content li {
+[data-theme="lumina"] .markdown-content li,
+[data-theme="lumina"] .markdown-content strong {
     color: #1A202C;
 }
 
@@ -364,7 +696,10 @@
     color: #0070F3;
 }
 
-/* ===== ORACLE SPECIFIC ===== */
+/* ============================================
+   ORACLE PAGE SPECIFIC
+   ============================================ */
+
 [data-theme="lumina"] .bg-neon-blue\/5 {
     background: rgba(0, 112, 243, 0.05);
 }
@@ -388,14 +723,50 @@
     font-weight: 700;
 }
 
-/* Avatar in light theme */
+/* Oracle title */
+[data-theme="lumina"] #classificacaoDisplay {
+    background-image: linear-gradient(to right, #1A202C, #4A5568) !important;
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* Oracle title class */
+[data-theme="lumina"] .oracle-title {
+    background: linear-gradient(to bottom, #1A202C, #4A5568);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ============================================
+   AVATAR
+   ============================================ */
+
 [data-theme="lumina"] .avatar .bg-black\/50 {
     background-color: #E2E8F0;
     color: #1A202C;
     border-color: rgba(0, 0, 0, 0.1);
 }
 
-/* ===== ANIMATIONS - Keep vibrant ===== */
+/* ============================================
+   LOGO ADAPTIVE
+   ============================================ */
+
+/* Dark theme: logo neon-blue */
+.logo-adaptive {
+    filter: brightness(0) saturate(100%) invert(61%) sepia(97%) saturate(2449%) hue-rotate(161deg) brightness(103%) contrast(101%);
+}
+
+/* Light theme: logo primary blue (#0070F3) */
+[data-theme="lumina"] .logo-adaptive {
+    filter: brightness(0) saturate(100%) invert(33%) sepia(98%) saturate(2299%) hue-rotate(199deg) brightness(99%) contrast(101%);
+}
+
+/* ============================================
+   ANIMATIONS - Keep vibrant
+   ============================================ */
+
 [data-theme="lumina"] .animate-pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -417,81 +788,111 @@
     color: #1A202C;
 }
 
-/* ===== LOGO ADAPTATIVO ===== */
-/* Tema escuro: logo em neon-blue */
-.logo-adaptive {
-    filter: brightness(0) saturate(100%) invert(61%) sepia(97%) saturate(2449%) hue-rotate(161deg) brightness(103%) contrast(101%);
+/* ============================================
+   STATS COMPONENT
+   ============================================ */
+
+[data-theme="lumina"] .stats {
+    background: #FFFFFF;
+    border-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Tema claro: logo em azul primary (#0070F3) */
-[data-theme="lumina"] .logo-adaptive {
-    filter: brightness(0) saturate(100%) invert(33%) sepia(98%) saturate(2299%) hue-rotate(199deg) brightness(99%) contrast(101%);
+[data-theme="lumina"] .stat-title {
+    color: #64748B;
 }
 
-/* ===== ORACLE TITLE ADAPTATIVO ===== */
-/* Tema escuro: gradiente branco */
-.oracle-title {
-    background: linear-gradient(to bottom, #ffffff, rgba(255, 255, 255, 0.1));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* Tema claro: gradiente escuro */
-[data-theme="lumina"] .oracle-title {
-    background: linear-gradient(to bottom, #1A202C, #4A5568);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* ===== CORREÇÕES DE INPUTS (Formulários) ===== */
-[data-theme="lumina"] input,
-[data-theme="lumina"] textarea,
-[data-theme="lumina"] select {
+[data-theme="lumina"] .stat-value {
     color: #1A202C;
-    background-color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="lumina"] .stat-desc {
+    color: #94A3B8;
+}
+
+/* ============================================
+   ALERT BOXES
+   ============================================ */
+
+[data-theme="lumina"] .alert {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="lumina"] .alert-success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="lumina"] .alert-error {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+[data-theme="lumina"] .alert-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="lumina"] .alert-info {
+    background: rgba(0, 112, 243, 0.1);
+    border-color: rgba(0, 112, 243, 0.2);
+}
+
+/* ============================================
+  JOIN GROUPS (Input + Button)
+   ============================================ */
+
+[data-theme="lumina"] .join .btn {
     border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.03);
+    color: #4A5568;
 }
 
-[data-theme="lumina"] input::placeholder,
-[data-theme="lumina"] textarea::placeholder {
-    color: #A0AEC0;
+[data-theme="lumina"] .join .btn:hover {
+    background: rgba(0, 112, 243, 0.1);
+    color: #0070F3;
 }
 
-[data-theme="lumina"] input:focus,
-[data-theme="lumina"] textarea:focus,
-[data-theme="lumina"] select:focus {
-    background-color: #FFFFFF;
-    border-color: #0070F3;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+/* ============================================
+   SPECIFIC ADMIN PAGE FIXES
+   ============================================ */
+
+/* Admin subtitle */
+[data-theme="lumina"] .text-starlight\/50.font-mono {
+    color: #64748B;
 }
 
-/* ===== CORREÇÕES ORACLE PAGE ===== */
-/* Override específico para o ID classificacaoDisplay para garantir contraste */
-[data-theme="lumina"] #classificacaoDisplay {
-    background-image: linear-gradient(to right, #1A202C, #4A5568) !important;
-    -webkit-text-fill-color: transparent;
-    -webkit-background-clip: text;
-    background-clip: text;
+/* Parser section bg */
+[data-theme="lumina"] .bg-black\/20.p-4,
+[data-theme="lumina"] .bg-black\/10.p-4 {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Texto de resumo com opacidade */
-[data-theme="lumina"] .text-starlight\/90 {
-    color: #2D3748;
+/* Parser backup labels */
+[data-theme="lumina"] .text-\[10px\].font-bold.text-starlight {
+    color: #64748B;
 }
 
-/* Markdown strong text */
-[data-theme="lumina"] .markdown-content strong {
+/* Priority label */
+[data-theme="lumina"] h4.text-xs.font-bold.text-white {
+    color: #1A202C !important;
+}
+
+/* ============================================
+   BUSCADOR PAGE SPECIFIC
+   ============================================ */
+
+/* Filter sidebar in buscador */
+[data-theme="lumina"] aside.lg\:w-80 {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+/* Card title in filter */
+[data-theme="lumina"] .card-title {
     color: #1A202C;
 }
 
-/* Markdown headings gradients if not covered */
-[data-theme="lumina"] .markdown-content h1,
-[data-theme="lumina"] .markdown-content h2 {
-    background: linear-gradient(to right, #0070F3, #7928CA);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+/* Checkbox labels */
+[data-theme="lumina"] .label-text.text-xs {
+    color: #4A5568;
 }
