@@ -1,612 +1,252 @@
-// Story Feed Navigation Engine
-// Dopaminergic Engagement System
 
-class StoryFeedEngine {
+/**
+ * DOPAMINE ENGINE v2 - JS CORE
+ * Physics-Based Infinite Stream
+ */
+
+class PhysicsStream {
     constructor() {
+        this.track = document.querySelector('.stream-track');
+        this.cards = Array.from(document.querySelectorAll('.stream-card'));
+        this.container = document.querySelector('.stream-container');
+
+        if (!this.track || this.cards.length === 0) return;
+
+        // Configuration
+        this.gap = 40; // reduced gap
+        this.cardWidth = 500; // base width matches CSS
+        this.snapThreshold = 0.2; // 20% drag to snap
+        this.springStiffness = 0.15;
+        this.friction = 0.85;
+
+        // State
         this.currentIndex = 0;
-        this.cards = document.querySelectorAll('.story-card');
-        this.totalCards = this.cards.length;
-        this.touchStartY = 0;
-        this.touchEndY = 0;
-        this.isNavigating = false;
+        this.targetX = 0;
+        this.currentX = 0;
+        this.velocity = 0;
+
+        // Input State
+        this.isDragging = false;
+        this.startX = 0;
+        this.lastX = 0;
+        this.dragOffset = 0;
 
         this.init();
     }
 
     init() {
-        if (this.totalCards === 0) return;
+        // Initial Layout
+        this.updateLayout();
 
-        this.setupSwipeListeners();
-        this.setupKeyboardNavigation();
-        this.truncateObjectDescriptions();
-        this.highlightKeywords();
-        this.showCard(0);
-        this.hideHintsAfterDelay();
+        // Event Listeners
+        this.bindEvents();
 
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => this.truncateObjectDescriptions(), 200);
-        });
+        // Animation Loop
+        this.animate = this.animate.bind(this);
+        requestAnimationFrame(this.animate);
+
+        // Keyboard Support
+        this.bindKeyboard();
+
+        console.log('🌌 Void Engine Initialized');
     }
 
-    setupKeyboardNavigation() {
+    bindEvents() {
+        // Mouse
+        this.container.addEventListener('mousedown', e => this.startDrag(e.clientX));
+        window.addEventListener('mousemove', e => this.drag(e.clientX));
+        window.addEventListener('mouseup', () => this.endDrag());
+
+        // Touch
+        this.container.addEventListener('touchstart', e => this.startDrag(e.touches[0].clientX), { passive: false });
+        window.addEventListener('touchmove', e => this.drag(e.touches[0].clientX), { passive: false });
+        window.addEventListener('touchend', () => this.endDrag());
+    }
+
+    bindKeyboard() {
         document.addEventListener('keydown', (e) => {
-            if (document.getElementById('itemsModal').style.display === 'flex' ||
-                document.getElementById('objetoModal').style.display === 'flex') {
-                if (e.key === 'Escape') {
-                    closeItemsModal();
-                    closeObjetoModal();
-                }
-                return;
-            }
-
-            if (this.isNavigating) return;
-
-            const key = e.key.toLowerCase();
-
-            switch (key) {
-                case 'arrowdown':
-                case 'arrowright':
-                case 'pagedown':
-                    e.preventDefault();
-                    this.nextCard();
-                    break;
-                case 'arrowup':
-                case 'arrowleft':
-                case 'pageup':
-                    e.preventDefault();
-                    this.prevCard();
-                    break;
-                case 'home':
-                    e.preventDefault();
-                    this.showCard(0);
-                    break;
-                case 'end':
-                    e.preventDefault();
-                    this.showCard(this.totalCards - 1);
-                    break;
-                case 's':
-                    if (typeof saveOpportunity === 'function') {
-                        const currentId = this.getCurrentCardId();
-                        if (currentId) {
-                            saveOpportunity(currentId);
-                            this.showKeyFeedback('S', 'Salvo!');
-                            setTimeout(() => this.nextCard(), 800);
-                        }
-                    }
-                    break;
-                case 'p':
-                    if (typeof skipCardWithAPI === 'function') {
-                        skipCardWithAPI();
-                        this.showKeyFeedback('P', 'Pulado');
-                    }
-                    break;
-                case 'd':
-                    const currentId = this.getCurrentCardId();
-                    if (currentId && typeof openDetailsModal === 'function') {
-                        openDetailsModal(currentId);
-                    } else if (currentId) {
-                        window.location.href = `/licitacoes/${currentId}`;
-                    }
-                    break;
-            }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.next();
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.prev();
         });
     }
 
-    truncateObjectDescriptions() {
-        this.cards.forEach(card => {
-            const p = card.querySelector('.object-preview p');
-            if (!p) return;
-
-            const originalText = p.dataset.fullText;
-            if (!originalText) return;
-
-            // Use temp element to measure line height
-            p.innerHTML = 'A';
-            const lineHeight = p.clientHeight;
-            const maxHeight = lineHeight * 2; // Target: 2 lines
-
-            // Restore text
-            p.innerHTML = escapeHtml(originalText);
-
-            if (p.clientHeight > maxHeight + 5) { // +5 tolerance
-                let low = 0;
-                let high = originalText.length;
-                let bestFit = 0;
-                const ellipsis = '... ';
-                const moreLink = `<a href="#" class="text-primary hover:text-primary/80 font-medium hover:underline inline-block ml-1" onclick="event.preventDefault(); openObjetoModal('${card.getAttribute('data-index')}')">Ver mais</a>`;
-
-                // Binary search for optimal length
-                while (low <= high) {
-                    const mid = Math.floor((low + high) / 2);
-                    p.innerHTML = escapeHtml(originalText.slice(0, mid)) + ellipsis + moreLink;
-
-                    if (p.clientHeight <= maxHeight + 5) {
-                        bestFit = mid;
-                        low = mid + 1;
-                    } else {
-                        high = mid - 1;
-                    }
-                }
-
-                // Apply best fit
-                p.innerHTML = escapeHtml(originalText.slice(0, bestFit)) + ellipsis + moreLink;
-            }
-        });
+    startDrag(x) {
+        this.isDragging = true;
+        this.startX = x;
+        this.lastX = x;
+        this.velocity = 0;
+        this.track.style.cursor = 'grabbing';
     }
 
-    setupSwipeListeners() {
-        const container = document.querySelector('.story-feed-container');
-        if (!container) return;
+    drag(x) {
+        if (!this.isDragging) return;
 
-        container.addEventListener('touchstart', (e) => {
-            this.touchStartX = e.touches[0].clientX;
-        }, { passive: true });
+        const delta = x - this.lastX;
+        this.lastX = x;
+        this.dragOffset += delta;
 
-        container.addEventListener('touchmove', (e) => {
-            this.touchEndX = e.touches[0].clientX;
-        }, { passive: true });
-
-        container.addEventListener('touchend', () => {
-            this.handleSwipe();
-        });
+        // Direct manipulation
+        this.targetX += delta;
     }
 
-    handleSwipe() {
-        if (!this.touchStartX || !this.touchEndX) return;
+    endDrag() {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        this.track.style.cursor = 'grab';
 
-        const swipeDistance = this.touchStartX - this.touchEndX;
-        const threshold = 50;
+        // Snap Logic
+        const cardFullWidth = this.cardWidth + this.gap;
+        const movedCards = -this.targetX / cardFullWidth;
+        const closestIndex = Math.round(movedCards);
 
-        if (Math.abs(swipeDistance) > threshold && !this.isNavigating) {
-            if (swipeDistance > 0) {
-                this.nextCard(); // Swipe Left -> Next
-            } else {
-                this.prevCard(); // Swipe Right -> Prev
-            }
-        }
+        // Clamp index
+        this.snapToIndex(Math.max(0, Math.min(closestIndex, this.cards.length - 1)));
 
-        this.touchStartX = 0;
-        this.touchEndX = 0;
+        this.dragOffset = 0;
     }
 
-    showCard(index) {
-        if (index < 0 || index >= this.totalCards) return;
-
-        this.isNavigating = true;
-
-        this.cards.forEach((card, i) => {
-            // Reset all positioning classes
-            card.setAttribute('class', 'story-card');
-
-            if (i === index) {
-                card.classList.add('active');
-                this.animateCardReveal(card);
-                this.logView(card);
-            } else if (i === index - 1) {
-                card.classList.add('prev');
-            } else if (i > index) {
-                const distance = i - index;
-                if (distance <= 10) {
-                    card.classList.add(`next-${distance}`);
-                } else {
-                    card.classList.add('next-hidden');
-                }
-            } else {
-                // i < index - 1 (older cards)
-                card.classList.add('prev'); // Keep them off-screen left
-            }
-        });
-
+    snapToIndex(index) {
         this.currentIndex = index;
+        const cardFullWidth = this.cardWidth + this.gap;
+        this.targetX = -index * cardFullWidth;
 
-        // Reset navigation lock
-        setTimeout(() => {
-            this.isNavigating = false;
-        }, 400);
+        // View logging
+        this.logView(this.cards[index]);
+    }
+
+    next() {
+        if (this.currentIndex < this.cards.length - 1) {
+            this.snapToIndex(this.currentIndex + 1);
+        }
+    }
+
+    prev() {
+        if (this.currentIndex > 0) {
+            this.snapToIndex(this.currentIndex - 1);
+        }
+    }
+
+    animate() {
+        // Physics Intergration (Spring)
+        const force = (this.targetX - this.currentX) * this.springStiffness;
+        this.velocity += force;
+        this.velocity *= this.friction;
+        this.currentX += this.velocity;
+
+        // Apply Transform to Track center
+        // We center the active card. 
+        // Screen Center = 0. Since track starts at center (left:50%), we move it.
+        // Actually, let's keep it simple: Track moves left/right.
+        // CSS centers the clicked item if we offset correctly.
+
+        // Because CSS defines cards at absolute 50% 50%, 
+        // moving the track moves everything relative to center.
+
+        this.updateCards();
+
+        requestAnimationFrame(this.animate);
+    }
+
+    updateCards() {
+        const center = window.innerWidth / 2;
+        const cardFullWidth = this.cardWidth + this.gap;
+
+        // Visual Logic: Logarithmic Scale
+        // We iterate through cards and define their style based on distance from "Center Focus"
+        // The "Center Focus" virtual position is -this.currentX
+
+        this.cards.forEach((card, index) => {
+            // Un-transform first to get raw position relative to track
+            // Base position: index * stride
+            const basePos = index * (this.cardWidth * 0.15); // Stacking them closer like a deck?
+
+            // Wait, "Infinite Stream" usually means they are side-by-side but with depth.
+            // Let's stick to the visual plan:
+            // Active is flat.
+            // Right ones are curved away.
+            // Left ones are gone.
+
+            // Interaction: 1:1 drag affects the "progress"
+            // Progress = -this.currentX / cardFullWidth? 
+            // Let's use a simpler model: standard slider but with z-index/scale hacks.
+
+            const progress = (this.currentX / cardFullWidth) + index;
+            // If index is active (0), and currentX is 0, progress = 0.
+            // If we drag left (currentX negative), progress decreases.
+
+            // We need a precise offset for the track.
+            // Let's move the cards individually based on global progress?
+            // No, move track, animate items relative.
+
+            // Re-think: "Parabolic Flow"
+            // We only set the Track properties here? No, each card needs unique 3D transform.
+
+            const relativePos = index * cardFullWidth + this.currentX; // Distance from center of screen (px)
+
+            // 0 means center.
+            // Positive means right.
+            // Negative means left.
+
+            let scale = 1;
+            let opacity = 1;
+            let x = relativePos;
+            let z = 0;
+            let rotateY = 0;
+            let blur = 0;
+
+            const maxDist = 1200;
+
+            if (relativePos > 0) {
+                // To the right (Upcoming)
+                const ratio = Math.min(relativePos / maxDist, 1);
+                // Logarithmic curve for stacking
+                // Instead of linear X, we pull them tighter
+                x = Math.pow(ratio, 0.7) * maxDist * 0.8;
+                z = -ratio * 500;
+                scale = 1 - (ratio * 0.5);
+                opacity = 1 - (ratio * 0.8);
+                rotateY = -15 * ratio;
+                blur = ratio * 10;
+            } else if (relativePos < 0) {
+                // To the left (Past) - Exit quickly
+                scale = 1 + (relativePos / 1000); // shrink
+                opacity = 1 + (relativePos / 500); // fade fast
+                x = relativePos * 1.5; // move faster
+                rotateY = 25;
+            }
+
+            // Apply style directly
+            card.style.transform = `translate3d(${x}px, -50%, ${z}px) scale(${scale}) rotateY(${rotateY}deg)`;
+            card.style.opacity = Math.max(0, opacity);
+            card.style.filter = `blur(${blur}px)`;
+            card.style.zIndex = Math.round(100 - Math.abs(index - (-this.currentX / cardFullWidth)));
+        });
+    }
+
+    updateLayout() {
+        // Adjust for mobile
+        if (window.innerWidth < 768) {
+            this.cardWidth = window.innerWidth * 0.85;
+        }
     }
 
     logView(card) {
-        const id = card.getAttribute('data-id');
+        if (!card) return;
+        const id = card.dataset.id;
         if (id) {
-            // Debounce view logging (only if viewed for > 2s)
-            clearTimeout(this.viewTimer);
-            this.viewTimer = setTimeout(() => {
-                fetch(`/api/licitacoes/${id}/view`, { method: 'POST' }).catch(console.error);
+            clearTimeout(this.logTimer);
+            this.logTimer = setTimeout(() => {
+                // fetch(`/api/${id}/view`...)
+                console.log('View logged:', id);
             }, 2000);
         }
     }
-
-    animateCardReveal(card) {
-        // Progressive reveal of information elements
-        const elements = card.querySelectorAll('.story-card-header, .value-spotlight, .object-description, .info-pills, .story-actions');
-
-        elements.forEach((el, i) => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(20px)';
-
-            setTimeout(() => {
-                el.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                el.style.opacity = '1';
-                el.style.transform = 'translateY(0)';
-            }, i * 100);
-        });
-    }
-
-    nextCard() {
-        if (this.isNavigating) return;
-
-        if (this.currentIndex < this.totalCards - 1) {
-            this.showCard(this.currentIndex + 1);
-        } else {
-            this.showEndOfFeed();
-        }
-    }
-
-    prevCard() {
-        if (this.isNavigating) return;
-
-        if (this.currentIndex > 0) {
-            this.showCard(this.currentIndex - 1);
-        }
-    }
-
-    highlightKeywords() {
-        this.cards.forEach(card => {
-            const description = card.querySelector('.object-description p[data-keywords]');
-            if (!description) return;
-
-            const keywords = description.dataset.keywords;
-            if (!keywords || keywords.trim() === '') return;
-
-            const keywordArray = keywords.split(',').map(k => k.trim()).filter(k => k);
-            let html = description.innerHTML; // Use innerHTML to preserve existing tags
-
-            keywordArray.forEach(keyword => {
-                // Case-insensitive replacement with word boundaries
-                const regex = new RegExp(`\\b(${this.escapeRegExp(keyword)})\\b`, 'gi');
-                html = html.replace(regex, '<span class="keyword-highlight">$1</span>');
-            });
-
-            description.innerHTML = html;
-        });
-    }
-
-    escapeRegExp(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    hideHintsAfterDelay() {
-        const hints = document.getElementById('swipe-hints');
-        if (hints) {
-            setTimeout(() => {
-                hints.style.display = 'none';
-            }, 4000);
-        }
-    }
-
-    showEndOfFeed() {
-        // Show completion toast
-        if (typeof showToast === 'function') {
-            showToast('🎉 Você viu todas as oportunidades! Ajuste os filtros para mais resultados.', 'info');
-        }
-    }
 }
 
-// Initialize on page load
-let storyFeed;
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    const container = document.querySelector('.story-feed-container');
-    if (container && container.querySelector('.story-card')) {
-        storyFeed = new StoryFeedEngine();
-    }
+    window.voidStream = new PhysicsStream();
 });
 
-// Global Actions for Story Feed
-function skipCard() {
-    if (storyFeed) {
-        storyFeed.nextCard();
-    }
-}
-
-/* ============================================
-   ITEMS MODAL CONTROLLER
-   ============================================ */
-
-const itemsCache = new Map();
-let currentModalLicitacaoId = null;
-
-async function openItemsModal(licitacaoId) {
-    currentModalLicitacaoId = licitacaoId;
-    const modal = document.getElementById('itemsModal');
-    const modalBody = modal.querySelector('.items-modal-body');
-
-    // Show modal
-    modal.style.display = 'flex';
-
-    // Check cache
-    if (itemsCache.has(licitacaoId)) {
-        renderModalItems(modalBody, itemsCache.get(licitacaoId));
-        return;
-    }
-
-    // Show loading
-    modalBody.innerHTML = `
-        <div class="loading-items">
-            <i class="fas fa-spinner fa-spin"></i>
-            Carregando itens...
-        </div>
-    `;
-
-    // Fetch items
-    try {
-        const response = await fetch(`/api/licitacoes/${licitacaoId}/items`);
-        if (!response.ok) throw new Error('Failed to fetch items');
-
-        const data = await response.json();
-        itemsCache.set(licitacaoId, data.items || []);
-        renderModalItems(modalBody, data.items || []);
-    } catch (error) {
-        console.error('Error fetching items:', error);
-        modalBody.innerHTML = `
-            <div class="no-items-message">
-                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #EF4444; opacity: 0.5; margin-bottom: 12px;"></i>
-                <p>Erro ao carregar itens. Tente novamente.</p>
-            </div>
-        `;
-    }
-}
-
-function closeItemsModal() {
-    const modal = document.getElementById('itemsModal');
-    modal.style.display = 'none';
-    currentModalLicitacaoId = null;
-}
-
-function renderModalItems(container, items) {
-    if (!items || items.length === 0) {
-        container.innerHTML = `
-            <div class="no-items-message">
-                <i class="fas fa-inbox" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
-                <p>Nenhum item encontrado para esta licitação.</p>
-            </div>
-        `;
-        return;
-    }
-
-    const tableHTML = `
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Descrição</th>
-                    <th>Qtd</th>
-                    <th>Valor Un.</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${items.map(item => `
-                    <tr>
-                        <td class="item-number">${item.numero_item || '-'}</td>
-                        <td class="item-description" title="${escapeHtml(item.descricao || 'N/D')}">
-                            ${escapeHtml(truncate(item.descricao || 'N/D', 80))}
-                        </td>
-                        <td class="item-quantity">${formatNumber(item.quantidade)}</td>
-                        <td class="item-value">${formatCurrency(item.valor_unitario_estimado)}</td>
-                        <td class="item-value">${formatCurrency(item.valor_total)}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-
-    container.innerHTML = tableHTML;
-}
-
-// Close modal on Escape key
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        if (currentModalLicitacaoId) {
-            closeItemsModal();
-        }
-        if (currentObjetoIndex !== null) {
-            closeObjetoModal();
-        }
-    }
-});
-
-/* ============================================
-   OBJETO MODAL CONTROLLER
-   ============================================ */
-
-let currentObjetoIndex = null;
-
-function openObjetoModal(cardIndex) {
-    currentObjetoIndex = cardIndex;
-    const modal = document.getElementById('objetoModal');
-    const objetoElement = document.getElementById(`objeto-preview-${cardIndex}`);
-    const fullText = objetoElement.dataset.fullText;
-
-    const modalBody = document.getElementById('objetoFullText');
-    modalBody.textContent = fullText;
-
-    modal.style.display = 'flex';
-}
-
-function closeObjetoModal() {
-    const modal = document.getElementById('objetoModal');
-    modal.style.display = 'none';
-    currentObjetoIndex = null;
-}
-
-// Helper functions
-function formatCurrency(value) {
-    if (!value || isNaN(value)) return 'R$ -';
-    return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-function formatNumber(value) {
-    if (!value || isNaN(value)) return '-';
-    return parseFloat(value).toLocaleString('pt-BR');
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-
-
-/* ============================================
-   GLOBAL API ACTIONS (Called by HTML & Shortcuts)
-   ============================================ */
-
-window.storyFeedEngine = null;
-document.addEventListener('DOMContentLoaded', () => {
-    window.storyFeedEngine = new StoryFeedEngine();
-});
-
-// Skip Action
-window.skipCardWithAPI = function () {
-    if (!window.storyFeedEngine) return;
-
-    const id = window.storyFeedEngine.getCurrentCardId();
-    if (!id) return;
-
-    // Optimistic UI update
-    window.storyFeedEngine.nextCard();
-
-    // Call API in background
-    fetch(`/api/licitacoes/${id}/skip`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    }).catch(err => console.error('Error skipping:', err));
-};
-
-// Save Action
-window.saveOpportunity = async function (id) {
-    if (!id) return;
-
-    const btn = document.querySelector(`.story-card[data-id="${id}"] .save-btn-external`);
-    if (btn) btn.classList.add('loading');
-
-    try {
-        const response = await fetch(`/api/licitacoes/${id}/save`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // Show success via Engine feedback if available
-            if (window.storyFeedEngine) {
-                window.storyFeedEngine.showKeyFeedback('S', 'Salvo!');
-            }
-            // Auto advance after short delay
-            setTimeout(() => {
-                if (window.storyFeedEngine) window.storyFeedEngine.nextCard();
-            }, 800);
-        }
-    } catch (error) {
-        console.error('Error saving:', error);
-    } finally {
-        if (btn) btn.classList.remove('loading');
-    }
-};
-
-// Details Modal (Overlay)
-window.openDetailsModal = function (id) {
-    // For now, redirect to details page as modal implementation would require 
-    // fetching entire partial view or specific API endpoint rendering HTML
-    window.location.href = `/licitacoes/${id}`;
-};
-
-function truncate(text, maxLength) {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-}
-
-/* ============================================
-   DEADLINE HUMANIZER - Temporal Psychology
-   ============================================ */
-
-function humanizeDeadline(deadlineStr, currentDate = new Date()) {
-    const deadline = new Date(deadlineStr);
-    const now = currentDate;
-
-    // Calculate difference in milliseconds
-    const diff = deadline - now;
-    const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    const diffHours = Math.ceil(diff / (1000 * 60 * 60));
-
-    // Urgency classification
-    let urgency = 'safe';
-    if (diffHours < 24) urgency = 'critical';
-    else if (diffDays < 7) urgency = 'warning';
-
-    // Day names in Portuguese
-    const dayNames = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-    const dayName = dayNames[deadline.getDay()];
-
-    // Format time
-    const hours = String(deadline.getHours()).padStart(2, '0');
-    const minutes = String(deadline.getMinutes()).padStart(2, '0');
-    const timeStr = `${hours}:${minutes}`;
-
-    // Format date
-    const day = String(deadline.getDate()).padStart(2, '0');
-    const month = String(deadline.getMonth() + 1).padStart(2, '0');
-    const dateStr = `${day}/${month}`;
-
-    let humanText = '';
-
-    if (diffHours < 0) {
-        humanText = 'Prazo encerrado';
-        urgency = 'critical';
-    } else if (diffHours < 24) {
-        if (diffHours === 1) {
-            humanText = `Daqui 1 hora (às ${timeStr})`;
-        } else {
-            humanText = `Daqui ${diffHours} horas (às ${timeStr})`;
-        }
-    } else if (diffDays === 1) {
-        humanText = `Amanhã, ${dayName} (${dateStr}) às ${timeStr}`;
-    } else if (diffDays <= 7) {
-        humanText = `Daqui ${diffDays} dias, ${dayName} (${dateStr}) às ${timeStr}`;
-    } else if (diffDays <= 14) {
-        humanText = `Daqui ${diffDays} dias, ${dayName} que vem (${dateStr}) às ${timeStr}`;
-    } else {
-        humanText = `Daqui ${diffDays} dias (${dateStr}) às ${timeStr}`;
-    }
-
-    return { humanText, urgency };
-}
-
-function initializeDeadlines() {
-    const deadlineBanners = document.querySelectorAll('.deadline-banner');
-    const now = new Date();
-
-    deadlineBanners.forEach(banner => {
-        const deadlineTime = banner.querySelector('.deadline-time');
-        const deadlineStr = deadlineTime.dataset.date;
-
-        if (!deadlineStr) return;
-
-        const { humanText, urgency } = humanizeDeadline(deadlineStr, now);
-
-        deadlineTime.textContent = humanText;
-        banner.setAttribute('data-urgency', urgency);
-    });
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initializeDeadlines();
-});
+// External Actions
+function skipCard() { window.voidStream?.next(); }

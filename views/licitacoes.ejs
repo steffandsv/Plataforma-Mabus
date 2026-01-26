@@ -1,85 +1,74 @@
 <%- include('partials/head') %>
     <%- include('partials/header') %>
 
-        <%- include('partials/head') %>
-            <%- include('partials/header') %>
+        <!-- Full Screen Feed Layout - THE VOID EDITION -->
+        <main class="h-[calc(100vh-6rem)] w-full overflow-hidden relative">
 
-                <!-- Full Screen Feed Layout -->
-                <main class="h-[calc(100vh-6rem)] w-full overflow-hidden relative">
-
-                    <!-- Context Header (Top Layer) -->
-                    <div class="absolute top-4 left-4 z-50 pointer-events-none">
-                        <div class="glass-panel px-6 py-3 rounded-full flex items-center gap-3">
-                            <div class="text-2xl">
-                                <%= savedMode ? '💖' : '🏛️' %>
-                            </div>
-                            <div>
-                                <h1 class="text-lg font-bold leading-none">
-                                    <%= savedMode ? 'Salvos' : 'Feed Personalizado' %>
-                                </h1>
-                                <p class="text-[10px] opacity-60 uppercase tracking-wider font-semibold">
-                                    <%= savedMode ? 'Seus Favoritos' : 'Oportunidades IA' %>
-                                </p>
-                            </div>
-                        </div>
+            <!-- Context Header (Top Layer) - Floating Pill -->
+            <div class="absolute top-4 left-4 z-50 pointer-events-none">
+                <div class="glass-pill">
+                    <div class="text-xl">
+                        <%= savedMode ? '💖' : '🏛️' %>
                     </div>
-
-                    <!-- Controls (Top Right) -->
-                    <div class="absolute top-4 right-4 z-50 flex gap-2">
-                        <% if (!savedMode) { %>
-                            <a href="/licitacoes/saved" class="btn btn-circle btn-ghost glass tool-btn"
-                                title="Ver Salvos">
-                                <i class="fas fa-heart text-error"></i>
-                            </a>
-                            <% } %>
-                                <a href="/profile/preferences" class="btn btn-circle btn-ghost glass tool-btn"
-                                    title="Preferências">
-                                    <i class="fas fa-cog text-primary"></i>
-                                </a>
+                    <div>
+                        <h1 class="text-sm font-bold leading-none text-white">
+                            <%= savedMode ? 'Salvos' : 'Feed' %>
+                        </h1>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Story Mode Container -->
-                    <div id="story-mode" class="h-full w-full">
-                        <%- include('partials/story_feed', { licitacoes }) %>
-                    </div>
+            <!-- Controls (Top Right) - Floating Actions -->
+            <div class="absolute top-4 right-4 z-50 flex gap-2 pointer-events-auto">
+                <% if (!savedMode) { %>
+                    <a href="/licitacoes/saved"
+                        class="action-btn w-10 h-10 rounded-full !border-0 bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"
+                        title="Ver Salvos">
+                        <i class="fas fa-heart text-error"></i>
+                    </a>
+                    <% } %>
+                        <a href="/profile/preferences"
+                            class="action-btn w-10 h-10 rounded-full !border-0 bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"
+                            title="Preferências">
+                            <i class="fas fa-cog text-primary"></i>
+                        </a>
+            </div>
 
-                </main>
+            <!-- Story Mode Container - The Physics Stage -->
+            <div id="story-mode" class="h-full w-full">
+                <%- include('partials/story_feed', { licitacoes }) %>
+            </div>
 
-                <script>
-            // Global Save/                        
-            function saveOpportunity(                              fetch(`/api/licitacoes/${id}/s                                    method: 'POST',
-                               der                    t-Type': 'application/json' }
-                        })
-                    .then(                        ))
-                    .then(data => {                                 showToast(d                            portunidade salva!', 'success');
-                                                                      => {
-                                                o ao salvar', 'e                                        console.error(err);
+        </main>
+
+        <script>
+            // Global Save/Unsave Functions - Integrated with Toast
+            function saveOpportunity(id) {
+                fetch(`/api/licitacoes/${id}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        showToast(data.message || '💾 Oportunidade salva!', 'success');
+                    })
+                    .catch(err => {
+                        showToast('❌ Erro ao salvar', 'error');
+                        console.error(err);
                     });
-                                        ion                            type) {
-                                        cument.createElement('div');
-                                           alert alert-${type}                             1/2                     -1/                    -w-[300px] z-[100] shadow-lg animate                        2xl border-0 bg-opacity-90 backdrop-blur`;
-                          ast.innerHTML = `<span class="font-bold flex items-center gap-2">${message}</span>`;
-                document.                        (toast);
+            }
+
+            function showToast(message, type) {
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type} fixed bottom-8 left-1/2 -translate-x-1/2 w-auto min-w-[300px] z-[100] shadow-lg animate-bounce rounded-2xl border-0 bg-opacity-90 backdrop-blur text-white font-bold`;
+                toast.innerHTML = `<span class="flex items-center gap-2">${message}</span>`;
+                document.body.appendChild(toast);
 
                 setTimeout(() => {
-                            toast.classList.add('opacity-0'                        acity');
-                                      (() => toast.remove(), 300);
+                    toast.classList.add('opacity-0', 'transition-opacity');
+                    setTimeout(() => toast.remove(), 300);
                 }, 3000);
             }
-                </script>
+        </script>
 
-                <style>
-                    .glass-panel {
-                        background: rgba(255, 255, 255, 0.1);
-                        backdrop-filter: blur(10px);
-                        border: 1px solid rgba(255, 255, 255, 0.2);
-                        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-                    }
-
-                    .tool-btn:hover {
-                        transform: scale(1.1);
-                        background: rgba(255, 255, 255, 0.2);
-                    }
-                </style>
-
-                <!-- Footer Hidden in Feed Mode for Immersion -->
+        <!-- Footer Hidden for Immersion -->
