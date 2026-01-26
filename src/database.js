@@ -316,6 +316,19 @@ async function initDB() {
         await query(`CREATE INDEX IF NOT EXISTS idx_interactions_lic ON user_licitacao_interactions (licitacao_id)`);
         await query(`CREATE INDEX IF NOT EXISTS idx_interactions_type ON user_licitacao_interactions (interaction_type)`);
 
+        // Migration: Fix column names if wrongly created (Defensive)
+        await query(`
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_licitacao_interactions' AND column_name='action_type') THEN
+                    ALTER TABLE user_licitacao_interactions RENAME COLUMN action_type TO interaction_type;
+                END IF;
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_licitacao_interactions' AND column_name='metadata') THEN
+                    ALTER TABLE user_licitacao_interactions RENAME COLUMN metadata TO interaction_data;
+                END IF;
+            END $$;
+        `);
+
         // Migration for new raw_data columns
         await query(`
             DO $$
@@ -605,23 +618,7 @@ async function initDB() {
             )
         `);
 
-        // --- USER LICITACAO INTERACTIONS TABLE (catalog all user actions for ML) ---
-        await query(`
-            CREATE TABLE IF NOT EXISTS user_licitacao_interactions (
-                id SERIAL PRIMARY KEY,
-                user_id INT NOT NULL,
-                licitacao_id INT NOT NULL,
-                action_type VARCHAR(30) NOT NULL,
-                metadata JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE
-            )
-        `);
-        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_user ON user_licitacao_interactions(user_id)`);
-        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_licitacao ON user_licitacao_interactions(licitacao_id)`);
-        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_action ON user_licitacao_interactions(action_type)`);
+
 
         // --- USER CNPJ DATA TABLE (company information for personalization) ---
         await query(`
@@ -2175,15 +2172,15 @@ async function updateLicitacaoRawData(id, rawItems, rawFiles) {
 
 // --- USER LICITACAO INTERACTIONS FUNCTIONS ---
 
-async function logUserInteraction(userId, licitacaoId, actionType, metadata = null) {
+async function logUserInteraction(userId, licitacaoId, interactionType, interactionData = null) {
     const p = await getPool();
     if (!p) return;
 
     try {
         await p.query(
-            `INSERT INTO user_licitacao_interactions (user_id, licitacao_id, action_type, metadata)
+            `INSERT INTO user_licitacao_interactions (user_id, licitacao_id, interaction_type, interaction_data)
              VALUES ($1, $2, $3, $4)`,
-            [userId, licitacaoId, actionType, metadata ? JSON.stringify(metadata) : null]
+            [userId, licitacaoId, interactionType, interactionData ? JSON.stringify(interactionData) : null]
         );
     } catch (e) {
         console.warn(`[DB] Error logging interaction: ${e.message}`);
@@ -2197,7 +2194,7 @@ async function getInteractedLicitacaoIds(userId, actionTypes = ['skip', 'save', 
     // Get IDs from both interactions table AND legacy tables
     const { rows: interactionRows } = await p.query(
         `SELECT DISTINCT licitacao_id FROM user_licitacao_interactions 
-         WHERE user_id = $1 AND action_type = ANY($2::text[])`,
+         WHERE user_id = $1 AND interaction_type = ANY($2::text[])`,
         [userId, actionTypes]
     );
 
