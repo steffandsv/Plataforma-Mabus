@@ -298,6 +298,24 @@ async function initDB() {
             )
         `);
 
+        // --- USER LICITACAO INTERACTIONS (Dopamine Feed) ---
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_licitacao_interactions (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                licitacao_id INT NOT NULL,
+                interaction_type VARCHAR(50) NOT NULL, -- 'save', 'skip', 'view', 'dislike', 'download', 'undislike', 'unsave'
+                interaction_data JSONB, -- store extra info like file downloaded
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE
+            )
+        `);
+        // Indexes for performance
+        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_user ON user_licitacao_interactions (user_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_lic ON user_licitacao_interactions (licitacao_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_type ON user_licitacao_interactions (interaction_type)`);
+
         // Migration for new raw_data columns
         await query(`
             DO $$
