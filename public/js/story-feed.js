@@ -32,7 +32,7 @@ class StoryFeedEngine {
 
     truncateObjectDescriptions() {
         this.cards.forEach(card => {
-            const p = card.querySelector('.object-description p');
+            const p = card.querySelector('.object-preview p');
             if (!p) return;
 
             const originalText = p.dataset.fullText;
@@ -44,7 +44,7 @@ class StoryFeedEngine {
             const maxHeight = lineHeight * 2; // Target: 2 lines
 
             // Restore text
-            p.innerHTML = this.escapeHtml(originalText);
+            p.innerHTML = escapeHtml(originalText);
 
             if (p.clientHeight > maxHeight + 5) { // +5 tolerance
                 let low = 0;
@@ -56,7 +56,7 @@ class StoryFeedEngine {
                 // Binary search for optimal length
                 while (low <= high) {
                     const mid = Math.floor((low + high) / 2);
-                    p.innerHTML = this.escapeHtml(originalText.slice(0, mid)) + ellipsis + moreLink;
+                    p.innerHTML = escapeHtml(originalText.slice(0, mid)) + ellipsis + moreLink;
 
                     if (p.clientHeight <= maxHeight + 5) {
                         bestFit = mid;
@@ -67,7 +67,7 @@ class StoryFeedEngine {
                 }
 
                 // Apply best fit
-                p.innerHTML = this.escapeHtml(originalText.slice(0, bestFit)) + ellipsis + moreLink;
+                p.innerHTML = escapeHtml(originalText.slice(0, bestFit)) + ellipsis + moreLink;
             }
         });
     }
