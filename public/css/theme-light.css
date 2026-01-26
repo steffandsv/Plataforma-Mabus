@@ -1144,3 +1144,20 @@
     background: linear-gradient(135deg, #0070F3, #3B82F6);
     color: #FFFFFF;
 }
+
+/* ============================================
+   SIDEBAR SAIR BUTTON LIGHT MODE
+   ============================================ */
+
+[data-theme="lumina"] aside > div.border-t {
+    border-top-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="lumina"] aside > div.border-t a {
+    color: #DC2626;
+}
+
+[data-theme="lumina"] aside > div.border-t a:hover {
+    background: rgba(220, 38, 38, 0.1);
+}

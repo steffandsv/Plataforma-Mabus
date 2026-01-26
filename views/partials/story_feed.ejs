@@ -75,19 +75,18 @@
                                             </h4>
                                             <div class="object-preview">
                                                 <% const objetoText=lic.objeto_compra || 'Não informado' ; %>
-                                                    <p class="text-sm leading-relaxed line-clamp-4"
-                                                        id="objeto-preview-<%= index %>"
+                                                    <p class="text-sm leading-relaxed" id="objeto-preview-<%= index %>"
                                                         data-keywords="<%= lic.matched_keywords || '' %>"
-                                                        data-full-text="<%= objetoText %>">
-                                                        <%= objetoText %>
+                                                        data-full-text="<%= objetoText %>"><span class="line-clamp-2">
+                                                            <%= objetoText.length> 120 ? objetoText.substring(0, 120) :
+                                                                objetoText %>
+                                                        </span>
+                                                        <% if (objetoText.length> 120) { %>... <a href="#"
+                                                                onclick="openObjetoModal('<%= index %>'); return false;"
+                                                                class="text-primary hover:text-primary/80 font-medium hover:underline">Ver
+                                                                mais</a>
+                                                            <% } %>
                                                     </p>
-                                                    <% if (objetoText.length> 200) { %>
-                                                        <button class="ver-mais-btn"
-                                                            onclick="openObjetoModal('<%= index %>')">
-                                                            <i class="fas fa-expand-alt"></i>
-                                                            Ver mais
-                                                        </button>
-                                                        <% } %>
                                             </div>
                                         </div>
 
