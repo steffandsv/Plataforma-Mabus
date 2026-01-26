@@ -587,6 +587,24 @@ async function initDB() {
             )
         `);
 
+        // --- USER LICITACAO INTERACTIONS TABLE (catalog all user actions for ML) ---
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_licitacao_interactions (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                licitacao_id INT NOT NULL,
+                action_type VARCHAR(30) NOT NULL,
+                metadata JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (licitacao_id) REFERENCES licitacoes(id) ON DELETE CASCADE
+            )
+        `);
+        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_user ON user_licitacao_interactions(user_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_licitacao ON user_licitacao_interactions(licitacao_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_interactions_action ON user_licitacao_interactions(action_type)`);
+
         // --- USER CNPJ DATA TABLE (company information for personalization) ---
         await query(`
             CREATE TABLE IF NOT EXISTS user_cnpj_data (
@@ -1643,84 +1661,144 @@ async function updateUserLicitacoesPreferences(userId, preferences) {
     ]);
 }
 
-async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offset = 0) {
+async function getPersonalizedLicitacoes(userId, filters = {}, limit = 15, offset = 0) {
     const p = await getPool();
     if (!p) return [];
 
     const prefs = await getUserLicitacoesPreferences(userId);
     const cnpjData = await getUserCNPJData(userId);
 
-    // Postgres SQL Construction
-    // Note: Array iteration for dynamic query building needs careful handling with placeholders
+    // Get IDs of already interacted licitacoes (skip, save, dislike)
+    const interactedIds = await getInteractedLicitacaoIds(userId);
 
     let paramIndex = 1;
     let params = [];
 
-    // Keyword scoring logic
-    let keywordScore = '0';
+    // Build the main query with normalized scoring (max 100%)
+    // Score breakdown:
+    // - Keywords (eliminatory + ranking): up to 40 pts
+    // - Location (UF match): up to 25 pts
+    // - Modalidade match: up to 15 pts
+    // - Value range match: up to 10 pts
+    // - CNPJ/CNAE bonus: up to 10 pts
+
+    // Keywords scoring - eliminatory but flexible
+    let keywordScore = '40'; // Default max score if no keywords defined
+    let keywordFilter = '';
+
     if (prefs.keywords && prefs.keywords.length > 0) {
-        // use ILIKE for case insensitive
-        keywordScore = '(' + prefs.keywords.map(kw => {
+        // Build flexible keyword matching (case insensitive, accent tolerant via unaccent if available)
+        const keywordConditions = prefs.keywords.map(kw => {
             const idx = paramIndex++;
-            params.push(`%${kw}%`); // Push pattern
-            return `(CASE WHEN l.objeto_compra ILIKE $${idx} THEN 10 ELSE 0 END)`;
+            params.push(`%${kw}%`);
+            return `(
+                LOWER(COALESCE(l.objeto_compra, '')) LIKE LOWER($${idx}) OR 
+                LOWER(COALESCE(l.informacao_complementar, '')) LIKE LOWER($${idx})
+            )`;
+        });
+
+        // Eliminatory: at least one keyword must match
+        keywordFilter = ` AND (${keywordConditions.join(' OR ')})`;
+
+        // Scoring: 40 points distributed by number of matches
+        const pointsPerKeyword = Math.round(40 / prefs.keywords.length);
+        keywordScore = '(' + prefs.keywords.map((kw, i) => {
+            const baseIdx = params.length - prefs.keywords.length + i + 1;
+            return `(CASE WHEN LOWER(COALESCE(l.objeto_compra, '')) LIKE LOWER($${baseIdx}) THEN ${pointsPerKeyword} ELSE 0 END)`;
         }).join(' + ') + ')';
     }
 
-    // Location scoring
+    // Location scoring - up to 25 points
     let locationScore = '0';
     if (prefs.preferred_ufs && prefs.preferred_ufs.length > 0) {
         const idx = paramIndex++;
         params.push(prefs.preferred_ufs);
-        locationScore = `(CASE WHEN l.uf_sigla = ANY($${idx}::text[]) THEN 30 ELSE 0 END)`;
+        locationScore = `(CASE WHEN l.uf_sigla = ANY($${idx}::text[]) THEN 25 ELSE 0 END)`;
+    } else if (cnpjData && cnpjData.uf) {
+        // If no preference but has CNPJ, use company UF
+        const idx = paramIndex++;
+        params.push(cnpjData.uf);
+        locationScore = `(CASE WHEN l.uf_sigla = $${idx} THEN 25 ELSE 0 END)`;
     }
 
-    // Modalidade scoring
+    // Modalidade scoring - up to 15 points
     let modalidadeScore = '0';
     if (prefs.preferred_modalidades && prefs.preferred_modalidades.length > 0) {
         const idx = paramIndex++;
         params.push(prefs.preferred_modalidades);
-        modalidadeScore = `(CASE WHEN l.modalidade_licitacao = ANY($${idx}::text[]) THEN 20 ELSE 0 END)`;
+        modalidadeScore = `(CASE WHEN l.modalidade_licitacao = ANY($${idx}::text[]) THEN 15 ELSE 0 END)`;
     }
 
-    // Value Range scoring
+    // Value Range scoring - up to 10 points
     const minIdx = paramIndex++;
     const maxIdx = paramIndex++;
     params.push(prefs.min_value || 0, prefs.max_value || 999999999);
-    const valueScore = `(CASE WHEN l.valor_estimado_total BETWEEN $${minIdx} AND $${maxIdx} THEN 10 ELSE 0 END)`;
+    const valueScore = `(CASE 
+        WHEN l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 0 THEN 5 
+        WHEN l.valor_estimado_total BETWEEN $${minIdx} AND $${maxIdx} THEN 10 
+        ELSE 0 
+    END)`;
 
-    // CNPJ scoring
-    let cnaeScore = '0', ufCompScore = '0', cityCompScore = '0';
+    // CNAE bonus - up to 10 points (for businesses that registered their CNPJ)
+    let cnaeScore = '0';
+    if (cnpjData && cnpjData.cnae_principal_descricao) {
+        // Extract main keywords from CNAE description (first 3 significant words)
+        const cnaeWords = cnpjData.cnae_principal_descricao
+            .split(/\s+/)
+            .filter(w => w.length > 4)
+            .slice(0, 3);
 
-    if (cnpjData) {
-        const cnaeDesc = cnpjData.cnae_principal_descricao || '';
-        const idxCnae = paramIndex++;
-        params.push(`%${cnaeDesc}%`);
-        cnaeScore = `(CASE WHEN l.objeto_compra ILIKE $${idxCnae} OR l.informacao_complementar ILIKE $${idxCnae} THEN 30 ELSE 0 END)`;
+        if (cnaeWords.length > 0) {
+            cnaeScore = '(' + cnaeWords.map(word => {
+                const idx = paramIndex++;
+                params.push(`%${word}%`);
+                return `(CASE WHEN LOWER(l.objeto_compra) LIKE LOWER($${idx}) THEN ${Math.round(10 / cnaeWords.length)} ELSE 0 END)`;
+            }).join(' + ') + ')';
+        }
+    }
 
-        const idxUf = paramIndex++;
-        params.push(cnpjData.uf);
-        ufCompScore = `(CASE WHEN l.uf_sigla = $${idxUf} THEN 15 ELSE 0 END)`;
+    // Build exclusion clause for interacted licitacoes
+    let exclusionClause = '';
+    if (interactedIds.length > 0) {
+        const idx = paramIndex++;
+        params.push(interactedIds);
+        exclusionClause = ` AND l.id != ALL($${idx}::int[])`;
+    }
 
-        const idxCity = paramIndex++;
-        params.push(cnpjData.municipio);
-        cityCompScore = `(CASE WHEN l.municipio_nome ILIKE $${idxCity} THEN 25 ELSE 0 END)`;
+    // Build excluded deadline filter (only show valid/future deadlines or null)
+    const deadlineFilter = ` AND (l.data_encerramento_proposta > NOW() OR l.data_encerramento_proposta IS NULL)`;
+
+    // Porte filter (limit by company size)
+    let porteFilter = '';
+    if (cnpjData && cnpjData.porte_empresa) {
+        const porte = cnpjData.porte_empresa.toUpperCase();
+        if (porte.includes('MEI')) {
+            porteFilter = ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 100000)';
+        } else if (porte.includes('MICRO')) {
+            porteFilter = ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 500000)';
+        } else if (porte.includes('PEQUENO')) {
+            porteFilter = ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 2000000)';
+        }
     }
 
     let sql = `
         SELECT l.*,
-        (
+        LEAST(100, (
             ${keywordScore} +
             ${locationScore} + 
             ${modalidadeScore} +
-            ${valueScore}
-            ${cnpjData ? `+ ${cnaeScore} + ${ufCompScore} + ${cityCompScore}` : ''}
-        ) AS relevance_score
+            ${valueScore} +
+            ${cnaeScore}
+        )) AS relevance_score
         FROM licitacoes l
         WHERE 1=1
+        ${keywordFilter}
+        ${exclusionClause}
+        ${deadlineFilter}
+        ${porteFilter}
     `;
 
-    // Filters
+    // Additional filters from request
     if (filters.cnpj_orgao) {
         sql += ` AND l.cnpj_orgao = $${paramIndex++}`;
         params.push(filters.cnpj_orgao);
@@ -1734,32 +1812,33 @@ async function getPersonalizedLicitacoes(userId, filters = {}, limit = 50, offse
         params.push(filters.search);
     }
 
-    if (cnpjData && cnpjData.porte_empresa) {
-        const porte = cnpjData.porte_empresa.toUpperCase();
-        if (porte.includes('MEI')) {
-            sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 100000)';
-        } else if (porte.includes('MICRO')) {
-            sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 500000)';
-        } else if (porte.includes('PEQUENO')) {
-            sql += ' AND (l.valor_estimado_total IS NULL OR l.valor_estimado_total <= 2000000)';
-        }
-    }
-
     sql += ` ORDER BY relevance_score DESC, l.data_publicacao_pncp DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);
 
     const { rows } = await p.query(sql, params);
 
-    // Add match indicators (in memory ok)
-    rows.forEach(row => {
+    // Enrich each row with financial metrics and deadline info
+    for (const row of rows) {
+        // Calculate financial metrics
+        const metrics = await calculateFinancialMetrics(row.id);
+        row.lucro_esperado = metrics.lucroEsperado;
+        row.capital_necessario = metrics.capitalNecessario;
+        row.is_valor_sigiloso = metrics.isSigiloso;
+
+        // Calculate deadline info
+        row.has_valid_deadline = isValidDeadline(row.data_encerramento_proposta);
+        if (!row.has_valid_deadline) {
+            const estimated = calculateEstimatedDeadline(row.data_publicacao_pncp, row.modalidade_licitacao);
+            row.prazo_previsto = estimated;
+        }
+
+        // Match indicators
         const matchedKeywords = (prefs.keywords || []).filter(kw =>
             row.objeto_compra && row.objeto_compra.toLowerCase().includes(kw.toLowerCase())
         );
         row.matched_keywords = matchedKeywords.join(',');
-        if (cnpjData) {
-            row.has_cnpj_match = row.relevance_score > 60;
-        }
-    });
+        row.has_cnpj_match = cnpjData && row.relevance_score > 60;
+    }
 
     return rows;
 }
@@ -2076,6 +2155,175 @@ async function updateLicitacaoRawData(id, rawItems, rawFiles) {
     }
 }
 
+// --- USER LICITACAO INTERACTIONS FUNCTIONS ---
+
+async function logUserInteraction(userId, licitacaoId, actionType, metadata = null) {
+    const p = await getPool();
+    if (!p) return;
+
+    try {
+        await p.query(
+            `INSERT INTO user_licitacao_interactions (user_id, licitacao_id, action_type, metadata)
+             VALUES ($1, $2, $3, $4)`,
+            [userId, licitacaoId, actionType, metadata ? JSON.stringify(metadata) : null]
+        );
+    } catch (e) {
+        console.warn(`[DB] Error logging interaction: ${e.message}`);
+    }
+}
+
+async function getInteractedLicitacaoIds(userId, actionTypes = ['skip', 'save', 'dislike']) {
+    const p = await getPool();
+    if (!p) return [];
+
+    // Get IDs from both interactions table AND legacy tables
+    const { rows: interactionRows } = await p.query(
+        `SELECT DISTINCT licitacao_id FROM user_licitacao_interactions 
+         WHERE user_id = $1 AND action_type = ANY($2::text[])`,
+        [userId, actionTypes]
+    );
+
+    const { rows: savedRows } = await p.query(
+        `SELECT licitacao_id FROM user_saved_licitacoes WHERE user_id = $1`,
+        [userId]
+    );
+
+    const { rows: dislikedRows } = await p.query(
+        `SELECT licitacao_id FROM user_disliked_licitacoes WHERE user_id = $1`,
+        [userId]
+    );
+
+    const allIds = new Set([
+        ...interactionRows.map(r => r.licitacao_id),
+        ...savedRows.map(r => r.licitacao_id),
+        ...dislikedRows.map(r => r.licitacao_id)
+    ]);
+
+    return Array.from(allIds);
+}
+
+// --- FINANCIAL METRICS FUNCTIONS ---
+
+async function calculateFinancialMetrics(licitacaoId) {
+    const p = await getPool();
+    if (!p) return { lucroEsperado: 0, capitalNecessario: 0, valorMaterial: 0, valorServico: 0, isSigiloso: false };
+
+    // Get licitacao to check if sigiloso
+    const { rows: licRows } = await p.query(
+        'SELECT valor_estimado_total FROM licitacoes WHERE id = $1',
+        [licitacaoId]
+    );
+
+    const valorTotal = licRows[0]?.valor_estimado_total;
+    const isSigiloso = !valorTotal || parseFloat(valorTotal) <= 0;
+
+    if (isSigiloso) {
+        return { lucroEsperado: 0, capitalNecessario: 0, valorMaterial: 0, valorServico: 0, isSigiloso: true };
+    }
+
+    // Get items and calculate by type
+    const { rows: itens } = await p.query(
+        'SELECT valor_total_estimado, material_ou_servico FROM licitacoes_itens WHERE licitacao_id = $1',
+        [licitacaoId]
+    );
+
+    let valorMaterial = 0, valorServico = 0;
+
+    if (itens.length === 0) {
+        // No items, use total value as material (conservative estimate)
+        valorMaterial = parseFloat(valorTotal) || 0;
+    } else {
+        itens.forEach(item => {
+            const valor = parseFloat(item.valor_total_estimado) || 0;
+            if (item.material_ou_servico === 'S') {
+                valorServico += valor;
+            } else {
+                // Default to material (M or null)
+                valorMaterial += valor;
+            }
+        });
+    }
+
+    // Calculate metrics
+    // Material: 25% profit margin, 60% capital needed
+    // Service: 65% profit margin, 20% capital needed
+    const lucroEsperado = (valorMaterial * 0.25) + (valorServico * 0.65);
+    const capitalNecessario = (valorMaterial * 0.60) + (valorServico * 0.20);
+
+    return {
+        lucroEsperado: Math.round(lucroEsperado * 100) / 100,
+        capitalNecessario: Math.round(capitalNecessario * 100) / 100,
+        valorMaterial: Math.round(valorMaterial * 100) / 100,
+        valorServico: Math.round(valorServico * 100) / 100,
+        isSigiloso: false
+    };
+}
+
+// --- DEADLINE CALCULATION FUNCTIONS ---
+
+// Brazilian holidays for 2026 (add more years as needed)
+const BRAZILIAN_HOLIDAYS_2026 = [
+    '2026-01-01', // Confraternização Universal
+    '2026-02-16', '2026-02-17', // Carnaval
+    '2026-04-03', // Sexta-feira Santa
+    '2026-04-21', // Tiradentes
+    '2026-05-01', // Dia do Trabalho
+    '2026-06-04', // Corpus Christi
+    '2026-09-07', // Independência
+    '2026-10-12', // Nossa Senhora Aparecida
+    '2026-11-02', // Finados
+    '2026-11-15', // Proclamação da República
+    '2026-12-25'  // Natal
+];
+
+function isBusinessDay(date) {
+    const dateStr = date.toISOString().split('T')[0];
+    const dayOfWeek = date.getDay();
+
+    // Weekend check
+    if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+
+    // Holiday check
+    if (BRAZILIAN_HOLIDAYS_2026.includes(dateStr)) return false;
+
+    return true;
+}
+
+function addBusinessDays(startDate, days) {
+    const result = new Date(startDate);
+    let addedDays = 0;
+
+    while (addedDays < days) {
+        result.setDate(result.getDate() + 1);
+        if (isBusinessDay(result)) {
+            addedDays++;
+        }
+    }
+
+    return result;
+}
+
+function calculateEstimatedDeadline(dataPublicacao, modalidade) {
+    if (!dataPublicacao) return null;
+
+    const date = new Date(dataPublicacao);
+    if (isNaN(date.getTime())) return null;
+
+    // Dispensa: 3 business days, Pregão: 8 business days
+    const businessDays = (modalidade && modalidade.toLowerCase().includes('dispensa')) ? 3 : 8;
+
+    return addBusinessDays(date, businessDays);
+}
+
+function isValidDeadline(date) {
+    if (!date) return false;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return false;
+    // Invalid if before 2026
+    if (d.getFullYear() < 2026) return false;
+    return true;
+}
+
 module.exports = {
     initDB,
     createTask,
@@ -2152,6 +2400,13 @@ module.exports = {
     updateUserCNPJData,
     deleteUserCNPJData,
     updateLicitacaoRawData,
+    // Interactions & Analytics
+    logUserInteraction,
+    getInteractedLicitacaoIds,
+    // Financial Metrics
+    calculateFinancialMetrics,
+    calculateEstimatedDeadline,
+    isValidDeadline,
     getPool
 };
 

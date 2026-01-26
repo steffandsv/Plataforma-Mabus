@@ -93,22 +93,96 @@ class StoryFeedEngine {
 
     setupKeyboardNavigation() {
         document.addEventListener('keydown', (e) => {
+            // Ignore if modal is open
+            if (document.getElementById('itemsModal').style.display === 'flex' ||
+                document.getElementById('objetoModal').style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    closeItemsModal();
+                    closeObjetoModal();
+                }
+                return;
+            }
+
             if (this.isNavigating) return;
 
-            if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown') {
-                e.preventDefault();
-                this.nextCard();
-            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
-                e.preventDefault();
-                this.prevCard();
-            } else if (e.key === 'Home') {
-                e.preventDefault();
-                this.showCard(0);
-            } else if (e.key === 'End') {
-                e.preventDefault();
-                this.showCard(this.totalCards - 1);
+            const key = e.key.toLowerCase();
+
+            switch (key) {
+                case 'arrowdown':
+                case 'arrowright':
+                case 'pagedown':
+                    e.preventDefault();
+                    this.nextCard();
+                    break;
+                case 'arrowup':
+                case 'arrowleft':
+                case 'pageup':
+                    e.preventDefault();
+                    this.prevCard();
+                    break;
+                case 'home':
+                    e.preventDefault();
+                    this.showCard(0);
+                    break;
+                case 'end':
+                    e.preventDefault();
+                    this.showCard(this.totalCards - 1);
+                    break;
+                case 's':
+                    if (typeof saveOpportunity === 'function') {
+                        const currentId = this.getCurrentCardId();
+                        if (currentId) {
+                            saveOpportunity(currentId);
+                            this.showKeyFeedback('S', 'Salvo!');
+                            setTimeout(() => this.nextCard(), 800); // Auto advances
+                        }
+                    }
+                    break;
+                case 'p':
+                    if (typeof skipCardWithAPI === 'function') {
+                        skipCardWithAPI();
+                        this.showKeyFeedback('P', 'Pulado');
+                    }
+                    break;
+                case 'd':
+                    const currentId = this.getCurrentCardId();
+                    if (currentId && typeof openDetailsModal === 'function') {
+                        openDetailsModal(currentId);
+                    } else if (currentId) {
+                        // Fallback to link navigation if modal not ready
+                        window.location.href = `/licitacoes/${currentId}`;
+                    }
+                    break;
             }
         });
+    }
+
+    getCurrentCardId() {
+        if (this.currentIndex >= 0 && this.currentIndex < this.cards.length) {
+            return this.cards[this.currentIndex].getAttribute('data-id');
+        }
+        return null;
+    }
+
+    showKeyFeedback(key, message) {
+        // Visual feedback for keyboard actions
+        const feedback = document.createElement('div');
+        feedback.className = 'key-feedback';
+        feedback.innerHTML = `<span class="key">${key.toUpperCase()}</span> ${message}`;
+        document.body.appendChild(feedback);
+
+        setTimeout(() => feedback.classList.add('show'), 10);
+        setTimeout(() => {
+            feedback.classList.remove('show');
+            setTimeout(() => feedback.remove(), 300);
+        }, 1000);
+    }
+
+    hideHintsAfterDelay() {
+        setTimeout(() => {
+            const hints = document.querySelectorAll('.keyboard-hints');
+            hints.forEach(hint => hint.style.opacity = '0');
+        }, 5000); // Fade out after 5s
     }
 
     handleSwipe() {
@@ -135,6 +209,16 @@ class StoryFeedEngine {
             if (i === index) {
                 card.classList.add('active');
                 this.animateCardReveal(card);
+
+                // Log view via API
+                const id = card.getAttribute('data-id');
+                if (id) {
+                    // Debounce view logging (only if viewed for > 2s)
+                    clearTimeout(this.viewTimer);
+                    this.viewTimer = setTimeout(() => {
+                        fetch(`/api/licitacoes/${id}/view`, { method: 'POST' }).catch(console.error);
+                    }, 2000);
+                }
             } else if (i < index) {
                 card.classList.add('prev');
             } else {
@@ -392,6 +476,73 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+
+
+/* ============================================
+   GLOBAL API ACTIONS (Called by HTML & Shortcuts)
+   ============================================ */
+
+window.storyFeedEngine = null;
+document.addEventListener('DOMContentLoaded', () => {
+    window.storyFeedEngine = new StoryFeedEngine();
+});
+
+// Skip Action
+window.skipCardWithAPI = function () {
+    if (!window.storyFeedEngine) return;
+
+    const id = window.storyFeedEngine.getCurrentCardId();
+    if (!id) return;
+
+    // Optimistic UI update
+    window.storyFeedEngine.nextCard();
+
+    // Call API in background
+    fetch(`/api/licitacoes/${id}/skip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).catch(err => console.error('Error skipping:', err));
+};
+
+// Save Action
+window.saveOpportunity = async function (id) {
+    if (!id) return;
+
+    const btn = document.querySelector(`.story-card[data-id="${id}"] .save-btn-external`);
+    if (btn) btn.classList.add('loading');
+
+    try {
+        const response = await fetch(`/api/licitacoes/${id}/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Show success via Engine feedback if available
+            if (window.storyFeedEngine) {
+                window.storyFeedEngine.showKeyFeedback('S', 'Salvo!');
+            }
+            // Auto advance after short delay
+            setTimeout(() => {
+                if (window.storyFeedEngine) window.storyFeedEngine.nextCard();
+            }, 800);
+        }
+    } catch (error) {
+        console.error('Error saving:', error);
+    } finally {
+        if (btn) btn.classList.remove('loading');
+    }
+};
+
+// Details Modal (Overlay)
+window.openDetailsModal = function (id) {
+    // For now, redirect to details page as modal implementation would require 
+    // fetching entire partial view or specific API endpoint rendering HTML
+    window.location.href = `/licitacoes/${id}`;
+};
 
 function truncate(text, maxLength) {
     if (text.length <= maxLength) return text;

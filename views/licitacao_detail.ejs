@@ -37,6 +37,11 @@
                         </div>
                     </div>
 
+                    <!-- Financial Metrics & Deadline (Loaded via JS) -->
+                    <div id="financialMetricsContainer" class="mb-4 hidden">
+                        <!-- Content injected by JS -->
+                    </div>
+
                     <!-- Botões de Ação -->
                     <div class="flex gap-2 flex-wrap">
                         <!-- Interest Controls -->
@@ -645,7 +650,101 @@
             // Initialize on page load
             document.addEventListener('DOMContentLoaded', () => {
                 initMap();
+                loadFinancialMetrics();
+                setupDownloadLogging();
             });
+
+            // Load Financial Metrics
+            async function loadFinancialMetrics() {
+                try {
+                    const container = document.getElementById('financialMetricsContainer');
+                    const response = await fetch(`/api/licitacoes/${licitacaoId}/financial-metrics`);
+                    const json = await response.json();
+
+                    if (!json.success || !json.data) return;
+
+                    const data = json.data;
+                    const valorTotal = <%= licitacao.valor_estimado_total || 0 %>;
+
+                    let html = '';
+
+                    if (data.isSigiloso) {
+                        html = `
+                            <div class="alert alert-warning shadow-lg">
+                                <i class="fas fa-lock"></i>
+                                <div>
+                                    <h3 class="font-bold">Valor Sigiloso</h3>
+                                    <div class="text-xs">O órgão optou por não divulgar o orçamento estimado.</div>
+                                </div>
+                            </div>
+                        `;
+                    } else if (valorTotal > 0) {
+                        html = `
+                            <div class="stats shadow w-full bg-base-200">
+                                <div class="stat">
+                                    <div class="stat-figure text-primary">
+                                        <i class="fas fa-money-bill-wave text-3xl"></i>
+                                    </div>
+                                    <div class="stat-title">Valor Estimado</div>
+                                    <div class="stat-value text-primary text-2xl">
+                                        R$ ${valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-figure text-secondary">
+                                        <i class="fas fa-chart-line text-3xl"></i>
+                                    </div>
+                                    <div class="stat-title">Lucro Esperado</div>
+                                    <div class="stat-value text-secondary text-2xl">
+                                        R$ ${data.lucroEsperado.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                    </div>
+                                    <div class="stat-desc">Margem estimada baseada no tipo de item</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-figure text-accent">
+                                        <i class="fas fa-piggy-bank text-3xl"></i>
+                                    </div>
+                                    <div class="stat-title">Capital Necessário</div>
+                                    <div class="stat-value text-accent text-2xl">
+                                        R$ ${data.capitalNecessario.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                    </div>
+                                    <div class="stat-desc">Aporte inicial estimado</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Add Estimated Deadline if needed
+                    /* 
+                       Note: We could calculate deadline urgency here too, 
+                       but let's keep it simple for now as the dashboard feed is the main dopamine driver.
+                    */
+
+                    if (html) {
+                        container.innerHTML = html;
+                        container.classList.remove('hidden');
+                    }
+
+                } catch (e) {
+                    console.error('Error loading financial metrics:', e);
+                }
+            }
+
+            // Setup Download Logging
+            function setupDownloadLogging() {
+                const downloadLinks = document.querySelectorAll('a[href*="pncp.gov.br"], a[title="Baixar Arquivo"]');
+                downloadLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        const arquivoNome = link.textContent.trim();
+                        // Call API without awaiting (fire and forget)
+                        fetch(`/api/licitacoes/${licitacaoId}/download-log`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ arquivoNome })
+                        }).catch(console.error);
+                    });
+                });
+            }
         </script>
 
         <%- include('partials/footer') %>

@@ -48,7 +48,7 @@ const {
     updateSyncControl,
     getActiveSyncControl,
     getLatestSyncControl,
-    getBatchStatus, // NEW
+    getBatchStatus,
     // Preferences & Personalization
     getUserLicitacoesPreferences,
     updateUserLicitacoesPreferences,
@@ -65,7 +65,14 @@ const {
     createUserCNPJData,
     getUserCNPJData,
     updateUserCNPJData,
-    deleteUserCNPJData
+    deleteUserCNPJData,
+    // Interactions & Analytics
+    logUserInteraction,
+    getInteractedLicitacaoIds,
+    // Financial Metrics
+    calculateFinancialMetrics,
+    calculateEstimatedDeadline,
+    isValidDeadline
 } = require('./src/database');
 const { startWorker } = require('./src/worker');
 const { generateExcelBuffer } = require('./src/export');
@@ -226,7 +233,7 @@ app.get('/oracle', isAuthenticated, async (req, res) => {
 app.get('/licitacoes', isAuthenticated, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 50;
+        const limit = 15; // Reduced from 50 for better performance
         const offset = (page - 1) * limit;
 
         // Get user preferences for default view mode
@@ -508,6 +515,8 @@ app.post('/profile/preferences', isAuthenticated, async (req, res) => {
 app.post('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
     try {
         const saved = await saveUserLicitacao(req.session.userId, req.params.id, req.body.notes);
+        // Log interaction for analytics
+        await logUserInteraction(req.session.userId, req.params.id, 'save');
         if (saved) {
             res.json({ success: true, message: 'Oportunidade salva!' });
         } else {
@@ -558,6 +567,8 @@ app.delete('/api/licitacoes/:id/save', isAuthenticated, async (req, res) => {
 app.post('/api/licitacoes/:id/dislike', isAuthenticated, async (req, res) => {
     try {
         const disliked = await dislikeUserLicitacao(req.session.userId, req.params.id);
+        // Log interaction for analytics
+        await logUserInteraction(req.session.userId, req.params.id, 'dislike');
         if (disliked) {
             res.json({ success: true, message: 'Marcado como sem interesse' });
         } else {
@@ -573,9 +584,57 @@ app.post('/api/licitacoes/:id/dislike', isAuthenticated, async (req, res) => {
 app.delete('/api/licitacoes/:id/dislike', isAuthenticated, async (req, res) => {
     try {
         await undislikeUserLicitacao(req.session.userId, req.params.id);
+        // Log interaction for analytics
+        await logUserInteraction(req.session.userId, req.params.id, 'undislike');
         res.json({ success: true, message: 'Interesse restaurado' });
     } catch (e) {
         console.error('[Undislike Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Skip licitação (dopamine feed action)
+app.post('/api/licitacoes/:id/skip', isAuthenticated, async (req, res) => {
+    try {
+        // Log skip action for analytics - this removes from future feed
+        await logUserInteraction(req.session.userId, req.params.id, 'skip');
+        res.json({ success: true, message: 'Pulada' });
+    } catch (e) {
+        console.error('[Skip Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Log view (for analytics)
+app.post('/api/licitacoes/:id/view', isAuthenticated, async (req, res) => {
+    try {
+        await logUserInteraction(req.session.userId, req.params.id, 'view');
+        res.json({ success: true });
+    } catch (e) {
+        console.error('[View Licitacao Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Get financial metrics for a licitação
+app.get('/api/licitacoes/:id/financial-metrics', isAuthenticated, async (req, res) => {
+    try {
+        const metrics = await calculateFinancialMetrics(req.params.id);
+        res.json({ success: true, data: metrics });
+    } catch (e) {
+        console.error('[Financial Metrics Error]:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// API: Log file download (for analytics)
+app.post('/api/licitacoes/:id/download-log', isAuthenticated, async (req, res) => {
+    try {
+        const { arquivoId, arquivoNome } = req.body;
+        await logUserInteraction(req.session.userId, req.params.id, 'download', { arquivoId, arquivoNome });
+        res.json({ success: true });
+    } catch (e) {
+        console.error('[Download Log Error]:', e);
         res.status(500).json({ error: e.message });
     }
 });
