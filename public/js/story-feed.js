@@ -184,16 +184,15 @@ class PhysicsStream {
                 opacity = Math.max(0.5, 1 - (distRatio * 0.8));
 
             } else if (relativePos < 0) {
-                // Past (Left side) - exit stage left
-                // Move normally scaling down slightly
-                x = relativePos;
-                scale = Math.max(0.9, 1 + (distRatio * 0.2));
-                opacity = Math.max(0, 1 + distRatio * 1.5); // Fade fast
+                // Past (Left side) - Stack visible on left
+                x = relativePos * 0.4;
+                scale = Math.max(0.8, 1 - (Math.abs(distRatio) * 0.5));
+                opacity = Math.max(0.5, 1 - (Math.abs(distRatio) * 0.8));
             }
 
-            // Apply 2D transforms only
+            // Apply 2D transforms - Key Fix: translateX(-50%) to center the element on its origin x
             // Using translate3d for hardware acceleration, but with Z=0 (or effectively 0 context)
-            card.style.transform = `translate3d(${x}px, -50%, 0) scale(${scale})`;
+            card.style.transform = `translate3d(${x}px, -50%, 0) translateX(-50%) scale(${scale})`;
             card.style.opacity = opacity;
             card.style.zIndex = zIndex;
 
@@ -208,11 +207,86 @@ class PhysicsStream {
         if (id) {
             clearTimeout(this.logTimer);
             this.logTimer = setTimeout(() => {
-                // console.log('View logged:', id);
+                fetch(`/api/licitacoes/${id}/view`, { method: 'POST' }).catch(() => { });
             }, 1000);
         }
     }
 }
+
+// Global Modal Functions
+window.openDescriptionModal = function (id) {
+    const fullText = document.getElementById(`full-desc-${id}`)?.value;
+    const modal = document.getElementById('desc_modal');
+    const content = document.getElementById('desc_modal_content');
+
+    if (fullText && modal && content) {
+        content.innerText = fullText;
+        modal.showModal();
+    }
+};
+
+window.openItemsModal = async function (id) {
+    const modal = document.getElementById('items_modal');
+    const content = document.getElementById('items_modal_content');
+
+    if (!modal || !content) return;
+
+    modal.showModal();
+    content.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-40">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+            <span class="mt-4 text-white/50">Carregando itens...</span>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`/api/licitacoes/${id}/items`);
+        const data = await response.json();
+
+        if (data.success && data.items.length > 0) {
+            let rows = data.items.map(item => `
+                <tr class="hover:bg-white/5 border-b border-white/5 text-sm">
+                    <td class="px-4 py-3 font-mono text-xs opacity-70">${item.numero_item}</td>
+                    <td class="px-4 py-3 font-medium opacity-90">${item.descricao || 'Sem descrição'}</td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap opacity-80">${item.quantidade} <span class="text-xs opacity-50">un</span></td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap opacity-80">R$ ${(item.valor_unitario_estimado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap font-bold text-emerald-400">R$ ${(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                </tr>
+            `).join('');
+
+            content.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="table w-full">
+                        <thead class="text-xs uppercase bg-black/20 text-white/40 sticky top-0 back-glass">
+                            <tr>
+                                <th class="px-4 py-3">#</th>
+                                <th class="px-4 py-3">Descrição</th>
+                                <th class="px-4 py-3 text-right">Qtd</th>
+                                <th class="px-4 py-3 text-right">Unit.</th>
+                                <th class="px-4 py-3 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            content.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-40 opacity-50">
+                    <i class="fas fa-box-open text-4xl mb-4"></i>
+                    <p>Nenhum item encontrado.</p>
+                </div>
+            `;
+        }
+    } catch (e) {
+        content.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-40 text-red-400">
+                <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
+                <p>Erro ao carregar itens.</p>
+            </div>
+        `;
+    }
+};
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

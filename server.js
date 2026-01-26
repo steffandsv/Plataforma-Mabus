@@ -230,13 +230,26 @@ app.get('/oracle', isAuthenticated, async (req, res) => {
 
 // === LICITAÇÕES MODULE (PNCP) ===
 
+// Helper: Add Business Days
+function addBusinessDays(startDate, days) {
+    let count = 0;
+    let currentDate = new Date(startDate);
+    while (count < days) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        const day = currentDate.getDay();
+        if (day !== 0 && day !== 6) { // 0 = Sun, 6 = Sat
+            count++;
+        }
+    }
+    return currentDate;
+}
+
 app.get('/licitacoes', isAuthenticated, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 15; // Reduced from 50 for better performance
+        const limit = 20; // Increased slighty to account for filtering
         const offset = (page - 1) * limit;
 
-        // Get user preferences for default view mode
         const prefs = await getUserLicitacoesPreferences(req.session.userId);
         const viewMode = req.query.view || prefs.default_view_mode || 'story';
 
@@ -246,15 +259,65 @@ app.get('/licitacoes', isAuthenticated, async (req, res) => {
             modalidade: req.query.modalidade
         };
 
-        // Use personalized feed with scoring
-        const licitacoes = await getPersonalizedLicitacoes(
+        // 1. Fetch Data
+        let licitacoes = await getPersonalizedLicitacoes(
             req.session.userId,
             filters,
-            limit,
+            limit + 10, // Over-fetch slightly to handle filtered items
             offset
         );
 
-        const hasNext = licitacoes.length === limit;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        // 2. Filter & Process (Logic defined by user)
+        // - APENAS não vencidas (data_encerramento_proposta > hoje)
+        // - Se null ou ano < 2026 -> Calcular Prazo Previsto
+
+        licitacoes = licitacoes.map(lic => {
+            // Normalize Deadline
+            let deadline = lic.data_encerramento_proposta ? new Date(lic.data_encerramento_proposta) : null;
+            let isCalculated = false;
+            let showPrazo = false;
+
+            // Check validity (Invalid if null or year < 2026)
+            const isInvalidDeadline = !deadline || deadline.getFullYear() < 2026;
+
+            if (isInvalidDeadline) {
+                // Calculate Prazo Previsto
+                // Start Date: data_publicacao_pncp (or created_at/now if missing)
+                const startDate = lic.data_publicacao_pncp ? new Date(lic.data_publicacao_pncp) : new Date();
+
+                if (lic.modalidade_licitacao === 'Dispensa') {
+                    deadline = addBusinessDays(startDate, 3);
+                    isCalculated = true;
+                } else if (lic.modalidade_licitacao === 'Pregão - Eletrônico' || lic.modalidade_licitacao === 'Pregão') {
+                    deadline = addBusinessDays(startDate, 8);
+                    isCalculated = true;
+                } else {
+                    // Default fallback for others? Keep logic strict as requested.
+                    // If we can't calculate, we might filter it out or show as "Sem prazo".
+                    // Let's assume we keep it but mark as unknown/calculated logic fallback
+                    deadline = addBusinessDays(startDate, 5); // Fallback
+                    isCalculated = true;
+                }
+                showPrazo = true; // Flag to show "Prazo Previsto" in UI
+            }
+
+            // check expiry
+            if (deadline < now) return null; // Filter out expired
+
+            // Attach calculated data for View
+            lic.final_deadline = deadline;
+            lic.is_calculated_deadline = isCalculated;
+            lic.show_prazo_previsto = showPrazo;
+
+            return lic;
+        }).filter(lic => lic !== null);
+
+        // Slice to original limit after filtering
+        const hasNext = licitacoes.length > limit;
+        if (licitacoes.length > limit) licitacoes = licitacoes.slice(0, limit);
 
         res.render('licitacoes', {
             licitacoes,

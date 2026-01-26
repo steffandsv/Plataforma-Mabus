@@ -65,7 +65,7 @@
                                                     <span class="lbl">Lucro Est.</span>
                                                     <span class="val">R$ <%= (lic.lucro_esperado ||
                                                             0).toLocaleString('pt-BR', {maximumFractionDigits: 0}) %>
-                                                            </span>
+                                                    </span>
                                                 </div>
                                             </div>
                                             <div class="insight-box capital">
@@ -74,7 +74,7 @@
                                                     <span class="lbl">Capital Nec.</span>
                                                     <span class="val">R$ <%= (lic.capital_necessario ||
                                                             0).toLocaleString('pt-BR', {maximumFractionDigits: 0}) %>
-                                                            </span>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -111,13 +111,24 @@
                                                     <div class="card-body">
                                                         <div class="object-label"><i class="fas fa-file-alt"></i> Objeto
                                                         </div>
-                                                        <p class="line-clamp-4">
-                                                            <%= lic.objeto_compra || 'Objeto não informado.' %>
-                                                        </p>
+                                                        <div class="relative">
+                                                            <p class="line-clamp-2 text-sm opacity-90"
+                                                                id="desc-<%= lic.id %>">
+                                                                <%= lic.objeto_compra || 'Objeto não informado.' %>
+                                                            </p>
+                                                            <button onclick="openDescriptionModal('<%= lic.id %>')"
+                                                                class="text-xs text-blue-400 hover:text-blue-300 mt-1 font-medium underline-offset-2 hover:underline">
+                                                                Ver mais detalhes
+                                                            </button>
+                                                        </div>
+                                                        <!-- Hidden full text for modal logic -->
+                                                        <textarea id="full-desc-<%= lic.id %>"
+                                                            class="hidden"><%= lic.objeto_compra || '' %></textarea>
                                                     </div>
 
-                                                    <!-- 5. Tags & Meta -->
+                                                    <!-- 5. Tags & Meta (Deadlines moved here) -->
                                                     <div class="card-meta">
+                                                        <!-- Existing Tags -->
                                                         <% if (lic.modalidade_licitacao) { %>
                                                             <span class="meta-pill"><i class="fas fa-gavel"></i>
                                                                 <%= lic.modalidade_licitacao %>
@@ -127,13 +138,43 @@
                                                                     <span class="meta-pill srp"><i
                                                                             class="fas fa-box-open"></i> SRP</span>
                                                                     <% } %>
-                                                                        <% if (lic.data_publicacao_pncp) { %>
-                                                                            <span class="meta-pill"><i
-                                                                                    class="fas fa-calendar"></i> Pub:
-                                                                                <%= new
-                                                                                    Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
-                                                                                    %></span>
-                                                                            <% } %>
+
+                                                                        <!-- New Deadline Tag -->
+                                                                        <% if (lic.final_deadline) { %>
+                                                                            <% const d=new Date(lic.final_deadline);
+                                                                                const now=new Date(); const diffTime=d -
+                                                                                now; const diffDays=Math.ceil(diffTime /
+                                                                                (1000 * 60 * 60 * 24)); let
+                                                                                colorClass='bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                                                ; if (diffDays <=3)
+                                                                                colorClass='bg-red-500/10 text-red-400 border-red-500/20 animate-pulse'
+                                                                                ; else if (diffDays <=7)
+                                                                                colorClass='bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                                                ; %>
+                                                                                <span
+                                                                                    class="meta-pill <%= colorClass %>"
+                                                                                    style="border: 1px solid currentColor;">
+                                                                                    <i class="fas fa-clock"></i>
+                                                                                    <%= lic.show_prazo_previsto
+                                                                                        ? 'Previsto:' : 'Fim:' %>
+                                                                                        <%= d.toLocaleDateString('pt-BR')
+                                                                                            %>
+                                                                                            <% if(diffDays> 0) { %> (<%=
+                                                                                                    diffDays %>d) <% }
+                                                                                                        %>
+                                                                                </span>
+                                                                                <% } %>
+
+                                                                                    <% if (lic.data_publicacao_pncp) {
+                                                                                        %>
+                                                                                        <span class="meta-pill"><i
+                                                                                                class="fas fa-calendar"></i>
+                                                                                            Pub:
+                                                                                            <%= new
+                                                                                                Date(lic.data_publicacao_pncp).toLocaleDateString('pt-BR')
+                                                                                                %>
+                                                                                        </span>
+                                                                                        <% } %>
                                                     </div>
 
                                                     <!-- 6. Actions -->
@@ -159,6 +200,46 @@
                             <% } %>
         </div>
     </div>
+
+    <!-- Modals (Global) -->
+    <!-- Description Modal -->
+    <dialog id="desc_modal" class="modal">
+        <div class="modal-box glass-effect pl-8 pr-8 pt-8 pb-4 max-w-2xl text-left">
+            <h3 class="font-bold text-lg mb-4 text-blue-400">Objeto Completo</h3>
+            <p class="py-4 text-base opacity-90 leading-relaxed whitespace-pre-wrap" id="desc_modal_content"></p>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-ghost">Fechar</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- Items Modal -->
+    <dialog id="items_modal" class="modal">
+        <div class="modal-box glass-effect w-11/12 max-w-4xl p-0 overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fas fa-boxes text-blue-400"></i> Itens da Licitação
+                </h3>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost"><i class="fas fa-times"></i></button>
+                </form>
+            </div>
+
+            <div class="p-0 overflow-y-auto flex-1 bg-base-100/50" id="items_modal_content">
+                <div class="flex flex-col items-center justify-center h-40">
+                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                </div>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 
     <link rel="stylesheet" href="/css/dopamine.css">
     <script src="/js/story-feed.js" defer></script>
