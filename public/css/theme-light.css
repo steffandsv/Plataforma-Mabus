@@ -896,3 +896,146 @@
 [data-theme="lumina"] .label-text.text-xs {
     color: #4A5568;
 }
+/* ============================================
+   ADDITIONAL FORM INPUT TEXT OVERRIDES
+   Force text color for inputs with inline text-white
+   ============================================ */
+
+/* Override inline text-white on ALL inputs */
+[data-theme="lumina"] input.text-white,
+[data-theme="lumina"] textarea.text-white,
+[data-theme="lumina"] select.text-white,
+[data-theme="lumina"] .input.text-white,
+[data-theme="lumina"] .select.text-white {
+    color: #1A202C !important;
+}
+
+/* Specific admin dashboard form inputs */
+[data-theme="lumina"] .glass-card input,
+[data-theme="lumina"] .glass-card textarea,
+[data-theme="lumina"] .glass-card select {
+    color: #1A202C !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+
+[data-theme="lumina"] .glass-card input::placeholder {
+    color: #94A3B8 !important;
+}
+
+/* AI Config page specific - force all nested inputs/selects */
+[data-theme="lumina"] form input,
+[data-theme="lumina"] form textarea,
+[data-theme="lumina"] form select,
+[data-theme="lumina"] form .input,
+[data-theme="lumina"] form .select {
+    color: #1A202C !important;
+}
+
+/* Force override for bg-black/40 input containers */
+[data-theme="lumina"] .bg-black\/40 input,
+[data-theme="lumina"] .bg-black\/40 select,
+[data-theme="lumina"] .bg-black\/20 input,
+[data-theme="lumina"] .bg-black\/20 select {
+    color: #1A202C !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* ============================================
+   FORCE LABEL VISIBILITY
+   ============================================ */
+
+/* All label variants must be visible */
+[data-theme="lumina"] label.text-starlight\/50,
+[data-theme="lumina"] .text-starlight\/50 {
+    color: #4A5568 !important;
+}
+
+[data-theme="lumina"] label[class*="text-starlight"] {
+    color: #4A5568 !important;
+}
+
+/* Small labels like "Provider", "API Key", "Model ID" */
+[data-theme="lumina"] label.text-\[10px\],
+[data-theme="lumina"] .text-\[10px\].uppercase {
+    color: #4A5568 !important;
+}
+
+/* ============================================
+   DASHBOARD INITIATE SCAN BUTTON FIX
+   ============================================ */
+
+[data-theme="lumina"] button[class*="bg-neon-blue"],
+[data-theme="lumina"] a[class*="bg-neon-blue"] {
+    background: #0070F3 !important;
+    color: #FFFFFF !important;
+    border-color: #0070F3 !important;
+}
+
+/* Generic button text visibility */
+[data-theme="lumina"] button.text-white,
+[data-theme="lumina"] a.btn.text-white {
+    color: #FFFFFF;
+}
+
+/* Button hover states */
+[data-theme="lumina"] .btn-outline.text-white:hover,
+[data-theme="lumina"] .btn.border-white\/10:hover {
+    background: #0070F3;
+    color: #FFFFFF;
+    border-color: #0070F3;
+}
+
+/* ============================================
+   HOVER STATE FIXES
+   ============================================ */
+
+[data-theme="lumina"] a.hover\:text-white:hover,
+[data-theme="lumina"] .hover\:text-white:hover {
+    color: #0070F3 !important;
+}
+
+[data-theme="lumina"] .hover\:bg-white\/5:hover,
+[data-theme="lumina"] a.hover\:bg-white\/5:hover {
+    background: rgba(0, 112, 243, 0.08) !important;
+}
+
+/* ============================================
+   FONT MONO TEXT FIXES
+   ============================================ */
+
+[data-theme="lumina"] .font-mono.text-starlight,
+[data-theme="lumina"] .font-mono.text-xs {
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .font-mono.text-warning {
+    color: #D97706;
+}
+
+/* ============================================
+   OPACITY CLASS OVERRIDES
+   ============================================ */
+
+[data-theme="lumina"] .text-starlight.opacity-50,
+[data-theme="lumina"] .text-white.opacity-50 {
+    color: #64748B !important;
+    opacity: 1 !important;
+}
+
+/* ============================================
+   ICON COLOR FIXES
+   ============================================ */
+
+[data-theme="lumina"] i.text-starlight,
+[data-theme="lumina"] i.text-white {
+    color: #4A5568;
+}
+
+/* Keep accent colored icons */
+[data-theme="lumina"] i.text-neon-blue,
+[data-theme="lumina"] i.text-neon-purple,
+[data-theme="lumina"] i.text-warning,
+[data-theme="lumina"] i.text-success,
+[data-theme="lumina"] i.text-error {
+    /* Keep their original colors */
+}
