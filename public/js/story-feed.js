@@ -12,12 +12,17 @@ class PhysicsStream {
 
         if (!this.track || this.cards.length === 0) return;
 
-        // Configuration
-        this.gap = 40; // reduced gap
-        this.cardWidth = 500; // base width matches CSS
-        this.snapThreshold = 0.2; // 20% drag to snap
-        this.springStiffness = 0.15;
-        this.friction = 0.85;
+        // Configuration - Tuned for 2D Performance
+        this.gap = 20;
+        this.cardWidth = 480; // Matches CSS
+        this.snapThreshold = 0.2;
+        this.springStiffness = 0.12; // Softer spring
+        this.friction = 0.88; // More glide
+
+        // Mobile adjustment
+        if (window.innerWidth < 768) {
+            this.cardWidth = window.innerWidth * 0.90;
+        }
 
         // State
         this.currentIndex = 0;
@@ -35,20 +40,15 @@ class PhysicsStream {
     }
 
     init() {
-        // Initial Layout
-        this.updateLayout();
-
-        // Event Listeners
         this.bindEvents();
-
-        // Animation Loop
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
-
-        // Keyboard Support
         this.bindKeyboard();
 
-        console.log('🌌 Void Engine Initialized');
+        // Initial snap
+        this.snapToIndex(0);
+
+        console.log('🌌 Void Engine (2D Fan) Initialized');
     }
 
     bindEvents() {
@@ -56,6 +56,7 @@ class PhysicsStream {
         this.container.addEventListener('mousedown', e => this.startDrag(e.clientX));
         window.addEventListener('mousemove', e => this.drag(e.clientX));
         window.addEventListener('mouseup', () => this.endDrag());
+        window.addEventListener('mouseleave', () => this.endDrag());
 
         // Touch
         this.container.addEventListener('touchstart', e => this.startDrag(e.touches[0].clientX), { passive: false });
@@ -74,7 +75,7 @@ class PhysicsStream {
         this.isDragging = true;
         this.startX = x;
         this.lastX = x;
-        this.velocity = 0;
+        this.velocity = 0; // Stop momentum on grab
         this.track.style.cursor = 'grabbing';
     }
 
@@ -84,8 +85,6 @@ class PhysicsStream {
         const delta = x - this.lastX;
         this.lastX = x;
         this.dragOffset += delta;
-
-        // Direct manipulation
         this.targetX += delta;
     }
 
@@ -96,12 +95,18 @@ class PhysicsStream {
 
         // Snap Logic
         const cardFullWidth = this.cardWidth + this.gap;
-        const movedCards = -this.targetX / cardFullWidth;
-        const closestIndex = Math.round(movedCards);
+        // Determine closest index based on negative targetX (since moving left decreases X)
+        const rawIndex = -this.targetX / cardFullWidth;
+        let closestIndex = Math.round(rawIndex);
+
+        // Add directional intent if drag was significant
+        if (Math.abs(this.dragOffset) > 50) {
+            if (this.dragOffset < 0) closestIndex = Math.ceil(rawIndex); // Dragging left -> Next
+            else closestIndex = Math.floor(rawIndex); // Dragging right -> Prev
+        }
 
         // Clamp index
         this.snapToIndex(Math.max(0, Math.min(closestIndex, this.cards.length - 1)));
-
         this.dragOffset = 0;
     }
 
@@ -109,8 +114,6 @@ class PhysicsStream {
         this.currentIndex = index;
         const cardFullWidth = this.cardWidth + this.gap;
         this.targetX = -index * cardFullWidth;
-
-        // View logging
         this.logView(this.cards[index]);
     }
 
@@ -127,107 +130,76 @@ class PhysicsStream {
     }
 
     animate() {
-        // Physics Intergration (Spring)
-        const force = (this.targetX - this.currentX) * this.springStiffness;
+        // Physics Integration (Spring)
+        // F = -k * (x - target) - c * v
+        const displacement = this.targetX - this.currentX;
+        const force = displacement * this.springStiffness;
+
         this.velocity += force;
         this.velocity *= this.friction;
         this.currentX += this.velocity;
 
-        // Apply Transform to Track center
-        // We center the active card. 
-        // Screen Center = 0. Since track starts at center (left:50%), we move it.
-        // Actually, let's keep it simple: Track moves left/right.
-        // CSS centers the clicked item if we offset correctly.
-
-        // Because CSS defines cards at absolute 50% 50%, 
-        // moving the track moves everything relative to center.
+        // Stop micro-movements
+        if (Math.abs(displacement) < 0.1 && Math.abs(this.velocity) < 0.1) {
+            this.currentX = this.targetX;
+            this.velocity = 0;
+        }
 
         this.updateCards();
-
         requestAnimationFrame(this.animate);
     }
 
     updateCards() {
-        const center = window.innerWidth / 2;
         const cardFullWidth = this.cardWidth + this.gap;
 
-        // Visual Logic: Logarithmic Scale
-        // We iterate through cards and define their style based on distance from "Center Focus"
-        // The "Center Focus" virtual position is -this.currentX
-
         this.cards.forEach((card, index) => {
-            // Un-transform first to get raw position relative to track
-            // Base position: index * stride
-            const basePos = index * (this.cardWidth * 0.15); // Stacking them closer like a deck?
+            // Position relative to the "virtual camera" (currentX)
+            // relativePos is 0 when the card is centered
+            const cardPos = index * cardFullWidth;
+            const relativePos = cardPos + this.currentX;
 
-            // Wait, "Infinite Stream" usually means they are side-by-side but with depth.
-            // Let's stick to the visual plan:
-            // Active is flat.
-            // Right ones are curved away.
-            // Left ones are gone.
+            // 2D Fan Logic
+            // Active card (relativePos ~ 0) is scale 1, opacity 1
+            // Cards to the right (relativePos > 0) are scaled down, fanned out
+            // Cards to the left (relativePos < 0) fade out quickly
 
-            // Interaction: 1:1 drag affects the "progress"
-            // Progress = -this.currentX / cardFullWidth? 
-            // Let's use a simpler model: standard slider but with z-index/scale hacks.
-
-            const progress = (this.currentX / cardFullWidth) + index;
-            // If index is active (0), and currentX is 0, progress = 0.
-            // If we drag left (currentX negative), progress decreases.
-
-            // We need a precise offset for the track.
-            // Let's move the cards individually based on global progress?
-            // No, move track, animate items relative.
-
-            // Re-think: "Parabolic Flow"
-            // We only set the Track properties here? No, each card needs unique 3D transform.
-
-            const relativePos = index * cardFullWidth + this.currentX; // Distance from center of screen (px)
-
-            // 0 means center.
-            // Positive means right.
-            // Negative means left.
-
+            let x = relativePos;
             let scale = 1;
             let opacity = 1;
-            let x = relativePos;
-            let z = 0;
-            let rotateY = 0;
-            let blur = 0;
+            let zIndex = 100 - Math.abs(index - this.currentIndex);
 
-            const maxDist = 1200;
+            // Normalize distance for effect calculation
+            const distRatio = relativePos / window.innerWidth;
 
             if (relativePos > 0) {
-                // To the right (Upcoming)
-                const ratio = Math.min(relativePos / maxDist, 1);
-                // Logarithmic curve for stacking
-                // Instead of linear X, we pull them tighter
-                x = Math.pow(ratio, 0.7) * maxDist * 0.8;
-                z = -ratio * 500;
-                scale = 1 - (ratio * 0.5);
-                opacity = 1 - (ratio * 0.8);
-                rotateY = -15 * ratio;
-                blur = ratio * 10;
+                // Upcoming (Right side)
+                // "Fan" effect: compress X space to show stack
+                // x = actual pixels * compression
+                x = relativePos * 0.4; // Strong overlap
+
+                // Scale down progressively
+                scale = Math.max(0.8, 1 - (distRatio * 0.5));
+
+                // Fade out
+                opacity = Math.max(0.5, 1 - (distRatio * 0.8));
+
             } else if (relativePos < 0) {
-                // To the left (Past) - Exit quickly
-                scale = 1 + (relativePos / 1000); // shrink
-                opacity = 1 + (relativePos / 500); // fade fast
-                x = relativePos * 1.5; // move faster
-                rotateY = 25;
+                // Past (Left side) - exit stage left
+                // Move normally scaling down slightly
+                x = relativePos;
+                scale = Math.max(0.9, 1 + (distRatio * 0.2));
+                opacity = Math.max(0, 1 + distRatio * 1.5); // Fade fast
             }
 
-            // Apply style directly
-            card.style.transform = `translate3d(${x}px, -50%, ${z}px) scale(${scale}) rotateY(${rotateY}deg)`;
-            card.style.opacity = Math.max(0, opacity);
-            card.style.filter = `blur(${blur}px)`;
-            card.style.zIndex = Math.round(100 - Math.abs(index - (-this.currentX / cardFullWidth)));
-        });
-    }
+            // Apply 2D transforms only
+            // Using translate3d for hardware acceleration, but with Z=0 (or effectively 0 context)
+            card.style.transform = `translate3d(${x}px, -50%, 0) scale(${scale})`;
+            card.style.opacity = opacity;
+            card.style.zIndex = zIndex;
 
-    updateLayout() {
-        // Adjust for mobile
-        if (window.innerWidth < 768) {
-            this.cardWidth = window.innerWidth * 0.85;
-        }
+            // Performance optimization: hide off-screen cards completely
+            card.style.visibility = (opacity < 0.05) ? 'hidden' : 'visible';
+        });
     }
 
     logView(card) {
@@ -236,9 +208,8 @@ class PhysicsStream {
         if (id) {
             clearTimeout(this.logTimer);
             this.logTimer = setTimeout(() => {
-                // fetch(`/api/${id}/view`...)
-                console.log('View logged:', id);
-            }, 2000);
+                // console.log('View logged:', id);
+            }, 1000);
         }
     }
 }
