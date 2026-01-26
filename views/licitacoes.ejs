@@ -1,212 +1,85 @@
 <%- include('partials/head') %>
     <%- include('partials/header') %>
 
-        <!-- Desktop Split Layout / Mobile Stacked -->
-        <div class="lg:flex lg:h-[calc(100vh-6rem)] lg:gap-4 lg:p-4">
+        <%- include('partials/head') %>
+            <%- include('partials/header') %>
 
-            <!-- SIDEBAR: Filters & Controls (Desktop: Fixed Left | Mobile: Top) -->
-            <aside
-                class="lg:w-80 lg:flex-shrink-0 lg:overflow-y-auto bg-base-200/50 lg:rounded-2xl lg:p-4 p-4 space-y-4">
-                <!-- Header -->
-                <div>
-                    <h1
-                        class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-1">
-                        🏛️ <%= savedMode ? 'Salvos' : 'Feed Personalizado' %>
-                    </h1>
-                    <p class="text-xs opacity-60">
-                        <%= savedMode ? 'Suas licitações favoritas' : 'Oportunidades ranqueadas por IA' %>
-                    </p>
-                </div>
+                <!-- Full Screen Feed Layout -->
+                <main class="h-[calc(100vh-6rem)] w-full overflow-hidden relative">
 
-                <!-- Quick Links -->
-                <div class="menu menu-sm bg-base-100 rounded-box">
-                    <% if (!savedMode) { %>
-                        <li>
-                            <a href="/licitacoes/saved" class="gap-2">
-                                <i class="fas fa-heart text-error"></i>
-                                <span>Salvos</span>
-                            </a>
-                        </li>
-                        <% } %>
-                            <li>
-                                <a href="/profile/preferences" class="gap-2">
-                                    <i class="fas fa-cog text-primary"></i>
-                                    <span>Preferências</span>
-                                </a>
-                            </li>
-                            <% if (user && user.role==='admin' ) { %>
-                                <li>
-                                    <a href="/admin/licitacoes/import" class="gap-2">
-                                        <i class="fas fa-download text-secondary"></i>
-                                        <span>Importar Dados</span>
-                                    </a>
-                                </li>
-                                <% } %>
-                </div>
-
-                <!-- Filters -->
-                <% if (!savedMode) { %>
-                    <div class="card bg-base-100 shadow-sm">
-                        <div class="card-body p-3">
-                            <h3 class="card-title text-sm">
-                                <i class="fas fa-filter"></i>
-                                Filtros
-                                <% if (filters.search || filters.cnpj_orgao || filters.modalidade) { %>
-                                    <span class="badge badge-primary badge-xs">Ativos</span>
-                                    <% } %>
-                            </h3>
-
-                            <form method="GET" class="space-y-2">
-                                <input type="hidden" name="view" value="<%= viewMode %>">
-
-                                <div class="form-control">
-                                    <label class="label py-0">
-                                        <span class="label-text text-xs">Buscar</span>
-                                    </label>
-                                    <input type="text" name="search" placeholder="Keywords..."
-                                        value="<%= filters.search || '' %>"
-                                        class="input input-bordered input-xs w-full">
-                                </div>
-
-                                <div class="form-control">
-                                    <label class="label py-0">
-                                        <span class="label-text text-xs">CNPJ</span>
-                                    </label>
-                                    <input type="text" name="cnpj" placeholder="00.000.000/0000-00"
-                                        value="<%= filters.cnpj_orgao || '' %>"
-                                        class="input input-bordered input-xs w-full">
-                                </div>
-
-                                <div class="form-control">
-                                    <label class="label py-0">
-                                        <span class="label-text text-xs">Modalidade</span>
-                                    </label>
-                                    <select name="modalidade" class="select select-bordered select-xs w-full">
-                                        <option value="">Todas</option>
-                                        <option value="Pregão" <%=filters.modalidade==='Pregão' ? 'selected' : '' %>
-                                            >Pregão</option>
-                                        <option value="Concorrência" <%=filters.modalidade==='Concorrência' ? 'selected'
-                                            : '' %>>Concorrência</option>
-                                        <option value="Dispensa" <%=filters.modalidade==='Dispensa' ? 'selected' : '' %>
-                                            >Dispensa</option>
-                                        <option value="Inexigibilidade" <%=filters.modalidade==='Inexigibilidade'
-                                            ? 'selected' : '' %>>Inexigibilidade</option>
-                                    </select>
-                                </div>
-
-                                <div class="flex gap-1">
-                                    <button type="submit" class="btn btn-primary btn-xs flex-1">
-                                        <i class="fas fa-search"></i> Filtrar
-                                    </button>
-                                    <a href="/licitacoes?view=<%= viewMode %>" class="btn btn-ghost btn-xs">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </div>
-                            </form>
+                    <!-- Context Header (Top Layer) -->
+                    <div class="absolute top-4 left-4 z-50 pointer-events-none">
+                        <div class="glass-panel px-6 py-3 rounded-full flex items-center gap-3">
+                            <div class="text-2xl">
+                                <%= savedMode ? '💖' : '🏛️' %>
+                            </div>
+                            <div>
+                                <h1 class="text-lg font-bold leading-none">
+                                    <%= savedMode ? 'Salvos' : 'Feed Personalizado' %>
+                                </h1>
+                                <p class="text-[10px] opacity-60 uppercase tracking-wider font-semibold">
+                                    <%= savedMode ? 'Seus Favoritos' : 'Oportunidades IA' %>
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <% } %>
 
-                        <!-- Stats Card -->
-                        <div class="stats stats-vertical shadow bg-base-100 w-full">
-                            <div class="stat py-2 px-3">
-                                <div class="stat-title text-xs">Nesta Página</div>
-                                <div class="stat-value text-lg">
-                                    <%= licitacoes ? licitacoes.length : 0 %>
-                                </div>
-                                <div class="stat-desc text-xs">oportunidades</div>
-                            </div>
-                            <% if (licitacoes && licitacoes.length> 0 && licitacoes[0].relevance_score !== undefined) {
-                                %>
-                                <%const avgScore=Math.round(licitacoes.reduce((acc, l)=> acc + (l.relevance_score || 0),
-                                    0) / licitacoes.length); %>
-                                    <div class="stat py-2 px-3">
-                                        <div class="stat-title text-xs">Match Médio</div>
-                                        <div
-                                            class="stat-value text-lg <%= avgScore >= 70 ? 'text-success' : avgScore >= 40 ? 'text-warning' : 'text-info' %>">
-                                            <%= avgScore %>%
-                                        </div>
-                                        <div class="stat-desc text-xs">relevância</div>
-                                    </div>
-                                    <% } %>
-                        </div>
-
-                        <!-- Pagination (Sidebar for Story Mode in Desktop) -->
-                        <% if (licitacoes && licitacoes.length> 0) { %>
-                            <div class="flex flex-col gap-1">
-                                <% const buildUrl=(p)=> {
-                                    let url = savedMode ? '/licitacoes/saved' : '/licitacoes';
-                                    url += `?page=${p}&view=${viewMode}`;
-                                    if (filters.search) url += `&search=${encodeURIComponent(filters.search)}`;
-                                    if (filters.cnpj_orgao) url += `&cnpj=${encodeURIComponent(filters.cnpj_orgao)}`;
-                                    if (filters.modalidade) url +=
-                                    `&modalidade=${encodeURIComponent(filters.modalidade)}`;
-                                    return url;
-                                    } %>
-
-                                    <% if (page> 1) { %>
-                                        <a href="<%= buildUrl(page - 1) %>" class="btn btn-outline btn-sm w-full">
-                                            <i class="fas fa-chevron-left"></i> Página Anterior
-                                        </a>
-                                        <% } %>
-
-                                            <div class="text-center text-xs opacity-60 py-1">Página <%= page %>
-                                            </div>
-
-                                            <% if (hasNext) { %>
-                                                <a href="<%= buildUrl(page + 1) %>"
-                                                    class="btn btn-outline btn-sm w-full">
-                                                    Próxima Página <i class="fas fa-chevron-right"></i>
-                                                </a>
-                                                <% } %>
-                            </div>
+                    <!-- Controls (Top Right) -->
+                    <div class="absolute top-4 right-4 z-50 flex gap-2">
+                        <% if (!savedMode) { %>
+                            <a href="/licitacoes/saved" class="btn btn-circle btn-ghost glass tool-btn"
+                                title="Ver Salvos">
+                                <i class="fas fa-heart text-error"></i>
+                            </a>
                             <% } %>
-            </aside>
+                                <a href="/profile/preferences" class="btn btn-circle btn-ghost glass tool-btn"
+                                    title="Preferências">
+                                    <i class="fas fa-cog text-primary"></i>
+                                </a>
+                    </div>
 
-            <!-- MAIN CONTENT: Story Feed Only (Desktop: Scrollable Right | Mobile: Below) -->
-            <main class="lg:flex-1 lg:overflow-hidden flex flex-col mt-4 lg:mt-0">
-                <!-- Story Mode Container -->
-                <div id="story-mode" class="h-full">
-                    <%- include('partials/story_feed', { licitacoes }) %>
-                </div>
-            </main>
-        </div>
+                    <!-- Story Mode Container -->
+                    <div id="story-mode" class="h-full w-full">
+                        <%- include('partials/story_feed', { licitacoes }) %>
+                    </div>
 
-        <script>
-            // View Switcher
-            function switchView(mode) {
-                const url = new URL(window.location);
-                url.searchParams.set('view', mode);
-                window.location.href = url.toString();
-            }
+                </main>
 
-            // Global Save/Unsave Functions
-            function saveOpportunity(id) {
-                fetch(`/api/licitacoes/${id}/save`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        showToast(data.message || '💾 Oportunidade salva!', 'success');
-                    })
-                    .catch(err => {
-                        showToast('❌ Erro ao salvar', 'error');
-                        console.error(err);
+                <script>
+            // Global Save/                        
+            function saveOpportunity(                              fetch(`/api/licitacoes/${id}/s                                    method: 'POST',
+                               der                    t-Type': 'application/json' }
+                        })
+                    .then(                        ))
+                    .then(data => {                                 showToast(d                            portunidade salva!', 'success');
+                                                                      => {
+                                                o ao salvar', 'e                                        console.error(err);
                     });
-            }
-
-            function showToast(message, type) {
-                const toast = document.createElement('div');
-                toast.className = `alert alert-${type} fixed bottom-4 right-4 w-auto max-w-md z-50 shadow-lg animate-bounce`;
-                toast.innerHTML = `<span>${message}</span>`;
-                document.body.appendChild(toast);
+                                        ion                            type) {
+                                        cument.createElement('div');
+                                           alert alert-${type}                             1/2                     -1/                    -w-[300px] z-[100] shadow-lg animate                        2xl border-0 bg-opacity-90 backdrop-blur`;
+                          ast.innerHTML = `<span class="font-bold flex items-center gap-2">${message}</span>`;
+                document.                        (toast);
 
                 setTimeout(() => {
-                    toast.classList.add('opacity-0', 'transition-opacity');
-                    setTimeout(() => toast.remove(), 300);
+                            toast.classList.add('opacity-0'                        acity');
+                                      (() => toast.remove(), 300);
                 }, 3000);
             }
-        </script>
+                </script>
 
-        <%- include('partials/footer') %>
+                <style>
+                    .glass-panel {
+                        background: rgba(255, 255, 255, 0.1);
+                        backdrop-filter: blur(10px);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+                    }
+
+                    .tool-btn:hover {
+                        transform: scale(1.1);
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                </style>
+
+                <!-- Footer Hidden in Feed Mode for Immersion -->

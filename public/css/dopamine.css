@@ -16,82 +16,166 @@
 }
 
 /* ============================================
-   STORY FEED MODE - Vertical Engagement
+   STORY FEED MODE - Horizontal Infinite Stream
    ============================================ */
 
 .story-feed-container {
     position: relative;
-    perspective: 1000px;
-    background: linear-gradient(180deg,
-            color-mix(in oklch, oklch(from transparent) transparent, oklch(var(--b1)) 100%) 0%,
-            color-mix(in oklch, oklch(var(--b3)), oklch(var(--b1)) 50%) 100%);
-    /* Mobile: Fixed height */
-    height: 80vh;
-}
-
-/* Desktop: Full available height */
-@media (min-width: 1024px) {
-    .story-feed-container {
-        height: 100%;
-        max-height: 100%;
-    }
+    perspective: 1500px;
+    background: linear-gradient(135deg, oklch(var(--b1)) 0%, oklch(var(--b2)) 100%);
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
 }
 
 .story-cards-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
+    display: flex;
+    align-items: center;
+    /* Vertically center the carousel */
 }
 
+/* Base Card Style */
 .story-card {
     position: absolute;
-    top: 0;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%) translateY(100vh) rotateX(-15deg);
-    width: 90%;
-    max-width: 600px;
-    height: 95%;
+    width: 600px;
+    /* Fixed width for desktop */
+    height: 85vh;
+    max-height: 800px;
     background: oklch(var(--b1));
-    border-radius: 24px;
-    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
-    opacity: 0;
-    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    padding: 0;
-    padding-bottom: 80px;
-    /* Extra space for external buttons at bottom */
-    /* Padding moved to inner wrapper except bottom */
+    border-radius: 32px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4), 0 0 0 1px oklch(var(--bc) / 0.1);
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    /* Smooth, snappy ease */
     overflow: visible;
-    /* Allow badge to transpass */
-    border: 2px solid oklch(var(--bc) / 0.1);
-    backdrop-filter: blur(10px);
+    will-change: transform, opacity, left;
+    transform-origin: center center;
 }
 
-.story-content-inner {
-    padding: 24px;
-    height: 100%;
+@media (max-width: 768px) {
+    .story-card {
+        width: 90%;
+        height: 75vh;
+    }
 }
 
+/* ACTIVE CARD - Center Stage */
 .story-card.active {
-    transform: translateX(-50%) translateY(0) rotateX(0deg) scale(1);
+    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
-    z-index: 10;
+    z-index: 100;
     pointer-events: auto;
-    /* Enable clicks on active card */
+    filter: blur(0);
 }
 
+/* PREVIOUS CARD - Exit Left */
 .story-card.prev {
-    transform: translateX(-50%) translateY(-120%) rotateX(15deg) scale(0.9);
-    opacity: 0.5;
-    z-index: 5;
+    transform: translate(-150%, -50%) scale(0.8) rotateY(15deg);
+    opacity: 0;
+    z-index: 0;
     pointer-events: none;
 }
 
-.story-card.next {
-    transform: translateX(-50%) translateY(120%) rotateX(-15deg) scale(0.9);
+/* NEXT CARDS - The Infinite Queue */
+/* Each neighbor is pushed further right, scaled down, and faded out */
+
+/* Next 1 */
+.story-card.next-1 {
+    transform: translate(calc(-50% + 650px), -50%) scale(0.9);
+    opacity: 0.7;
+    z-index: 90;
+    filter: blur(1px);
+    pointer-events: auto;
+    /* Allow clicking to peek/navigate? Better to stick to center */
+    cursor: pointer;
+}
+
+/* Next 2 */
+.story-card.next-2 {
+    transform: translate(calc(-50% + 720px), -50%) scale(0.85);
+    opacity: 0.5;
+    z-index: 80;
+    filter: blur(2px);
+    cursor: pointer;
+}
+
+/* Next 3 */
+.story-card.next-3 {
+    transform: translate(calc(-50% + 780px), -50%) scale(0.8);
     opacity: 0.3;
-    z-index: 1;
+    z-index: 70;
+    filter: blur(3px);
+    cursor: pointer;
+}
+
+/* Next 4 */
+.story-card.next-4 {
+    transform: translate(calc(-50% + 830px), -50%) scale(0.75);
+    opacity: 0.2;
+    z-index: 60;
+    cursor: pointer;
+}
+
+/* Next 5 */
+.story-card.next-5 {
+    transform: translate(calc(-50% + 870px), -50%) scale(0.7);
+    opacity: 0.1;
+    z-index: 50;
+    cursor: pointer;
+}
+
+/* Next 6 */
+.story-card.next-6 {
+    transform: translate(calc(-50% + 900px), -50%) scale(0.65);
+    opacity: 0.08;
+    z-index: 40;
+    cursor: pointer;
+}
+
+/* Next 7 */
+.story-card.next-7 {
+    transform: translate(calc(-50% + 920px), -50%) scale(0.6);
+    opacity: 0.06;
+    z-index: 30;
+    cursor: pointer;
+}
+
+/* Next 8 */
+.story-card.next-8 {
+    transform: translate(calc(-50% + 935px), -50%) scale(0.55);
+    opacity: 0.04;
+    z-index: 20;
+    cursor: pointer;
+}
+
+/* Next 9 */
+.story-card.next-9 {
+    transform: translate(calc(-50% + 945px), -50%) scale(0.5);
+    opacity: 0.02;
+    z-index: 10;
+    cursor: pointer;
+}
+
+/* Next 10 */
+.story-card.next-10 {
+    transform: translate(calc(-50% + 950px), -50%) scale(0.45);
+    opacity: 0.01;
+    z-index: 5;
+    cursor: pointer;
+}
+
+/* Remaining cards hidden but technically there for buffer */
+.story-card.next-hidden {
+    transform: translate(calc(-50% + 1000px), -50%) scale(0.4);
+    opacity: 0;
+    z-index: 0;
     pointer-events: none;
 }
+
 
 /* Score Badge with Pulse Effect */
 .score-badge {

@@ -30,6 +30,70 @@ class StoryFeedEngine {
         });
     }
 
+    setupKeyboardNavigation() {
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('itemsModal').style.display === 'flex' ||
+                document.getElementById('objetoModal').style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    closeItemsModal();
+                    closeObjetoModal();
+                }
+                return;
+            }
+
+            if (this.isNavigating) return;
+
+            const key = e.key.toLowerCase();
+
+            switch (key) {
+                case 'arrowdown':
+                case 'arrowright':
+                case 'pagedown':
+                    e.preventDefault();
+                    this.nextCard();
+                    break;
+                case 'arrowup':
+                case 'arrowleft':
+                case 'pageup':
+                    e.preventDefault();
+                    this.prevCard();
+                    break;
+                case 'home':
+                    e.preventDefault();
+                    this.showCard(0);
+                    break;
+                case 'end':
+                    e.preventDefault();
+                    this.showCard(this.totalCards - 1);
+                    break;
+                case 's':
+                    if (typeof saveOpportunity === 'function') {
+                        const currentId = this.getCurrentCardId();
+                        if (currentId) {
+                            saveOpportunity(currentId);
+                            this.showKeyFeedback('S', 'Salvo!');
+                            setTimeout(() => this.nextCard(), 800);
+                        }
+                    }
+                    break;
+                case 'p':
+                    if (typeof skipCardWithAPI === 'function') {
+                        skipCardWithAPI();
+                        this.showKeyFeedback('P', 'Pulado');
+                    }
+                    break;
+                case 'd':
+                    const currentId = this.getCurrentCardId();
+                    if (currentId && typeof openDetailsModal === 'function') {
+                        openDetailsModal(currentId);
+                    } else if (currentId) {
+                        window.location.href = `/licitacoes/${currentId}`;
+                    }
+                    break;
+            }
+        });
+    }
+
     truncateObjectDescriptions() {
         this.cards.forEach(card => {
             const p = card.querySelector('.object-preview p');
@@ -77,125 +141,34 @@ class StoryFeedEngine {
         if (!container) return;
 
         container.addEventListener('touchstart', (e) => {
-            this.touchStartY = e.touches[0].clientY;
+            this.touchStartX = e.touches[0].clientX;
         }, { passive: true });
 
         container.addEventListener('touchmove', (e) => {
-            this.touchEndY = e.touches[0].clientY;
+            this.touchEndX = e.touches[0].clientX;
         }, { passive: true });
 
         container.addEventListener('touchend', () => {
             this.handleSwipe();
         });
-
-
-    }
-
-    setupKeyboardNavigation() {
-        document.addEventListener('keydown', (e) => {
-            // Ignore if modal is open
-            if (document.getElementById('itemsModal').style.display === 'flex' ||
-                document.getElementById('objetoModal').style.display === 'flex') {
-                if (e.key === 'Escape') {
-                    closeItemsModal();
-                    closeObjetoModal();
-                }
-                return;
-            }
-
-            if (this.isNavigating) return;
-
-            const key = e.key.toLowerCase();
-
-            switch (key) {
-                case 'arrowdown':
-                case 'arrowright':
-                case 'pagedown':
-                    e.preventDefault();
-                    this.nextCard();
-                    break;
-                case 'arrowup':
-                case 'arrowleft':
-                case 'pageup':
-                    e.preventDefault();
-                    this.prevCard();
-                    break;
-                case 'home':
-                    e.preventDefault();
-                    this.showCard(0);
-                    break;
-                case 'end':
-                    e.preventDefault();
-                    this.showCard(this.totalCards - 1);
-                    break;
-                case 's':
-                    if (typeof saveOpportunity === 'function') {
-                        const currentId = this.getCurrentCardId();
-                        if (currentId) {
-                            saveOpportunity(currentId);
-                            this.showKeyFeedback('S', 'Salvo!');
-                            setTimeout(() => this.nextCard(), 800); // Auto advances
-                        }
-                    }
-                    break;
-                case 'p':
-                    if (typeof skipCardWithAPI === 'function') {
-                        skipCardWithAPI();
-                        this.showKeyFeedback('P', 'Pulado');
-                    }
-                    break;
-                case 'd':
-                    const currentId = this.getCurrentCardId();
-                    if (currentId && typeof openDetailsModal === 'function') {
-                        openDetailsModal(currentId);
-                    } else if (currentId) {
-                        // Fallback to link navigation if modal not ready
-                        window.location.href = `/licitacoes/${currentId}`;
-                    }
-                    break;
-            }
-        });
-    }
-
-    getCurrentCardId() {
-        if (this.currentIndex >= 0 && this.currentIndex < this.cards.length) {
-            return this.cards[this.currentIndex].getAttribute('data-id');
-        }
-        return null;
-    }
-
-    showKeyFeedback(key, message) {
-        // Visual feedback for keyboard actions
-        const feedback = document.createElement('div');
-        feedback.className = 'key-feedback';
-        feedback.innerHTML = `<span class="key">${key.toUpperCase()}</span> ${message}`;
-        document.body.appendChild(feedback);
-
-        setTimeout(() => feedback.classList.add('show'), 10);
-        setTimeout(() => {
-            feedback.classList.remove('show');
-            setTimeout(() => feedback.remove(), 300);
-        }, 1000);
-    }
-
-    hideHintsAfterDelay() {
-        setTimeout(() => {
-            const hints = document.querySelectorAll('.keyboard-hints');
-            hints.forEach(hint => hint.style.opacity = '0');
-        }, 5000); // Fade out after 5s
     }
 
     handleSwipe() {
-        const swipeDistance = this.touchStartY - this.touchEndY;
+        if (!this.touchStartX || !this.touchEndX) return;
+
+        const swipeDistance = this.touchStartX - this.touchEndX;
         const threshold = 50;
 
         if (Math.abs(swipeDistance) > threshold && !this.isNavigating) {
             if (swipeDistance > 0) {
-                this.nextCard(); // Swipe up
+                this.nextCard(); // Swipe Left -> Next
             } else {
-                this.prevCard(); // Swipe down
+                this.prevCard(); // Swipe Right -> Prev
             }
         }
+
+        this.touchStartX = 0;
+        this.touchEndX = 0;
     }
 
     showCard(index) {
@@ -204,25 +177,25 @@ class StoryFeedEngine {
         this.isNavigating = true;
 
         this.cards.forEach((card, i) => {
-            card.classList.remove('active', 'prev', 'next');
+            // Reset all positioning classes
+            card.setAttribute('class', 'story-card');
 
             if (i === index) {
                 card.classList.add('active');
                 this.animateCardReveal(card);
-
-                // Log view via API
-                const id = card.getAttribute('data-id');
-                if (id) {
-                    // Debounce view logging (only if viewed for > 2s)
-                    clearTimeout(this.viewTimer);
-                    this.viewTimer = setTimeout(() => {
-                        fetch(`/api/licitacoes/${id}/view`, { method: 'POST' }).catch(console.error);
-                    }, 2000);
-                }
-            } else if (i < index) {
+                this.logView(card);
+            } else if (i === index - 1) {
                 card.classList.add('prev');
+            } else if (i > index) {
+                const distance = i - index;
+                if (distance <= 10) {
+                    card.classList.add(`next-${distance}`);
+                } else {
+                    card.classList.add('next-hidden');
+                }
             } else {
-                card.classList.add('next');
+                // i < index - 1 (older cards)
+                card.classList.add('prev'); // Keep them off-screen left
             }
         });
 
@@ -231,7 +204,18 @@ class StoryFeedEngine {
         // Reset navigation lock
         setTimeout(() => {
             this.isNavigating = false;
-        }, 600);
+        }, 400);
+    }
+
+    logView(card) {
+        const id = card.getAttribute('data-id');
+        if (id) {
+            // Debounce view logging (only if viewed for > 2s)
+            clearTimeout(this.viewTimer);
+            this.viewTimer = setTimeout(() => {
+                fetch(`/api/licitacoes/${id}/view`, { method: 'POST' }).catch(console.error);
+            }, 2000);
+        }
     }
 
     animateCardReveal(card) {
