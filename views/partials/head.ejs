@@ -1,103 +1,109 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="neuro" id="app-root">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MABUS | Agente Autômato</title>
-    
-    <!-- FONTS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MABUS | Agente Autômato</title>
 
-    <!-- STYLES (CDN for reliability) -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FONTS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
 
-    <!-- CUSTOM CSS -->
-    <link rel="stylesheet" href="/css/liquid.css">
-    <link rel="stylesheet" href="/css/liquid-studio.css">
-    <link rel="stylesheet" href="/css/theme-light.css">
-    <link rel="stylesheet" href="/css/output.css">
+  <!-- STYLES (CDN for reliability) -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- TAILWIND CONFIG -->
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              "cosmic-void": "#030014",
-              "starlight": "#E2E8F0",
-              "neon-blue": "#00F0FF",
-              "neon-purple": "#7000FF",
-              "glass-surface": "rgba(255, 255, 255, 0.05)",
-              "glass-border": "rgba(255, 255, 255, 0.1)",
+  <!-- CUSTOM CSS -->
+  <link rel="stylesheet" href="/css/liquid.css">
+  <link rel="stylesheet" href="/css/liquid-studio.css">
+  <link rel="stylesheet" href="/css/theme-light.css">
+  <link rel="stylesheet" href="/css/effects.css">
+  <link rel="stylesheet" href="/css/output.css">
+
+  <!-- TAILWIND CONFIG -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "cosmic-void": "#030014",
+            "starlight": "#E2E8F0",
+            "neon-blue": "#00F0FF",
+            "neon-purple": "#7000FF",
+            "glass-surface": "rgba(255, 255, 255, 0.05)",
+            "glass-border": "rgba(255, 255, 255, 0.1)",
+          },
+          fontFamily: {
+            sans: ['Outfit', 'Inter', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
             },
-            fontFamily: {
-              sans: ['Outfit', 'Inter', 'sans-serif'],
-              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-            },
-            animation: {
-              'float': 'float 6s ease-in-out infinite',
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'glow': 'glow 2s ease-in-out infinite alternate',
-            },
-            keyframes: {
-              float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-10px)' },
-              },
-              glow: {
-                'from': { boxShadow: '0 0 10px -10px #00F0FF' },
-                'to': { boxShadow: '0 0 20px 5px #00F0FF' },
-              }
+            glow: {
+              'from': { boxShadow: '0 0 10px -10px #00F0FF' },
+              'to': { boxShadow: '0 0 20px 5px #00F0FF' },
             }
           }
-        },
-        daisyui: {
-            themes: [
-            {
-                neuro: {
-                "primary": "#00F0FF",
-                "secondary": "#7000FF",
-                "accent": "#FF0080",
-                "neutral": "#1D1D1F",
-                "base-100": "#030014",
-                "base-200": "#0A0A1E",
-                "base-300": "#15152E",
-                "info": "#00F0FF",
-                "success": "#34C759",
-                "warning": "#FF9500",
-                "error": "#FF3B30",
-                },
-                lumina: {
-                "primary": "#0070F3",
-                "secondary": "#7928CA",
-                "accent": "#FF0080",
-                "neutral": "#E2E8F0",
-                "base-100": "#F8FAFC",
-                "base-200": "#F1F5F9",
-                "base-300": "#E2E8F0",
-                "info": "#0070F3",
-                "success": "#10B981",
-                "warning": "#F59E0B",
-                "error": "#EF4444",
-                },
-            }
-            ],
-        },
-      }
-    </script>
+        }
+      },
+      daisyui: {
+        themes: [
+          {
+            neuro: {
+              "primary": "#00F0FF",
+              "secondary": "#7000FF",
+              "accent": "#FF0080",
+              "neutral": "#1D1D1F",
+              "base-100": "#030014",
+              "base-200": "#0A0A1E",
+              "base-300": "#15152E",
+              "info": "#00F0FF",
+              "success": "#34C759",
+              "warning": "#FF9500",
+              "error": "#FF3B30",
+            },
+            lumina: {
+              "primary": "#0070F3",
+              "secondary": "#7928CA",
+              "accent": "#FF0080",
+              "neutral": "#E2E8F0",
+              "base-100": "#F8FAFC",
+              "base-200": "#F1F5F9",
+              "base-300": "#E2E8F0",
+              "info": "#0070F3",
+              "success": "#10B981",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+            },
+          }
+        ],
+      },
+    }
+  </script>
 </head>
-<body class="bg-cosmic-void min-h-screen text-starlight overflow-x-hidden selection:bg-neon-purple selection:text-white">
-    
-    <!-- GLOBAL BG ANIMATION -->
-    <div class="fixed inset-0 z-[-1] pointer-events-none">
-         <div class="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-neon-purple/5 to-transparent"></div>
-    </div>
 
-    <!-- SIDEBAR (Desktop visible, Mobile hidden by default) -->
-    <%- include('sidebar') %>
+<body
+  class="bg-cosmic-void min-h-screen text-starlight overflow-x-hidden selection:bg-neon-purple selection:text-white">
+
+  <!-- GLOBAL BG ANIMATION -->
+  <div class="fixed inset-0 z-[-1] pointer-events-none">
+    <div class="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-neon-purple/5 to-transparent"></div>
+  </div>
+
+  <!-- SIDEBAR (Desktop visible, Mobile hidden by default) -->
+  <%- include('sidebar') %>
 
     <!-- MAIN CONTENT WRAPPER (Offset for sidebar on desktop, padding for fixed header) -->
     <div class="md:ml-64 transition-all duration-300">
-        <main class="pt-24 min-h-screen">
+      <main class="pt-24 min-h-screen">

@@ -1039,3 +1039,108 @@
 [data-theme="lumina"] i.text-error {
     /* Keep their original colors */
 }
+
+/* ============================================
+   STORY FEED / LICITACOES PAGE FIXES
+   ============================================ */
+
+/* Story card background - override oklch dark base */
+[data-theme="lumina"] .story-card {
+    background: #FFFFFF;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="lumina"] .story-card.active {
+    box-shadow: 0 30px 90px rgba(0, 112, 243, 0.15);
+}
+
+/* Story card header */
+[data-theme="lumina"] .story-card-header h3 {
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .story-card-header p {
+    color: #64748B;
+}
+
+/* Story feed container gradient */
+[data-theme="lumina"] .story-feed-container {
+    background: linear-gradient(to bottom, #F8FAFC, #E2E8F0);
+}
+
+/* Value spotlight */
+[data-theme="lumina"] .value-spotlight {
+    background: linear-gradient(135deg, rgba(0, 112, 243, 0.08), rgba(121, 40, 202, 0.05));
+    border-color: rgba(0, 112, 243, 0.2);
+}
+
+[data-theme="lumina"] .value-spotlight .value-label {
+    color: #64748B;
+}
+
+[data-theme="lumina"] .value-spotlight .value-amount {
+    color: #1A202C;
+}
+
+/* Object section in story feed */
+[data-theme="lumina"] .object-section {
+    background: rgba(0, 112, 243, 0.05);
+    border-left-color: #0070F3;
+}
+
+/* Score badge */
+[data-theme="lumina"] .score-badge {
+    background: linear-gradient(135deg, #0070F3, #3B82F6);
+}
+
+/* Deadline banner */
+[data-theme="lumina"] .deadline-banner {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Category tags */
+[data-theme="lumina"] .category-tag {
+    background: rgba(0, 0, 0, 0.05);
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .category-tag.tag-primary {
+    background: rgba(0, 112, 243, 0.1);
+    color: #0070F3;
+}
+
+/* Progress indicator */
+[data-theme="lumina"] .progress-indicator {
+    color: #4A5568;
+}
+
+/* Action buttons external */
+[data-theme="lumina"] .action-btn-external {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #4A5568;
+}
+
+[data-theme="lumina"] .action-btn-external:hover {
+    background: #0070F3;
+    color: #FFFFFF;
+}
+
+/* Items modal */
+[data-theme="lumina"] .items-modal-container {
+    background: #FFFFFF;
+    color: #1A202C;
+}
+
+[data-theme="lumina"] .items-modal-header {
+    background: rgba(0, 112, 243, 0.05);
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Org avatar */
+[data-theme="lumina"] .org-avatar {
+    background: linear-gradient(135deg, #0070F3, #3B82F6);
+    color: #FFFFFF;
+}
