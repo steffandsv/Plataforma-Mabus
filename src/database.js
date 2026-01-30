@@ -1420,7 +1420,102 @@ async function getLicitacaoArquivos(licitacaoId) {
     return rows;
 }
 
+/**
+ * Get licitações report data for AI consumption
+ * Filters items by situacao_item = 'Em andamento' and material_ou_servico = 'M'
+ * Groups by licitação with nested items and attached files
+ */
+async function getLicitacoesReportData(dataInicio, dataFim) {
+    const p = await getPool();
+    if (!p) return [];
+
+    // Query to get all matching items with licitacao data
+    const itemsQuery = `
+        SELECT 
+            li.id as item_id,
+            li.licitacao_id,
+            li.numero_item,
+            li.descricao_item,
+            li.quantidade,
+            li.unidade_medida,
+            li.valor_unitario_estimado,
+            li.valor_total_estimado,
+            l.razao_social_orgao,
+            l.objeto_compra,
+            l.data_publicacao_pncp,
+            l.numero_sequencial_pncp,
+            l.cnpj_orgao,
+            l.municipio_nome,
+            l.uf_sigla
+        FROM licitacoes_itens li
+        JOIN licitacoes l ON li.licitacao_id = l.id
+        WHERE li.situacao_item = 'Em andamento'
+          AND li.material_ou_servico = 'M'
+          AND l.data_publicacao_pncp >= $1
+          AND l.data_publicacao_pncp <= $2
+        ORDER BY l.data_publicacao_pncp DESC, l.id, li.numero_item ASC
+    `;
+
+    const { rows: items } = await p.query(itemsQuery, [dataInicio, dataFim]);
+
+    if (items.length === 0) return [];
+
+    // Get unique licitacao IDs to fetch files
+    const licitacaoIds = [...new Set(items.map(i => i.licitacao_id))];
+
+    // Fetch all files for these licitações in one query
+    const filesQuery = `
+        SELECT licitacao_id, titulo, url, tipo_documento_nome
+        FROM licitacoes_arquivos
+        WHERE licitacao_id = ANY($1) AND status_ativo = TRUE
+        ORDER BY licitacao_id, sequencial_documento
+    `;
+    const { rows: files } = await p.query(filesQuery, [licitacaoIds]);
+
+    // Group files by licitacao_id
+    const filesByLicitacao = {};
+    files.forEach(f => {
+        if (!filesByLicitacao[f.licitacao_id]) {
+            filesByLicitacao[f.licitacao_id] = [];
+        }
+        filesByLicitacao[f.licitacao_id].push({
+            titulo: f.titulo || f.tipo_documento_nome || 'Documento',
+            url: f.url
+        });
+    });
+
+    // Group items by licitacao and structure data
+    const licitacoesMap = new Map();
+    items.forEach(item => {
+        if (!licitacoesMap.has(item.licitacao_id)) {
+            licitacoesMap.set(item.licitacao_id, {
+                id: item.licitacao_id,
+                razao_social_orgao: item.razao_social_orgao,
+                objeto_compra: item.objeto_compra,
+                data_publicacao: item.data_publicacao_pncp,
+                numero_pncp: item.numero_sequencial_pncp,
+                cnpj_orgao: item.cnpj_orgao,
+                municipio: item.municipio_nome,
+                uf: item.uf_sigla,
+                arquivos: filesByLicitacao[item.licitacao_id] || [],
+                itens: []
+            });
+        }
+        licitacoesMap.get(item.licitacao_id).itens.push({
+            numero: item.numero_item,
+            descricao: item.descricao_item,
+            quantidade: item.quantidade,
+            unidade: item.unidade_medida,
+            valor_unitario: item.valor_unitario_estimado,
+            valor_total: item.valor_total_estimado
+        });
+    });
+
+    return Array.from(licitacoesMap.values());
+}
+
 async function getLicitacaoItens(licitacaoId) {
+
     const p = await getPool();
     if (!p) return [];
     const { rows } = await p.query(
@@ -2397,6 +2492,7 @@ module.exports = {
     getActiveSyncControl,
     getLatestSyncControl,
     getBatchStatus,
+    getLicitacoesReportData,
     // Preferences & Personalization
     getUserLicitacoesPreferences,
     updateUserLicitacoesPreferences,

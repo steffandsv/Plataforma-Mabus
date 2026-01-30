@@ -49,6 +49,7 @@ const {
     getActiveSyncControl,
     getLatestSyncControl,
     getBatchStatus,
+    getLicitacoesReportData,
     // Preferences & Personalization
     getUserLicitacoesPreferences,
     updateUserLicitacoesPreferences,
@@ -1443,6 +1444,85 @@ app.post('/admin/ai-config/save', isAdmin, async (req, res) => {
     } catch (e) {
         req.flash('error', e.message);
         res.redirect('/admin/ai-config');
+    }
+});
+
+// --- ADMIN LICITAÇÕES REPORT ---
+app.get('/admin/relatorio-licitacoes', isAdmin, async (req, res) => {
+    res.render('admin_relatorio_licitacoes');
+});
+
+app.post('/api/admin/relatorio-licitacoes', isAdmin, async (req, res) => {
+    try {
+        const { dataInicio, dataFim, formato } = req.body;
+
+        if (!dataInicio || !dataFim) {
+            return res.status(400).json({ error: 'Datas inicial e final são obrigatórias' });
+        }
+
+        const licitacoes = await getLicitacoesReportData(dataInicio, dataFim);
+
+        if (licitacoes.length === 0) {
+            return res.json({ 
+                success: true, 
+                data: [], 
+                markdown: '# Relatório de Licitações\n\n**Nenhuma licitação encontrada** para o período selecionado com itens em andamento (Material).',
+                mensagem: 'Nenhum resultado encontrado' 
+            });
+        }
+
+        // Generate AI-optimized Markdown output
+        let markdown = `# Relatório de Licitações - Itens em Andamento (Material)\n`;
+        markdown += `📅 Período: ${dataInicio} até ${dataFim}\n`;
+        markdown += `📊 Total: ${licitacoes.length} licitação(ões) | ${licitacoes.reduce((acc, l) => acc + l.itens.length, 0)} item(ns)\n\n---\n\n`;
+
+        licitacoes.forEach((lic, idx) => {
+            markdown += `## ${idx + 1}. ${lic.razao_social_orgao || 'Órgão não informado'}\n`;
+            markdown += `**Objeto:** ${lic.objeto_compra || 'Não informado'}\n\n`;
+            
+            if (lic.municipio && lic.uf) {
+                markdown += `📍 ${lic.municipio}/${lic.uf}\n`;
+            }
+            if (lic.cnpj_orgao) {
+                markdown += `🏢 CNPJ: ${lic.cnpj_orgao}\n`;
+            }
+            if (lic.numero_pncp) {
+                markdown += `🔢 PNCP: ${lic.numero_pncp}\n`;
+            }
+            
+            // Files section
+            if (lic.arquivos && lic.arquivos.length > 0) {
+                markdown += `\n📎 **Arquivos:** `;
+                markdown += lic.arquivos.map(a => `[${a.titulo}](${a.url})`).join(' | ');
+                markdown += `\n`;
+            }
+            
+            // Items table
+            markdown += `\n| # | Descrição | Qtd | Unid. | Valor Unit. Est. |\n`;
+            markdown += `|---|-----------|-----|-------|------------------|\n`;
+            
+            lic.itens.forEach(item => {
+                const valorFormatado = item.valor_unitario 
+                    ? `R$ ${parseFloat(item.valor_unitario).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    : 'N/I';
+                const descricaoTruncada = (item.descricao || '').substring(0, 80) + ((item.descricao || '').length > 80 ? '...' : '');
+                markdown += `| ${item.numero || '-'} | ${descricaoTruncada} | ${item.quantidade || '-'} | ${item.unidade || '-'} | ${valorFormatado} |\n`;
+            });
+            
+            markdown += `\n---\n\n`;
+        });
+
+        res.json({
+            success: true,
+            data: licitacoes,
+            markdown: markdown,
+            totalLicitacoes: licitacoes.length,
+            totalItens: licitacoes.reduce((acc, l) => acc + l.itens.length, 0)
+        });
+
+    } catch (e) {
+        console.error('[Relatório Licitações Error]:', e);
+        res.status(500).json({ error: e.message });
     }
 });
 
