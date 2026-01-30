@@ -1454,19 +1454,23 @@ app.get('/admin/relatorio-licitacoes', isAdmin, async (req, res) => {
 
 app.post('/api/admin/relatorio-licitacoes', isAdmin, async (req, res) => {
     try {
-        const { dataInicio, dataFim, formato } = req.body;
+        const { dataInicio, dataFim, downloadFile } = req.body;
 
         if (!dataInicio || !dataFim) {
             return res.status(400).json({ error: 'Datas inicial e final são obrigatórias' });
         }
 
-        const licitacoes = await getLicitacoesReportData(dataInicio, dataFim);
+        console.log(`[Relatório Licitações] Gerando relatório: ${dataInicio} até ${dataFim}`);
+        const result = await getLicitacoesReportData(dataInicio, dataFim);
+        const { data: licitacoes, debug } = result;
+
+        console.log('[Relatório Licitações] Debug:', JSON.stringify(debug, null, 2));
 
         if (licitacoes.length === 0) {
             return res.json({ 
                 success: true, 
-                data: [], 
-                markdown: '# Relatório de Licitações\n\n**Nenhuma licitação encontrada** para o período selecionado com itens em andamento (Material).',
+                hasData: false,
+                debug,
                 mensagem: 'Nenhum resultado encontrado' 
             });
         }
@@ -1512,12 +1516,23 @@ app.post('/api/admin/relatorio-licitacoes', isAdmin, async (req, res) => {
             markdown += `\n---\n\n`;
         });
 
+        // If download requested, send as file
+        if (downloadFile) {
+            const filename = `relatorio_licitacoes_${dataInicio}_${dataFim}.md`;
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+            return res.send(markdown);
+        }
+
+        // Return JSON with debug info (no markdown content to avoid overflow)
         res.json({
             success: true,
-            data: licitacoes,
-            markdown: markdown,
+            hasData: true,
+            debug,
             totalLicitacoes: licitacoes.length,
-            totalItens: licitacoes.reduce((acc, l) => acc + l.itens.length, 0)
+            totalItens: licitacoes.reduce((acc, l) => acc + l.itens.length, 0),
+            markdownSize: markdown.length,
+            markdownSizeKB: (markdown.length / 1024).toFixed(2)
         });
 
     } catch (e) {

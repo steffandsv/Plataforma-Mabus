@@ -11,18 +11,6 @@
         <p class="text-starlight/50 font-mono text-sm tracking-widest pl-1">Itens em Andamento (Material) • Otimizado para I.A.</p>
     </div>
 
-    <!-- Alerts -->
-    <% if (typeof success !== 'undefined' && success && success.length > 0) { %>
-        <div class="alert alert-success bg-success/10 border-success/20 text-success mb-6 backdrop-blur-md">
-            <i class="fas fa-check-circle"></i> <span><%= success %></span>
-        </div>
-    <% } %>
-    <% if (typeof error !== 'undefined' && error && error.length > 0) { %>
-        <div class="alert alert-error bg-error/10 border-error/20 text-error mb-6 backdrop-blur-md">
-            <i class="fas fa-exclamation-circle"></i> <span><%= error %></span>
-        </div>
-    <% } %>
-
     <!-- Date Selection Card -->
     <div class="glass-card p-6 mb-8">
         <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -30,14 +18,14 @@
         </h3>
         <form id="reportForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div class="form-control">
-                <label class="label"><span class="label-text text-starlight/70">Data Inicial</span></label>
+                <label class="label" for="dataInicio"><span class="label-text text-starlight/70">Data Inicial</span></label>
                 <input type="date" id="dataInicio" name="dataInicio" 
-                       class="input input-bordered bg-black/20 border-white/10 focus:border-neon-blue text-white" required>
+                       class="input bg-black/20 border-white/10 focus:border-neon-blue text-white" required>
             </div>
             <div class="form-control">
-                <label class="label"><span class="label-text text-starlight/70">Data Final</span></label>
+                <label class="label" for="dataFim"><span class="label-text text-starlight/70">Data Final</span></label>
                 <input type="date" id="dataFim" name="dataFim" 
-                       class="input input-bordered bg-black/20 border-white/10 focus:border-neon-blue text-white" required>
+                       class="input bg-black/20 border-white/10 focus:border-neon-blue text-white" required>
             </div>
             <div class="form-control">
                 <button type="submit" id="btnGerar" class="btn btn-primary bg-neon-blue/20 border-neon-blue/50 text-neon-blue hover:bg-neon-blue/40 tracking-wider">
@@ -45,8 +33,8 @@
                 </button>
             </div>
             <div class="form-control">
-                <button type="button" id="btnCopiar" disabled class="btn btn-ghost border-white/20 text-starlight/50 hover:bg-white/10">
-                    <i class="fas fa-copy mr-2"></i>COPIAR MARKDOWN
+                <button type="button" id="btnDownload" disabled class="btn btn-ghost border-white/20 text-starlight/50 hover:bg-white/10">
+                    <i class="fas fa-download mr-2"></i>BAIXAR .MD
                 </button>
             </div>
         </form>
@@ -63,7 +51,7 @@
     <!-- Results Container -->
     <div id="resultsContainer" class="hidden">
         <!-- Stats Bar -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div class="glass-card p-4 flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full bg-neon-blue/20 flex items-center justify-center">
                     <i class="fas fa-building text-neon-blue text-xl"></i>
@@ -84,32 +72,33 @@
             </div>
             <div class="glass-card p-4 flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
-                    <i class="fas fa-robot text-success text-xl"></i>
+                    <i class="fas fa-file-alt text-success text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-starlight/50 text-xs uppercase tracking-wider">Tamanho</p>
+                    <p id="statSize" class="text-lg font-bold text-white">0 KB</p>
+                </div>
+            </div>
+            <div class="glass-card p-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-info/20 flex items-center justify-center">
+                    <i class="fas fa-robot text-info text-xl"></i>
                 </div>
                 <div>
                     <p class="text-starlight/50 text-xs uppercase tracking-wider">Formato</p>
-                    <p class="text-lg font-bold text-white">Markdown / I.A.</p>
+                    <p class="text-lg font-bold text-white">Markdown</p>
                 </div>
             </div>
         </div>
 
-        <!-- Markdown Output -->
+        <!-- Debug Log -->
         <div class="glass-card p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="fas fa-file-alt text-starlight"></i> Saída Otimizada para I.A.
+                    <i class="fas fa-terminal text-starlight"></i> Debug Log
                 </h3>
-                <div class="flex gap-2">
-                    <button id="btnCopiar2" class="btn btn-sm btn-ghost border-white/20 text-starlight hover:bg-white/10">
-                        <i class="fas fa-copy mr-1"></i> Copiar
-                    </button>
-                    <button id="btnDownload" class="btn btn-sm btn-ghost border-white/20 text-starlight hover:bg-white/10">
-                        <i class="fas fa-download mr-1"></i> Download .md
-                    </button>
-                </div>
             </div>
-            <div id="markdownOutput" class="bg-black/40 rounded-lg p-4 font-mono text-sm text-starlight/80 whitespace-pre-wrap max-h-[600px] overflow-y-auto border border-white/10">
-                <!-- Markdown content will be inserted here -->
+            <div id="debugOutput" class="bg-black/40 rounded-lg p-4 font-mono text-xs text-starlight/70 max-h-[300px] overflow-y-auto border border-white/10">
+                <!-- Debug info will be inserted here -->
             </div>
         </div>
     </div>
@@ -120,6 +109,8 @@
             <i class="fas fa-inbox text-5xl text-starlight/30 mb-4"></i>
             <p class="text-starlight/50 font-mono">Nenhuma licitação encontrada para o período selecionado.</p>
             <p class="text-starlight/30 text-sm mt-2">Verifique se existem itens com status "Em andamento" e tipo "Material".</p>
+            <!-- Debug info for empty results -->
+            <div id="emptyDebugOutput" class="mt-6 bg-black/40 rounded-lg p-4 font-mono text-xs text-starlight/50 text-left max-w-2xl mx-auto"></div>
         </div>
     </div>
 </div>
@@ -136,7 +127,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dataFim').value = hoje.toISOString().split('T')[0];
     document.getElementById('dataInicio').value = mes_atras.toISOString().split('T')[0];
     
-    let markdownContent = '';
+    let lastResult = null;
+    
+    // Format debug output
+    const formatDebug = (debug) => {
+        let output = '';
+        output += `📅 Data Início: ${debug.dataInicio}\n`;
+        output += `📅 Data Fim: ${debug.dataFim}\n`;
+        output += `⏱️ Query Start: ${debug.queryStartTime}\n`;
+        output += `⏱️ Query End: ${debug.queryEndTime || 'N/A'}\n`;
+        output += `\n--- ESTATÍSTICAS ---\n`;
+        output += `📊 Licitações no período: ${debug.totalLicitacoesInRange}\n`;
+        output += `📋 Itens "Em andamento": ${debug.totalItensEmAndamento}\n`;
+        output += `📦 Itens "Material": ${debug.totalItensMaterial}\n`;
+        output += `✅ Itens válidos (ambos filtros): ${debug.totalItensValidos}\n`;
+        output += `📎 Arquivos encontrados: ${debug.totalArquivos || 0}\n`;
+        output += `🏢 Licitações agrupadas: ${debug.totalLicitacoesAgrupadas || 0}\n`;
+        if (debug.errors && debug.errors.length > 0) {
+            output += `\n--- ERROS ---\n`;
+            debug.errors.forEach(e => { output += `❌ ${e}\n`; });
+        }
+        return output;
+    };
     
     // Form submission
     document.getElementById('reportForm').addEventListener('submit', async (e) => {
@@ -150,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('resultsContainer').classList.add('hidden');
         document.getElementById('emptyState').classList.add('hidden');
         document.getElementById('btnGerar').disabled = true;
+        document.getElementById('btnDownload').disabled = true;
         
         try {
             const response = await fetch('/api/admin/relatorio-licitacoes', {
@@ -159,21 +172,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             const result = await response.json();
+            lastResult = result;
             
             if (!response.ok) {
                 throw new Error(result.error || 'Erro ao gerar relatório');
             }
             
-            markdownContent = result.markdown;
-            
-            if (result.data.length === 0) {
+            if (!result.hasData) {
                 document.getElementById('emptyState').classList.remove('hidden');
+                document.getElementById('emptyDebugOutput').textContent = formatDebug(result.debug);
             } else {
                 document.getElementById('statLicitacoes').textContent = result.totalLicitacoes;
                 document.getElementById('statItens').textContent = result.totalItens;
-                document.getElementById('markdownOutput').textContent = result.markdown;
+                document.getElementById('statSize').textContent = `${result.markdownSizeKB} KB`;
+                document.getElementById('debugOutput').textContent = formatDebug(result.debug);
                 document.getElementById('resultsContainer').classList.remove('hidden');
-                document.getElementById('btnCopiar').disabled = false;
+                document.getElementById('btnDownload').disabled = false;
             }
             
         } catch (error) {
@@ -184,42 +198,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Copy buttons
-    const copyToClipboard = async () => {
-        if (!markdownContent) return;
+    // Download button - triggers file download
+    document.getElementById('btnDownload').addEventListener('click', async () => {
+        const dataInicio = document.getElementById('dataInicio').value;
+        const dataFim = document.getElementById('dataFim').value;
+        
+        document.getElementById('btnDownload').innerHTML = '<span class="loading loading-spinner loading-sm mr-2"></span>Gerando...';
+        document.getElementById('btnDownload').disabled = true;
         
         try {
-            await navigator.clipboard.writeText(markdownContent);
-            // Show feedback
-            const btn = event.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check mr-1"></i> Copiado!';
-            btn.classList.add('text-success');
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.classList.remove('text-success');
-            }, 2000);
-        } catch (err) {
-            alert('Erro ao copiar: ' + err.message);
+            const response = await fetch('/api/admin/relatorio-licitacoes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dataInicio, dataFim, downloadFile: true })
+            });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Erro ao baixar');
+            }
+            
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio_licitacoes_${dataInicio}_${dataFim}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            alert('Erro: ' + error.message);
+        } finally {
+            document.getElementById('btnDownload').innerHTML = '<i class="fas fa-download mr-2"></i>BAIXAR .MD';
+            document.getElementById('btnDownload').disabled = false;
         }
-    };
-    
-    document.getElementById('btnCopiar').addEventListener('click', copyToClipboard);
-    document.getElementById('btnCopiar2').addEventListener('click', copyToClipboard);
-    
-    // Download button
-    document.getElementById('btnDownload').addEventListener('click', () => {
-        if (!markdownContent) return;
-        
-        const blob = new Blob([markdownContent], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `relatorio_licitacoes_${document.getElementById('dataInicio').value}_${document.getElementById('dataFim').value}.md`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     });
 });
 </script>
